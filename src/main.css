@@ -1,7 +1,6 @@
 /* Global styles - Theme, font, utilities, animations and global components */
 
-/* CHANGE THE FONT BELOW TO WHATEVER YOU WANT */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,500;1,500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -9,106 +8,97 @@
 
 @layer base {
   :root {
-    /* Change the colors to match the design system */
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 40 60% 99%; /* #FDFDFB */
+    --foreground: 145 15% 15%; /* #1F2A24 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 145 15% 15%; /* #1F2A24 */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%; /* #FFFFFF */
+    --popover-foreground: 145 15% 15%; /* #1F2A24 */
 
-    --primary: 222.2 84% 4.9%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 140 23% 25%; /* #314E39 */
+    --primary-foreground: 40 60% 99%; /* #FDFDFB */
 
-    --secondary: 210 40% 98%;
-    --secondary-foreground: 222.2 84% 4.9%;
+    --secondary: 117 19% 51%; /* #6C976A */
+    --secondary-foreground: 40 60% 99%; /* #FDFDFB */
 
-    --muted: 210 40% 98%;
+    --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 98%;
-    --accent-foreground: 222.2 84% 4.9%;
+    --accent: 33 46% 57%; /* #C49761 */
+    --accent-foreground: 145 15% 15%; /* #1F2A24 */
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 140 23% 25% / 0.2;
+    --input: 140 23% 25% / 0.2;
+    --ring: 117 19% 51%; /* #6C976A */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 40 60% 99%;
+    --sidebar-foreground: 145 15% 15%;
+    --sidebar-primary: 140 23% 25%;
+    --sidebar-primary-foreground: 40 60% 99%;
+    --sidebar-accent: 33 46% 57%;
+    --sidebar-accent-foreground: 145 15% 15%;
+    --sidebar-border: 140 23% 25% / 0.2;
+    --sidebar-ring: 117 19% 51%;
 
-    --sidebar-foreground: 222.2 84% 4.9%;
-
-    --sidebar-primary: 222.2 84% 4.9%;
-
-    --sidebar-primary-foreground: 0 0% 100%;
-
-    --sidebar-accent: 210 40% 98%;
-
-    --sidebar-accent-foreground: 222.2 84% 4.9%;
-
-    --sidebar-border: 214.3 31.8% 91.4%;
-
-    --sidebar-ring: 222.2 84% 4.9%;
-
-    --chart-1: 34 100% 44%;
-    --chart-2: 189 100% 38%;
-    --chart-3: 209 100% 32%;
-    --chart-4: 42 100% 50%;
-    --chart-5: 33 100% 50%;
+    --chart-1: 140 23% 25%;
+    --chart-2: 117 19% 51%;
+    --chart-3: 33 46% 57%;
+    --chart-4: 140 23% 35%;
+    --chart-5: 117 19% 61%;
   }
 
   .dark {
-    /* Change the colors to match the design system consistent with the dark mode */
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 145 15% 8%; /* Darker greenish charcoal */
+    --foreground: 40 60% 99%; /* #FDFDFB */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 145 15% 10%;
+    --card-foreground: 40 60% 99%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 145 15% 8%;
+    --popover-foreground: 40 60% 99%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 84% 4.9%;
+    --primary: 117 19% 51%; /* #6C976A */
+    --primary-foreground: 145 15% 15%; /* #1F2A24 */
 
-    --secondary: 222.2 84% 4.9%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 140 23% 25%; /* #314E39 */
+    --secondary-foreground: 40 60% 99%; /* #FDFDFB */
 
-    --muted: 222.2 84% 4.9%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 145 15% 15%;
+    --muted-foreground: 215.4 16.3% 56.9%;
 
-    --accent: 222.2 84% 4.9%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 33 46% 57%; /* #C49761 */
+    --accent-foreground: 145 15% 15%; /* #1F2A24 */
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 72.2% 50.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 222.2 84% 4.9%;
-    --input: 222.2 84% 4.9%;
-    --ring: 214.3 31.8% 91.4%;
-    --sidebar-background: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 222.2 84% 4.9%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222.2 84% 4.9%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222.2 84% 4.9%;
-    --sidebar-ring: 222.2 84% 4.9%;
+    --border: 117 19% 51% / 0.2;
+    --input: 117 19% 51% / 0.2;
+    --ring: 33 46% 57%;
 
-    --chart-1: 270 100% 44%;
-    --chart-2: 164 100% 38%;
-    --chart-3: 43 100% 32%;
-    --chart-4: 340 100% 50%;
-    --chart-5: 10 100% 50%;
+    --sidebar-background: 145 15% 8%;
+    --sidebar-foreground: 40 60% 99%;
+    --sidebar-primary: 117 19% 51%;
+    --sidebar-primary-foreground: 145 15% 15%;
+    --sidebar-accent: 33 46% 57%;
+    --sidebar-accent-foreground: 145 15% 15%;
+    --sidebar-border: 117 19% 51% / 0.2;
+    --sidebar-ring: 33 46% 57%;
+
+    --chart-1: 117 19% 51%;
+    --chart-2: 140 23% 25%;
+    --chart-3: 33 46% 57%;
+    --chart-4: 117 19% 61%;
+    --chart-5: 140 23% 35%;
   }
 
-  /* NEVER REMOVE THIS */
   section[aria-label='Notifications alt+T'] {
     padding: 0 !important;
     margin: 0 !important;
@@ -116,7 +106,6 @@
 }
 
 @layer utilities {
-  /* KEEP ALL THE ANIMATIONS CLASSES THAT ARE USED BELOW */
   @keyframes accordion-down {
     from {
       height: 0;
