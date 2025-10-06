@@ -5,7 +5,7 @@ import {
   useState,
   ReactNode,
 } from 'react'
-import { User, Session, AuthError } from '@supabase/supabase-js'
+import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 
 interface AuthContextType {
@@ -14,12 +14,12 @@ interface AuthContextType {
   signUp: (
     email: string,
     password: string,
-  ) => Promise<{ error: AuthError | null }>
+  ) => Promise<{ error: any; data?: any }>
   signIn: (
     email: string,
     password: string,
-  ) => Promise<{ error: AuthError | null }>
-  signOut: () => Promise<{ error: AuthError | null }>
+  ) => Promise<{ error: any; data?: any }>
+  signOut: () => Promise<{ error: any }>
   loading: boolean
 }
 
@@ -47,33 +47,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false)
     })
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
     return () => subscription.unsubscribe()
   }, [])
 
   const signUp = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/login`
-    const { error } = await supabase.auth.signUp({
+    const redirectUrl = `${window.location.origin}/`
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
       },
     })
-    return { error }
+    return { data, error }
   }
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
-    return { error }
+    return { data, error }
   }
 
   const signOut = async () => {
