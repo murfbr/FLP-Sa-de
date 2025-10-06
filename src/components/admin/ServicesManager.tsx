@@ -37,6 +37,7 @@ import {
 import { Service } from '@/types'
 import { useToast } from '@/hooks/use-toast'
 import { PlusCircle, Edit, Trash2 } from 'lucide-react'
+import { Badge } from '../ui/badge'
 
 export const ServicesManager = () => {
   const [services, setServices] = useState<Service[]>([])
@@ -127,6 +128,7 @@ export const ServicesManager = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead>Duração</TableHead>
               <TableHead>Preço</TableHead>
               <TableHead className="text-right">Ações</TableHead>
@@ -136,6 +138,11 @@ export const ServicesManager = () => {
             {services.map((service) => (
               <TableRow key={service.id}>
                 <TableCell className="font-medium">{service.name}</TableCell>
+                <TableCell>
+                  <Badge variant="outline">
+                    {service.value_type === 'session' ? 'Sessão' : 'Mensal'}
+                  </Badge>
+                </TableCell>
                 <TableCell>{service.duration_minutes} min</TableCell>
                 <TableCell>{formatCurrency(service.price)}</TableCell>
                 <TableCell className="text-right space-x-2">

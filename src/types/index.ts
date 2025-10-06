@@ -4,6 +4,7 @@ export interface Service {
   description: string | null
   duration_minutes: number
   price: number
+  value_type: 'session' | 'monthly'
 }
 
 export interface Professional {
@@ -81,6 +82,7 @@ export interface RecurringAvailability {
   start_time: string
   end_time: string
   created_at: string
+  service_ids: string[] | null
 }
 
 export interface AvailabilityOverride {
@@ -91,4 +93,5 @@ export interface AvailabilityOverride {
   end_time: string
   is_available: boolean
   created_at: string
+  service_ids: string[] | null
 }

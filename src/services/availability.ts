@@ -55,6 +55,7 @@ export async function setRecurringAvailability(
     const newAvailabilities = availabilities.map((a) => ({
       ...a,
       professional_id: professionalId,
+      service_ids: a.service_ids?.length ? a.service_ids : null,
     }))
     const { error: insertError } = await supabase
       .from('professional_recurring_availability')

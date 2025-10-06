@@ -155,3 +155,31 @@ export async function getAppointmentsByClientId(
 
   return { data: data as Appointment[] | null, error }
 }
+
+export async function getCompletedAppointmentsCount(
+  startDate: string,
+  endDate: string,
+): Promise<{ data: number | null; error: any }> {
+  const { count, error } = await supabase
+    .from('appointments')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'completed')
+    .gte('schedules.start_time', startDate)
+    .lte('schedules.start_time', endDate)
+
+  return { data: count, error }
+}
+
+export async function getFutureAppointmentsCount(): Promise<{
+  data: number | null
+  error: any
+}> {
+  const now = new Date().toISOString()
+  const { count, error } = await supabase
+    .from('appointments')
+    .select('*', { count: 'exact', head: true })
+    .in('status', ['scheduled', 'confirmed'])
+    .gte('schedules.start_time', now)
+
+  return { data: count, error }
+}

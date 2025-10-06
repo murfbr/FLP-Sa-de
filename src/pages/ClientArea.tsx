@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import { getServices } from '@/services/services'
 import { getProfessionalsByService } from '@/services/professionals'
-import { getAvailableSchedules } from '@/services/schedules'
+import { getFilteredAvailableSchedules } from '@/services/schedules'
 import { bookAppointment } from '@/services/appointments'
 import { Service, Professional, Schedule } from '@/types'
 import { AvailableSlots } from '@/components/AvailableSlots'
@@ -58,12 +58,13 @@ const ClientArea = () => {
   const [bookingSuccess, setBookingSuccess] = useState(false)
 
   const fetchSchedules = useCallback(async () => {
-    if (selectedProfessional && selectedDate) {
+    if (selectedProfessional && selectedDate && selectedService) {
       setIsLoadingSchedules(true)
       setSchedules(null)
       setSelectedSlot(null)
-      const { data, error } = await getAvailableSchedules(
+      const { data, error } = await getFilteredAvailableSchedules(
         selectedProfessional.id,
+        selectedService.id,
         selectedDate,
       )
       if (error) {
@@ -77,7 +78,7 @@ const ClientArea = () => {
       }
       setIsLoadingSchedules(false)
     }
-  }, [selectedProfessional, selectedDate, toast])
+  }, [selectedProfessional, selectedDate, selectedService, toast])
 
   useEffect(() => {
     const loadServices = async () => {
@@ -152,7 +153,6 @@ const ClientArea = () => {
   const handleBooking = async () => {
     if (!selectedSlot || !selectedService || !user) return
     setIsBooking(true)
-    // In a real app, you'd get the client ID from the user's profile
     const { error } = await bookAppointment(
       selectedSlot.id,
       MOCK_CLIENT_ID,

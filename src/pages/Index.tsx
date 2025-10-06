@@ -2,7 +2,14 @@ import { useState, useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Users, Calendar, Stethoscope, Briefcase, BarChart } from 'lucide-react'
+import {
+  Users,
+  Calendar,
+  Stethoscope,
+  Briefcase,
+  BarChart,
+  LayoutDashboard,
+} from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { Professional, Client } from '@/types'
 import { getAllProfessionals } from '@/services/professionals'
@@ -12,6 +19,7 @@ import { ProfessionalsList } from '@/components/admin/ProfessionalsList'
 import { PatientsList } from '@/components/admin/PatientsList'
 import { ServicesManager } from '@/components/admin/ServicesManager'
 import { AgendaView } from '@/components/admin/AgendaView'
+import { KpiDashboard } from '@/components/admin/KpiDashboard'
 
 const AdminDashboard = () => {
   const { user } = useAuth()
@@ -45,10 +53,14 @@ const AdminDashboard = () => {
       </div>
 
       <Tabs defaultValue="overview">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-6">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 mb-6">
           <TabsTrigger value="overview">
             <BarChart className="w-4 h-4 mr-2" />
             Visão Geral
+          </TabsTrigger>
+          <TabsTrigger value="kpi">
+            <LayoutDashboard className="w-4 h-4 mr-2" />
+            Indicadores
           </TabsTrigger>
           <TabsTrigger value="agenda">
             <Calendar className="w-4 h-4 mr-2" />
@@ -108,6 +120,10 @@ const AdminDashboard = () => {
               </Card>
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="kpi">
+          <KpiDashboard />
         </TabsContent>
 
         <TabsContent value="agenda">

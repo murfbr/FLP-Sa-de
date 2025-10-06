@@ -13,6 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Service } from '@/types'
 
 const serviceSchema = z.object({
@@ -23,6 +24,7 @@ const serviceSchema = z.object({
     .int()
     .positive('A duração deve ser um número positivo.'),
   price: z.coerce.number().positive('O preço deve ser um número positivo.'),
+  value_type: z.enum(['session', 'monthly']),
 })
 
 type ServiceFormValues = z.infer<typeof serviceSchema>
@@ -45,6 +47,7 @@ export const ServiceForm = ({
       description: defaultValues?.description || '',
       duration_minutes: defaultValues?.duration_minutes || 60,
       price: defaultValues?.price || 0,
+      value_type: defaultValues?.value_type || 'session',
     },
   })
 
@@ -76,6 +79,36 @@ export const ServiceForm = ({
                   className="resize-none"
                   {...field}
                 />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="value_type"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Tipo de Valor</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="flex space-x-4"
+                >
+                  <FormItem className="flex items-center space-x-2">
+                    <FormControl>
+                      <RadioGroupItem value="session" />
+                    </FormControl>
+                    <FormLabel className="font-normal">Por Sessão</FormLabel>
+                  </FormItem>
+                  <FormItem className="flex items-center space-x-2">
+                    <FormControl>
+                      <RadioGroupItem value="monthly" />
+                    </FormControl>
+                    <FormLabel className="font-normal">Mensal</FormLabel>
+                  </FormItem>
+                </RadioGroup>
               </FormControl>
               <FormMessage />
             </FormItem>

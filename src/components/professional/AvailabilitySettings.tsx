@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -14,17 +14,30 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Trash2, PlusCircle } from 'lucide-react'
+import { Trash2, PlusCircle, ChevronsUpDown, Check } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   getRecurringAvailability,
   setRecurringAvailability,
 } from '@/services/availability'
+import { getServicesByProfessional } from '@/services/professionals'
 import { Skeleton } from '../ui/skeleton'
+import { Service } from '@/types'
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '../ui/command'
+import { cn } from '@/lib/utils'
 
 const timeSlotSchema = z.object({
   start_time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
   end_time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  service_ids: z.array(z.string()).nullable(),
 })
 
 const daySchema = z.object({
@@ -57,6 +70,7 @@ export const AvailabilitySettings = ({
   professionalId,
 }: AvailabilitySettingsProps) => {
   const { toast } = useToast()
+  const [services, setServices] = useState<Service[]>([])
   const {
     control,
     handleSubmit,
@@ -73,21 +87,23 @@ export const AvailabilitySettings = ({
     },
   })
 
-  const { fields, update } = useFieldArray({
-    control,
-    name: 'days',
-  })
+  const { fields } = useFieldArray({ control, name: 'days' })
 
   useEffect(() => {
-    async function loadAvailability() {
-      const { data } = await getRecurringAvailability(professionalId)
+    async function loadData() {
+      const [availRes, servicesRes] = await Promise.all([
+        getRecurringAvailability(professionalId),
+        getServicesByProfessional(professionalId),
+      ])
+      setServices(servicesRes.data || [])
       const newDays = weekDays.map((_, index) => {
         const daySlots =
-          data
+          availRes.data
             ?.filter((slot) => slot.day_of_week === index)
             .map((slot) => ({
               start_time: slot.start_time.slice(0, 5),
               end_time: slot.end_time.slice(0, 5),
+              service_ids: slot.service_ids,
             })) || []
         return {
           day_of_week: index,
@@ -97,7 +113,7 @@ export const AvailabilitySettings = ({
       })
       reset({ days: newDays })
     }
-    loadAvailability()
+    loadData()
   }, [professionalId, reset])
 
   const onSubmit = async (data: AvailabilityFormValues) => {
@@ -108,6 +124,7 @@ export const AvailabilitySettings = ({
           day_of_week: day.day_of_week,
           start_time: `${slot.start_time}:00`,
           end_time: `${slot.end_time}:00`,
+          service_ids: slot.service_ids,
         })),
       )
 
@@ -130,17 +147,15 @@ export const AvailabilitySettings = ({
     }
   }
 
-  if (isLoading) {
-    return <Skeleton className="h-96 w-full" />
-  }
+  if (isLoading) return <Skeleton className="h-96 w-full" />
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Horário de Trabalho Semanal</CardTitle>
         <CardDescription>
-          Defina seus horários recorrentes. Eles serão usados para gerar vagas
-          disponíveis para agendamento.
+          Defina seus horários e os serviços específicos para cada um. Se nenhum
+          serviço for selecionado, todos estarão disponíveis.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -177,7 +192,7 @@ export const AvailabilitySettings = ({
                         control={control}
                         render={({ field: { value: slots, onChange } }) => (
                           <>
-                            {slots.map((_, slotIndex) => (
+                            {slots.map((slot, slotIndex) => (
                               <div
                                 key={slotIndex}
                                 className="flex items-center gap-2"
@@ -195,6 +210,73 @@ export const AvailabilitySettings = ({
                                   control={control}
                                   render={({ field }) => (
                                     <Input type="time" {...field} />
+                                  )}
+                                />
+                                <Controller
+                                  name={`days.${dayIndex}.slots.${slotIndex}.service_ids`}
+                                  control={control}
+                                  render={({ field }) => (
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          role="combobox"
+                                          className="w-[200px] justify-between"
+                                        >
+                                          {field.value && field.value.length > 0
+                                            ? `${field.value.length} serviço(s)`
+                                            : 'Todos os serviços'}
+                                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-[200px] p-0">
+                                        <Command>
+                                          <CommandInput placeholder="Buscar serviço..." />
+                                          <CommandList>
+                                            <CommandEmpty>
+                                              Nenhum serviço encontrado.
+                                            </CommandEmpty>
+                                            <CommandGroup>
+                                              {services.map((service) => (
+                                                <CommandItem
+                                                  key={service.id}
+                                                  value={service.name}
+                                                  onSelect={() => {
+                                                    const currentIds =
+                                                      field.value || []
+                                                    const newIds =
+                                                      currentIds.includes(
+                                                        service.id,
+                                                      )
+                                                        ? currentIds.filter(
+                                                            (id) =>
+                                                              id !== service.id,
+                                                          )
+                                                        : [
+                                                            ...currentIds,
+                                                            service.id,
+                                                          ]
+                                                    field.onChange(newIds)
+                                                  }}
+                                                >
+                                                  <Check
+                                                    className={cn(
+                                                      'mr-2 h-4 w-4',
+                                                      field.value?.includes(
+                                                        service.id,
+                                                      )
+                                                        ? 'opacity-100'
+                                                        : 'opacity-0',
+                                                    )}
+                                                  />
+                                                  {service.name}
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
+                                          </CommandList>
+                                        </Command>
+                                      </PopoverContent>
+                                    </Popover>
                                   )}
                                 />
                                 <Button
@@ -218,7 +300,11 @@ export const AvailabilitySettings = ({
                               onClick={() =>
                                 onChange([
                                   ...slots,
-                                  { start_time: '09:00', end_time: '17:00' },
+                                  {
+                                    start_time: '09:00',
+                                    end_time: '17:00',
+                                    service_ids: null,
+                                  },
                                 ])
                               }
                             >
