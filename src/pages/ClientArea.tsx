@@ -23,15 +23,19 @@ import {
   Calendar as CalendarIcon,
   User,
   Stethoscope,
+  CheckCircle,
 } from 'lucide-react'
 import { getServices } from '@/services/services'
 import { getProfessionalsByService } from '@/services/professionals'
 import { getAvailableSchedules } from '@/services/schedules'
+import { bookAppointment } from '@/services/appointments'
 import { Service, Professional, Schedule } from '@/types'
 import { AvailableSlots } from '@/components/AvailableSlots'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+
+const MOCK_CLIENT_ID = '8a3c6d2e-4b5f-4c6d-8e9f-0a1b2c3d4e5f' // Carlos Pereira
 
 const ClientArea = () => {
   const { toast } = useToast()
@@ -47,9 +51,33 @@ const ClientArea = () => {
   const [isLoadingServices, setIsLoadingServices] = useState(true)
   const [isLoadingProfessionals, setIsLoadingProfessionals] = useState(false)
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false)
+  const [isBooking, setIsBooking] = useState(false)
+  const [bookingSuccess, setBookingSuccess] = useState(false)
+
+  const fetchSchedules = useCallback(async () => {
+    if (selectedProfessional && selectedDate) {
+      setIsLoadingSchedules(true)
+      setSchedules(null)
+      setSelectedSlot(null)
+      const { data, error } = await getAvailableSchedules(
+        selectedProfessional,
+        selectedDate,
+      )
+      if (error) {
+        toast({
+          title: 'Erro ao buscar horários',
+          description: 'Tente novamente mais tarde.',
+          variant: 'destructive',
+        })
+      } else {
+        setSchedules(data)
+      }
+      setIsLoadingSchedules(false)
+    }
+  }, [selectedProfessional, selectedDate, toast])
 
   useEffect(() => {
-    const fetchServices = async () => {
+    const loadServices = async () => {
       setIsLoadingServices(true)
       const { data, error } = await getServices()
       if (error) {
@@ -63,8 +91,12 @@ const ClientArea = () => {
       }
       setIsLoadingServices(false)
     }
-    fetchServices()
+    loadServices()
   }, [toast])
+
+  useEffect(() => {
+    fetchSchedules()
+  }, [fetchSchedules])
 
   const handleServiceChange = useCallback(
     async (serviceId: string) => {
@@ -72,6 +104,7 @@ const ClientArea = () => {
       setSelectedProfessional(null)
       setSchedules(null)
       setSelectedSlot(null)
+      setBookingSuccess(false)
       setIsLoadingProfessionals(true)
       const { data, error } = await getProfessionalsByService(serviceId)
       if (error) {
@@ -80,8 +113,9 @@ const ClientArea = () => {
           description: 'Tente novamente mais tarde.',
           variant: 'destructive',
         })
-      } else if (data) {
-        setProfessionals(data)
+        setProfessionals([])
+      } else {
+        setProfessionals(data || [])
       }
       setIsLoadingProfessionals(false)
     },
@@ -92,51 +126,105 @@ const ClientArea = () => {
     setSelectedProfessional(professionalId)
     setSchedules(null)
     setSelectedSlot(null)
+    setBookingSuccess(false)
   }
-
-  useEffect(() => {
-    if (selectedProfessional && selectedDate) {
-      const fetchSchedules = async () => {
-        setIsLoadingSchedules(true)
-        setSchedules(null)
-        setSelectedSlot(null)
-        const { data, error } = await getAvailableSchedules(
-          selectedProfessional,
-          selectedDate,
-        )
-        if (error) {
-          toast({
-            title: 'Erro ao buscar horários',
-            description: 'Tente novamente mais tarde.',
-            variant: 'destructive',
-          })
-        } else {
-          setSchedules(data)
-        }
-        setIsLoadingSchedules(false)
-      }
-      fetchSchedules()
-    }
-  }, [selectedProfessional, selectedDate, toast])
 
   const handleDateChange = (date: Date | undefined) => {
     if (date) {
       setSelectedDate(date)
+      setBookingSuccess(false)
     }
   }
 
   const handleSlotSelect = (schedule: Schedule) => {
     setSelectedSlot(schedule)
-    toast({
-      title: 'Horário selecionado!',
-      description: `Próximo passo seria a confirmação do agendamento.`,
-    })
+    setBookingSuccess(false)
+  }
+
+  const handleBooking = async () => {
+    if (!selectedSlot || !selectedService) return
+    setIsBooking(true)
+    const { error } = await bookAppointment(
+      selectedSlot.id,
+      MOCK_CLIENT_ID,
+      selectedService,
+    )
+    if (error) {
+      toast({
+        title: 'Erro ao agendar',
+        description: error.message || 'Este horário não está mais disponível.',
+        variant: 'destructive',
+      })
+      setSelectedSlot(null)
+      fetchSchedules()
+    } else {
+      toast({
+        title: 'Agendamento confirmado!',
+        description: 'Sua sessão foi agendada com sucesso.',
+        className: 'bg-primary text-primary-foreground',
+      })
+      setBookingSuccess(true)
+    }
+    setIsBooking(false)
   }
 
   const serviceName = services.find((s) => s.id === selectedService)?.name
   const professionalName = professionals.find(
     (p) => p.id === selectedProfessional,
   )?.name
+
+  if (bookingSuccess && selectedSlot) {
+    return (
+      <div className="container mx-auto py-8 px-4 flex flex-col items-center justify-center text-center">
+        <Card className="w-full max-w-lg animate-fade-in-up">
+          <CardHeader>
+            <div className="mx-auto bg-primary text-primary-foreground rounded-full h-16 w-16 flex items-center justify-center mb-4">
+              <CheckCircle className="h-8 w-8" />
+            </div>
+            <CardTitle className="text-2xl">Agendamento Confirmado!</CardTitle>
+            <CardDescription>
+              Os detalhes da sua sessão foram enviados para o seu e-mail.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-left">
+            <p>
+              <strong>Serviço:</strong> {serviceName}
+            </p>
+            <p>
+              <strong>Profissional:</strong> {professionalName}
+            </p>
+            <p>
+              <strong>Data:</strong>{' '}
+              {format(
+                new Date(selectedSlot.start_time),
+                "EEEE, dd 'de' MMMM 'de' yyyy",
+                { locale: ptBR },
+              )}
+            </p>
+            <p>
+              <strong>Horário:</strong>{' '}
+              {format(new Date(selectedSlot.start_time), 'HH:mm')}
+            </p>
+          </CardContent>
+          <CardFooter className="flex-col gap-4">
+            <Button
+              className="w-full"
+              onClick={() => {
+                setBookingSuccess(false)
+                setSelectedSlot(null)
+                fetchSchedules()
+              }}
+            >
+              Agendar outra sessão
+            </Button>
+            <Button variant="ghost" asChild>
+              <Link to="/">Voltar para o início</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -203,7 +291,13 @@ const ClientArea = () => {
                     disabled={professionals.length === 0}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione um profissional" />
+                      <SelectValue
+                        placeholder={
+                          professionals.length > 0
+                            ? 'Selecione um profissional'
+                            : 'Nenhum profissional disponível'
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {professionals.map((prof) => (
@@ -256,46 +350,23 @@ const ClientArea = () => {
                   />
                 </div>
               </CardContent>
+              {selectedSlot && (
+                <CardFooter>
+                  <Button
+                    className="w-full"
+                    onClick={handleBooking}
+                    disabled={isBooking}
+                  >
+                    {isBooking
+                      ? 'Confirmando...'
+                      : `Confirmar Horário: ${format(new Date(selectedSlot.start_time), 'HH:mm')}`}
+                  </Button>
+                </CardFooter>
+              )}
             </Card>
           </div>
         )}
       </div>
-      {selectedSlot && (
-        <Card className="mt-8 animate-fade-in-up">
-          <CardHeader>
-            <CardTitle>Resumo do Agendamento</CardTitle>
-            <CardDescription>
-              Confira os detalhes abaixo. O próximo passo seria a confirmação e
-              pagamento.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 text-md">
-              <p>
-                <strong>Serviço:</strong> {serviceName}
-              </p>
-              <p>
-                <strong>Profissional:</strong> {professionalName}
-              </p>
-              <p>
-                <strong>Data:</strong>{' '}
-                {format(
-                  new Date(selectedSlot.start_time),
-                  "EEEE, dd 'de' MMMM 'de' yyyy",
-                  { locale: ptBR },
-                )}
-              </p>
-              <p>
-                <strong>Horário:</strong>{' '}
-                {format(new Date(selectedSlot.start_time), 'HH:mm')}
-              </p>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full">Confirmar Agendamento (Em breve)</Button>
-          </CardFooter>
-        </Card>
-      )}
     </div>
   )
 }

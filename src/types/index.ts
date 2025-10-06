@@ -18,3 +18,53 @@ export interface Schedule {
   end_time: string
   is_booked: boolean
 }
+
+export interface Client {
+  id: string
+  user_id?: string | null
+  name: string
+  email: string
+  phone?: string | null
+}
+
+export interface Appointment {
+  id: string
+  client_id: string
+  professional_id: string
+  service_id: string
+  schedule_id: string
+  status: string
+  notes: string | null
+  created_at: string
+  clients: Client
+  professionals: Professional
+  services: Service
+  schedules: Schedule
+}
+
+export interface Package {
+  id: string
+  name: string
+  description: string | null
+  service_id: string
+  session_count: number
+  price: number
+}
+
+export interface ClientPackage {
+  id: string
+  client_id: string
+  package_id: string
+  purchase_date: string
+  sessions_remaining: number
+}
+
+export interface FinancialRecord {
+  id: string
+  client_id: string
+  appointment_id: string | null
+  client_package_id: string | null
+  amount: number
+  payment_date: string
+  description: string | null
+}
