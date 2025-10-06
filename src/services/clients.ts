@@ -27,3 +27,27 @@ export async function getClientsByProfessional(
 
   return { data: clients, error: clientError }
 }
+
+export async function getAllClients(): Promise<{
+  data: Client[] | null
+  error: any
+}> {
+  const { data, error } = await supabase
+    .from('clients')
+    .select('*')
+    .order('name', { ascending: true })
+
+  return { data, error }
+}
+
+export async function getClientById(
+  clientId: string,
+): Promise<{ data: Client | null; error: any }> {
+  const { data, error } = await supabase
+    .from('clients')
+    .select('*')
+    .eq('id', clientId)
+    .single()
+
+  return { data, error }
+}

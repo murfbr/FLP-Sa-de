@@ -11,6 +11,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import ClientArea from './pages/ClientArea'
 import ProfessionalArea from './pages/ProfessionalArea'
+import PatientDetail from './pages/admin/PatientDetail'
 import NotFound from './pages/NotFound'
 
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
@@ -26,7 +27,14 @@ const App = () => (
         <Sonner />
         <Routes>
           <Route element={<Layout />}>
-            <Route path="/" element={<Index />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Index />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route
@@ -42,6 +50,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ProfessionalArea />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/pacientes/:id"
+              element={
+                <ProtectedRoute>
+                  <PatientDetail />
                 </ProtectedRoute>
               }
             />

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import { Appointment } from '@/types'
+import { format } from 'date-fns'
 
 export async function bookAppointment(
   scheduleId: string,
@@ -82,4 +83,75 @@ export async function getAppointmentsByProfessionalForRange(
   }) as Appointment[] | null
 
   return { data: appointmentsWithSchedule, error: null }
+}
+
+export async function getAllAppointments(
+  professionalId?: string,
+): Promise<{ data: Appointment[] | null; error: any }> {
+  let query = supabase
+    .from('appointments')
+    .select(
+      `
+      id,
+      status,
+      clients (id, name, email),
+      professionals (id, name),
+      services (id, name),
+      schedules (start_time, end_time)
+    `,
+    )
+    .order('schedules(start_time)', { ascending: false })
+
+  if (professionalId && professionalId !== 'all') {
+    query = query.eq('professional_id', professionalId)
+  }
+
+  const { data, error } = await query
+
+  return { data: data as Appointment[] | null, error }
+}
+
+export async function getUpcomingAppointments(): Promise<{
+  data: Appointment[] | null
+  error: any
+}> {
+  const now = new Date().toISOString()
+  const { data, error } = await supabase
+    .from('appointments')
+    .select(
+      `
+      id,
+      status,
+      clients (id, name),
+      professionals (id, name),
+      services (id, name),
+      schedules (start_time)
+    `,
+    )
+    .gte('schedules.start_time', now)
+    .order('schedules(start_time)', { ascending: true })
+    .limit(5)
+
+  return { data: data as Appointment[] | null, error }
+}
+
+export async function getAppointmentsByClientId(
+  clientId: string,
+): Promise<{ data: Appointment[] | null; error: any }> {
+  const { data, error } = await supabase
+    .from('appointments')
+    .select(
+      `
+      id,
+      status,
+      created_at,
+      professionals (id, name),
+      services (id, name),
+      schedules (start_time, end_time)
+    `,
+    )
+    .eq('client_id', clientId)
+    .order('schedules(start_time)', { ascending: false })
+
+  return { data: data as Appointment[] | null, error }
 }

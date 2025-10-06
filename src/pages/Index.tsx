@@ -1,81 +1,169 @@
-import { Link } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { ArrowRight, User, Briefcase } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Users, Calendar, Stethoscope, Briefcase, BarChart } from 'lucide-react'
+import { useAuth } from '@/hooks/use-auth'
+import { Professional, Client } from '@/types'
+import { getAllProfessionals } from '@/services/professionals'
+import { getAllClients } from '@/services/clients'
+import { UpcomingAppointments } from '@/components/admin/UpcomingAppointments'
+import { ProfessionalsList } from '@/components/admin/ProfessionalsList'
+import { PatientsList } from '@/components/admin/PatientsList'
+import { ServicesManager } from '@/components/admin/ServicesManager'
+import { AgendaView } from '@/components/admin/AgendaView'
 
-const Index = () => {
+const AdminDashboard = () => {
+  const { user } = useAuth()
+  const [professionals, setProfessionals] = useState<Professional[]>([])
+  const [clients, setClients] = useState<Client[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true)
+      const [profRes, clientRes] = await Promise.all([
+        getAllProfessionals(),
+        getAllClients(),
+      ])
+      if (profRes.data) setProfessionals(profRes.data)
+      if (clientRes.data) setClients(clientRes.data)
+      setIsLoading(false)
+    }
+    fetchData()
+  }, [])
+
   return (
-    <div className="container mx-auto py-12 px-4">
-      <section className="text-center mb-16 animate-fade-in-up">
-        <h1 className="text-5xl md:text-6xl font-bold font-sans tracking-tight mb-4">
-          Bem-vindo à FPL Saúde
+    <div className="container mx-auto py-8 px-4">
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold font-sans">
+          Dashboard Administrativo
         </h1>
-        <p className="text-xl text-muted-foreground mb-2">
-          Sua jornada para o bem-estar começa aqui.
+        <p className="text-lg text-muted-foreground">
+          Bem-vindo, {user?.email || 'Administrador'}.
         </p>
-        <p className="font-serif italic text-2xl text-secondary font-medium">
-          Cuidando de você em cada movimento.
-        </p>
-      </section>
+      </div>
 
-      <section
-        className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto animate-fade-in-up"
-        style={{ animationDelay: '0.3s' }}
-      >
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <User className="w-8 h-8 text-primary" />
-              <CardTitle className="text-2xl font-sans font-semibold">
-                Área do Cliente
-              </CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <CardDescription className="mb-6">
-              Acesse seus agendamentos, pacotes e acompanhe sua evolução de
-              forma simples e rápida.
-            </CardDescription>
-            <Button asChild className="w-full">
-              <Link to="/cliente">
-                Acessar Portal do Cliente{' '}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="overview">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-6">
+          <TabsTrigger value="overview">
+            <BarChart className="w-4 h-4 mr-2" />
+            Visão Geral
+          </TabsTrigger>
+          <TabsTrigger value="agenda">
+            <Calendar className="w-4 h-4 mr-2" />
+            Agenda
+          </TabsTrigger>
+          <TabsTrigger value="professionals">
+            <Briefcase className="w-4 h-4 mr-2" />
+            Profissionais
+          </TabsTrigger>
+          <TabsTrigger value="patients">
+            <Users className="w-4 h-4 mr-2" />
+            Pacientes
+          </TabsTrigger>
+          <TabsTrigger value="services">
+            <Stethoscope className="w-4 h-4 mr-2" />
+            Serviços
+          </TabsTrigger>
+        </TabsList>
 
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <Briefcase className="w-8 h-8 text-secondary" />
-              <CardTitle className="text-2xl font-sans font-semibold">
-                Área do Profissional
-              </CardTitle>
+        <TabsContent value="overview">
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="md:col-span-2">
+              <UpcomingAppointments />
             </div>
-          </CardHeader>
-          <CardContent>
-            <CardDescription className="mb-6">
-              Gerencie sua agenda, pacientes e faturamento com ferramentas
-              exclusivas para profissionais.
-            </CardDescription>
-            <Button asChild variant="secondary" className="w-full">
-              <Link to="/profissional">
-                Acessar Portal do Profissional{' '}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </section>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profissionais</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <Skeleton className="h-10 w-24" />
+                  ) : (
+                    <div className="text-3xl font-bold">
+                      {professionals.length}
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Profissionais cadastrados
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pacientes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <Skeleton className="h-10 w-24" />
+                  ) : (
+                    <div className="text-3xl font-bold">{clients.length}</div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Pacientes ativos
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="agenda">
+          <Card>
+            <CardHeader>
+              <CardTitle>Agenda Centralizada</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AgendaView />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="professionals">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gerenciar Profissionais</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : (
+                <ProfessionalsList professionals={professionals} />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="patients">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gerenciar Pacientes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : (
+                <PatientsList patients={clients} />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="services">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gerenciar Serviços</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ServicesManager />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
 
-export default Index
+export default AdminDashboard

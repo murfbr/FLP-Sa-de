@@ -23,3 +23,15 @@ export async function getProfessionalsByService(
 
   return { data: professionals || null, error: null }
 }
+
+export async function getAllProfessionals(): Promise<{
+  data: Professional[] | null
+  error: any
+}> {
+  const { data, error } = await supabase
+    .from('professionals')
+    .select('*')
+    .order('name', { ascending: true })
+
+  return { data, error }
+}
