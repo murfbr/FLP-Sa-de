@@ -35,7 +35,7 @@ import { AvailableSlots } from '@/components/AvailableSlots'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { useAuth } from '@/hooks/use-auth'
+import { useAuth } from '@/providers/AuthProvider'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 const MOCK_CLIENT_ID = '8a3c6d2e-4b5f-4c6d-8e9f-0a1b2c3d4e5f' // This will be replaced by auth user

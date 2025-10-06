@@ -7,7 +7,7 @@ import { getAppointmentsByProfessional } from '@/services/appointments'
 import { getClientsByProfessional } from '@/services/clients'
 import { Appointment, Client } from '@/types'
 import { useToast } from '@/hooks/use-toast'
-import { useAuth } from '@/hooks/use-auth'
+import { useAuth } from '@/providers/AuthProvider'
 import { Agenda } from '@/components/professional/Agenda'
 
 const MOCK_PROFESSIONAL_ID = 'c4e6f8d0-3a4b-5c6d-7e8f-9a0b1c2d3e4f'
