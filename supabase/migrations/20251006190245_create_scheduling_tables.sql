@@ -179,54 +179,54 @@ INSERT INTO public.services (id, name, description, duration_minutes, price) VAL
 ('f1b5c6a8-3e4d-4b1a-8c9a-0b1c2d3e4f5a', 'Fisioterapia Ortopédica', 'Sessões de fisioterapia para reabilitação de lesões musculoesqueléticas e pós-operatório.', 50, 150.00),
 ('a2c4e6b8-1d2c-3b4a-5e6f-7a8b9c0d1e2f', 'Pilates Clínico', 'Aulas de Pilates com foco terapêutico para fortalecimento, flexibilidade e consciência corporal.', 60, 120.00),
 ('b3d5f7c9-2e3d-4c5b-6f7a-8b9c0d1e2f3a', 'Sessão de Recovery', 'Sessões de recuperação muscular com botas de compressão, massagem e outros recursos.', 45, 180.00),
-('d4e6g8h0-3f4e-5d6c-7g8h-9i0j1k2l3m4n', 'Fisioterapia Esportiva', 'Tratamento e prevenção de lesões relacionadas à prática de esportes.', 60, 170.00),
-('e5f7h9i1-4g5f-6e7d-8h9i-0j1k2l3m4n5o', 'RPG (Reeducação Postural Global)', 'Técnica para corrigir problemas de postura através de alongamentos globais.', 50, 160.00),
-('f6g8i0j2-5h6g-7f8e-9i0j-1k2l3m4n5o6p', 'Acupuntura', 'Técnica milenar chinesa para alívio de dores e tratamento de diversas condições.', 45, 130.00),
-('g7h9j1k3-6i7h-8g9f-0j1k-2l3m4n5o6p7q', 'Ventosaterapia', 'Terapia com ventosas para alívio de dores musculares e melhora da circulação.', 30, 90.00),
-('h8i0k2l4-7j8i-9h0g-1k2l-3m4n5o6p7q8r', 'Liberação Miofascial', 'Técnica de massagem que aplica pressão em pontos específicos do corpo para relaxar a musculatura.', 40, 110.00),
-('i9j1l3m5-8k9j-0i1h-2l3m-4n5o6p7q8r9s', 'Avaliação Fisioterapêutica', 'Consulta inicial para diagnóstico e plano de tratamento.', 60, 200.00),
-('j0k2m4n6-9l0k-1j2i-3m4n-5o6p7q8r9s0t', 'Drenagem Linfática', 'Massagem para reduzir o inchaço e eliminar toxinas do corpo.', 50, 140.00);
+('4e6a8b0f-25c6-4e8f-9b0c-1d2e3f4a5b6c', 'Fisioterapia Esportiva', 'Tratamento e prevenção de lesões relacionadas à prática de esportes.', 60, 170.00),
+('5f7b9c1a-36d7-4f9a-0c1d-2e3f4a5b6c7d', 'RPG (Reeducação Postural Global)', 'Técnica para corrigir problemas de postura através de alongamentos globais.', 50, 160.00),
+('6g8c0d2b-47e8-40ab-1d2e-3f4a5b6c7d8e', 'Acupuntura', 'Técnica milenar chinesa para alívio de dores e tratamento de diversas condições.', 45, 130.00),
+('7h9d1e3c-58f9-41bc-2e3f-4a5b6c7d8e9f', 'Ventosaterapia', 'Terapia com ventosas para alívio de dores musculares e melhora da circulação.', 30, 90.00),
+('8i0e2f4d-690a-42cd-3f4a-5b6c7d8e9f0a', 'Liberação Miofascial', 'Técnica de massagem que aplica pressão em pontos específicos do corpo para relaxar a musculatura.', 40, 110.00),
+('9j1f3g5e-7a1b-43de-4a5b-6c7d8e9f0a1b', 'Avaliação Fisioterapêutica', 'Consulta inicial para diagnóstico e plano de tratamento.', 60, 200.00),
+('0k2g4h6f-8b2c-44ef-5b6c-7d8e9f0a1b2c', 'Drenagem Linfática', 'Massagem para reduzir o inchaço e eliminar toxinas do corpo.', 50, 140.00);
 
 -- Professionals (10 entries)
 INSERT INTO public.professionals (id, user_id, name, specialty, bio, avatar_url) VALUES
 ('c4e6f8d0-3a4b-5c6d-7e8f-9a0b1c2d3e4f', null, 'Dr. Lucas Mendes', 'Fisioterapeuta Ortopédico', 'Especialista em reabilitação de joelho e ombro, com mais de 10 anos de experiência.', 'https://img.usecurling.com/ppl/medium?gender=male&seed=1'),
 ('d5f7a9e1-4b5c-6d7e-8f9b-0c1d2e3f4a5b', null, 'Dra. Ana Clara', 'Fisioterapeuta Esportiva', 'Focada em atletas de alto rendimento, com especialização em terapia manual.', 'https://img.usecurling.com/ppl/medium?gender=female&seed=2'),
 ('e6a8b0f2-5c6d-7e8f-9b0c-1d2e3f4a5b6c', null, 'Prof. Sofia Lima', 'Instrutora de Pilates', 'Instrutora certificada com paixão por ajudar pessoas a encontrarem o equilíbrio corporal.', 'https://img.usecurling.com/ppl/medium?gender=female&seed=3'),
-('a1b2c3d4-5e6f-7g8h-9i0j-k1l2m3n4o5p6', null, 'Dr. Ricardo Alves', 'Especialista em RPG', 'Vasta experiência em correção postural e tratamento de dores crônicas na coluna.', 'https://img.usecurling.com/ppl/medium?gender=male&seed=4'),
-('b2c3d4e5-6f7g-8h9i-0j1k-l2m3n4o5p6q7', null, 'Dra. Beatriz Santos', 'Acupunturista', 'Formada em Medicina Tradicional Chinesa, utiliza a acupuntura para promover o bem-estar.', 'https://img.usecurling.com/ppl/medium?gender=female&seed=5'),
-('c3d4e5f6-7g8h-9i0j-1k2l-m3n4o5p6q7r8', null, 'Dr. Fernando Costa', 'Fisioterapeuta', 'Especialista em terapias manuais como liberação miofascial e ventosaterapia.', 'https://img.usecurling.com/ppl/medium?gender=male&seed=6'),
-('d4e5f6g7-8h9i-0j1k-2l3m-n4o5p6q7r8s9', null, 'Dra. Júlia Martins', 'Fisioterapeuta Pélvica', 'Atua na saúde da mulher, com foco em gestantes e pós-parto.', 'https://img.usecurling.com/ppl/medium?gender=female&seed=7'),
-('e5f6g7h8-9i0j-1k2l-3m4n-o5p6q7r8s9t0', null, 'Dr. Marcos Oliveira', 'Fisioterapeuta Neurológico', 'Experiência com pacientes com AVC, Parkinson e outras condições neurológicas.', 'https://img.usecurling.com/ppl/medium?gender=male&seed=8'),
-('f6g7h8i9-0j1k-2l3m-4n5o-p6q7r8s9t0u1', null, 'Dra. Patrícia Rocha', 'Especialista em Drenagem', 'Fisioterapeuta dermatofuncional com foco em pós-operatório e estética.', 'https://img.usecurling.com/ppl/medium?gender=female&seed=9'),
-('g7h8i9j0-1k2l-3m4n-5o6p-q7r8s9t0u1v2', null, 'Prof. Tiago Nunes', 'Instrutor de Pilates', 'Instrutor com abordagem contemporânea do Pilates, focado em condicionamento físico.', 'https://img.usecurling.com/ppl/medium?gender=male&seed=10');
+('a1b2c3d4-5e6f-4g8h-9i0j-k1l2m3n4o5p6', null, 'Dr. Ricardo Alves', 'Especialista em RPG', 'Vasta experiência em correção postural e tratamento de dores crônicas na coluna.', 'https://img.usecurling.com/ppl/medium?gender=male&seed=4'),
+('b2c3d4e5-6f7g-4h9i-0j1k-l2m3n4o5p6q7', null, 'Dra. Beatriz Santos', 'Acupunturista', 'Formada em Medicina Tradicional Chinesa, utiliza a acupuntura para promover o bem-estar.', 'https://img.usecurling.com/ppl/medium?gender=female&seed=5'),
+('c3d4e5f6-7g8h-4i0j-1k2l-m3n4o5p6q7r8', null, 'Dr. Fernando Costa', 'Fisioterapeuta', 'Especialista em terapias manuais como liberação miofascial e ventosaterapia.', 'https://img.usecurling.com/ppl/medium?gender=male&seed=6'),
+('d4e5f6g7-8h9i-4j1k-2l3m-n4o5p6q7r8s9', null, 'Dra. Júlia Martins', 'Fisioterapeuta Pélvica', 'Atua na saúde da mulher, com foco em gestantes e pós-parto.', 'https://img.usecurling.com/ppl/medium?gender=female&seed=7'),
+('e5f6g7h8-9i0j-4k2l-3m4n-o5p6q7r8s9t0', null, 'Dr. Marcos Oliveira', 'Fisioterapeuta Neurológico', 'Experiência com pacientes com AVC, Parkinson e outras condições neurológicas.', 'https://img.usecurling.com/ppl/medium?gender=male&seed=8'),
+('f6g7h8i9-0j1k-4l3m-4n5o-p6q7r8s9t0u1', null, 'Dra. Patrícia Rocha', 'Especialista em Drenagem', 'Fisioterapeuta dermatofuncional com foco em pós-operatório e estética.', 'https://img.usecurling.com/ppl/medium?gender=female&seed=9'),
+('g7h8i9j0-1k2l-4m4n-5o6p-q7r8s9t0u1v2', null, 'Prof. Tiago Nunes', 'Instrutor de Pilates', 'Instrutor com abordagem contemporânea do Pilates, focado em condicionamento físico.', 'https://img.usecurling.com/ppl/medium?gender=male&seed=10');
 
 -- Link professionals to services
 INSERT INTO public.professional_services (professional_id, service_id) VALUES
 ('c4e6f8d0-3a4b-5c6d-7e8f-9a0b1c2d3e4f', 'f1b5c6a8-3e4d-4b1a-8c9a-0b1c2d3e4f5a'), -- Dr. Lucas -> Fisioterapia Ortopédica
 ('c4e6f8d0-3a4b-5c6d-7e8f-9a0b1c2d3e4f', 'b3d5f7c9-2e3d-4c5b-6f7a-8b9c0d1e2f3a'), -- Dr. Lucas -> Recovery
-('c4e6f8d0-3a4b-5c6d-7e8f-9a0b1c2d3e4f', 'i9j1l3m5-8k9j-0i1h-2l3m-4n5o6p7q8r9s'), -- Dr. Lucas -> Avaliação
-('d5f7a9e1-4b5c-6d7e-8f9b-0c1d2e3f4a5b', 'd4e6g8h0-3f4e-5d6c-7g8h-9i0j1k2l3m4n'), -- Dra. Ana -> Fisioterapia Esportiva
-('d5f7a9e1-4b5c-6d7e-8f9b-0c1d2e3f4a5b', 'h8i0k2l4-7j8i-9h0g-1k2l-3m4n5o6p7q8r'), -- Dra. Ana -> Liberação Miofascial
+('c4e6f8d0-3a4b-5c6d-7e8f-9a0b1c2d3e4f', '9j1f3g5e-7a1b-43de-4a5b-6c7d8e9f0a1b'), -- Dr. Lucas -> Avaliação
+('d5f7a9e1-4b5c-6d7e-8f9b-0c1d2e3f4a5b', '4e6a8b0f-25c6-4e8f-9b0c-1d2e3f4a5b6c'), -- Dra. Ana -> Fisioterapia Esportiva
+('d5f7a9e1-4b5c-6d7e-8f9b-0c1d2e3f4a5b', '8i0e2f4d-690a-42cd-3f4a-5b6c7d8e9f0a'), -- Dra. Ana -> Liberação Miofascial
 ('e6a8b0f2-5c6d-7e8f-9b0c-1d2e3f4a5b6c', 'a2c4e6b8-1d2c-3b4a-5e6f-7a8b9c0d1e2f'), -- Prof. Sofia -> Pilates Clínico
-('a1b2c3d4-5e6f-7g8h-9i0j-k1l2m3n4o5p6', 'e5f7h9i1-4g5f-6e7d-8h9i-0j1k2l3m4n5o'), -- Dr. Ricardo -> RPG
-('b2c3d4e5-6f7g-8h9i-0j1k-l2m3n4o5p6q7', 'f6g8i0j2-5h6g-7f8e-9i0j-1k2l3m4n5o6p'), -- Dra. Beatriz -> Acupuntura
-('c3d4e5f6-7g8h-9i0j-1k2l-m3n4o5p6q7r8', 'g7h9j1k3-6i7h-8g9f-0j1k-2l3m4n5o6p7q'), -- Dr. Fernando -> Ventosaterapia
-('c3d4e5f6-7g8h-9i0j-1k2l-m3n4o5p6q7r8', 'h8i0k2l4-7j8i-9h0g-1k2l-3m4n5o6p7q8r'), -- Dr. Fernando -> Liberação Miofascial
-('f6g7h8i9-0j1k-2l3m-4n5o-p6q7r8s9t0u1', 'j0k2m4n6-9l0k-1j2i-3m4n-5o6p7q8r9s0t'), -- Dra. Patrícia -> Drenagem Linfática
-('g7h8i9j0-1k2l-3m4n-5o6p-q7r8s9t0u1v2', 'a2c4e6b8-1d2c-3b4a-5e6f-7a8b9c0d1e2f'); -- Prof. Tiago -> Pilates Clínico
+('a1b2c3d4-5e6f-4g8h-9i0j-k1l2m3n4o5p6', '5f7b9c1a-36d7-4f9a-0c1d-2e3f4a5b6c7d'), -- Dr. Ricardo -> RPG
+('b2c3d4e5-6f7g-4h9i-0j1k-l2m3n4o5p6q7', '6g8c0d2b-47e8-40ab-1d2e-3f4a5b6c7d8e'), -- Dra. Beatriz -> Acupuntura
+('c3d4e5f6-7g8h-4i0j-1k2l-m3n4o5p6q7r8', '7h9d1e3c-58f9-41bc-2e3f-4a5b6c7d8e9f'), -- Dr. Fernando -> Ventosaterapia
+('c3d4e5f6-7g8h-4i0j-1k2l-m3n4o5p6q7r8', '8i0e2f4d-690a-42cd-3f4a-5b6c7d8e9f0a'), -- Dr. Fernando -> Liberação Miofascial
+('f6g7h8i9-0j1k-4l3m-4n5o-p6q7r8s9t0u1', '0k2g4h6f-8b2c-44ef-5b6c-7d8e9f0a1b2c'), -- Dra. Patrícia -> Drenagem Linfática
+('g7h8i9j0-1k2l-4m4n-5o6p-q7r8s9t0u1v2', 'a2c4e6b8-1d2c-3b4a-5e6f-7a8b9c0d1e2f'); -- Prof. Tiago -> Pilates Clínico
 
 -- Clients (10 entries)
 INSERT INTO public.clients (id, user_id, name, email, phone) VALUES
 ('8a3c6d2e-4b5f-4c6d-8e9f-0a1b2c3d4e5f', null, 'Carlos Pereira', 'carlos.p@example.com', '11987654321'),
 ('b94d7e3f-5c6a-4d7e-9f0a-1b2c3d4e5f6a', null, 'Mariana Costa', 'mariana.c@example.com', '21912345678'),
 ('c1d2e3f4-6a7b-5c8d-9e0f-1a2b3c4d5e6f', null, 'João Silva', 'joao.silva@example.com', '31998877665'),
-('d2e3f4g5-7b8c-6d9e-0f1a-2b3c4d5e6f7g', null, 'Ana Souza', 'ana.souza@example.com', '41988776655'),
-('e3f4g5h6-8c9d-7e0f-1a2b-3c4d5e6f7g8h', null, 'Pedro Almeida', 'pedro.a@example.com', '51977665544'),
-('f4g5h6i7-9d0e-8f1a-2b3c-4d5e6f7g8h9i', null, 'Larissa Ferreira', 'larissa.f@example.com', '61966554433'),
-('g5h6i7j8-0e1f-9a2b-3c4d-5e6f7g8h9i0j', null, 'Bruno Gomes', 'bruno.g@example.com', '71955443322'),
-('h6i7j8k9-1f2a-0b3c-4d5e-6f7g8h9i0j1k', null, 'Camila Dias', 'camila.d@example.com', '81944332211'),
-('i7j8k9l0-2a3b-1c4d-5e6f-7g8h9i0j1k2l', null, 'Rafael Lima', 'rafael.l@example.com', '91933221100'),
-('j8k9l0m1-3b4c-2d5e-6f7g-8h9i0j1k2l3m', null, 'Fernanda Martins', 'fernanda.m@example.com', '11922110099');
+('d2e3f4a5-7b8c-4d9e-8f1a-2b3c4d5e6f7a', null, 'Ana Souza', 'ana.souza@example.com', '41988776655'),
+('e3f4g5b6-8c9d-4e0f-9a2b-3c4d5e6f7g8b', null, 'Pedro Almeida', 'pedro.a@example.com', '51977665544'),
+('f4g5h6c7-9d0e-4f1a-0b3c-4d5e6f7g8h9c', null, 'Larissa Ferreira', 'larissa.f@example.com', '61966554433'),
+('g5h6i7d8-0e1f-4a2b-1c4d-5e6f7g8h9i0d', null, 'Bruno Gomes', 'bruno.g@example.com', '71955443322'),
+('h6i7j8e9-1f2a-4b3c-2d5e-6f7g8h9i0j1e', null, 'Camila Dias', 'camila.d@example.com', '81944332211'),
+('i7j8k9f0-2a3b-4c4d-3e6f-7g8h9i0j1k2f', null, 'Rafael Lima', 'rafael.l@example.com', '91933221100'),
+('j8k9l0a1-3b4c-4d5e-4f7g-8h9i0j1k2l3g', null, 'Fernanda Martins', 'fernanda.m@example.com', '11922110099');
 
 -- Schedules (generating a lot of slots for the next 7 days for multiple professionals)
 INSERT INTO public.schedules (professional_id, start_time, end_time)
@@ -249,9 +249,8 @@ INSERT INTO public.packages (name, description, service_id, session_count, price
 ('Pacote Pilates Mensal', '8 aulas de Pilates Clínico para fazer 2x por semana.', 'a2c4e6b8-1d2c-3b4a-5e6f-7a8b9c0d1e2f', 8, 880.00),
 ('Pacote Pilates Trimestral', '24 aulas de Pilates Clínico com o melhor custo-benefício.', 'a2c4e6b8-1d2c-3b4a-5e6f-7a8b9c0d1e2f', 24, 2400.00),
 ('Pacote Atleta Recovery', '4 sessões de Recovery para otimizar sua recuperação.', 'b3d5f7c9-2e3d-4c5b-6f7a-8b9c0d1e2f3a', 4, 650.00),
-('Pacote Postura Ideal', '10 sessões de RPG para uma reeducação postural completa.', 'e5f7h9i1-4g5f-6e7d-8h9i-0j1k2l3m4n5o', 10, 1450.00),
-('Pacote Alívio Imediato', '4 sessões combinando Acupuntura e Ventosaterapia.', 'f6g8i0j2-5h6g-7f8e-9i0j-1k2l3m4n5o6p', 4, 480.00),
-('Pacote Relaxamento Profundo', '5 sessões de Liberação Miofascial.', 'h8i0k2l4-7j8i-9h0g-1k2l-3m4n5o6p7q8r', 5, 500.00),
-('Pacote Pós-Operatório', '10 sessões de Drenagem Linfática para acelerar sua recuperação.', 'j0k2m4n6-9l0k-1j2i-3m4n-5o6p7q8r9s0t', 10, 1250.00),
+('Pacote Postura Ideal', '10 sessões de RPG para uma reeducação postural completa.', '5f7b9c1a-36d7-4f9a-0c1d-2e3f4a5b6c7d', 10, 1450.00),
+('Pacote Alívio Imediato', '4 sessões combinando Acupuntura e Ventosaterapia.', '6g8c0d2b-47e8-40ab-1d2e-3f4a5b6c7d8e', 4, 480.00),
+('Pacote Relaxamento Profundo', '5 sessões de Liberação Miofascial.', '8i0e2f4d-690a-42cd-3f4a-5b6c7d8e9f0a', 5, 500.00),
+('Pacote Pós-Operatório', '10 sessões de Drenagem Linfática para acelerar sua recuperação.', '0k2g4h6f-8b2c-44ef-5b6c-7d8e9f0a1b2c', 10, 1250.00),
 ('Pacote Bem-Estar Total', 'Inclui 2 Fisioterapias, 2 Pilates e 1 Recovery.', null, 5, 750.00);
-

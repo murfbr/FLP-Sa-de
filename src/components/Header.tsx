@@ -79,7 +79,7 @@ export const Header = () => {
                 <Link to="/login">Entrar</Link>
               </Button>
               <Button asChild>
-                <Link to="#">Cadastre-se</Link>
+                <Link to="/register">Cadastre-se</Link>
               </Button>
             </>
           )}

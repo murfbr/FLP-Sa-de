@@ -11,6 +11,10 @@ import { supabase } from '@/lib/supabase/client'
 interface AuthContextType {
   user: User | null
   session: Session | null
+  signUp: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: AuthError | null }>
   signIn: (
     email: string,
     password: string,
@@ -52,6 +56,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe()
   }, [])
 
+  const signUp = async (email: string, password: string) => {
+    const redirectUrl = `${window.location.origin}/login`
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+      },
+    })
+    return { error }
+  }
+
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -68,6 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     user,
     session,
+    signUp,
     signIn,
     signOut,
     loading,

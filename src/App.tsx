@@ -8,6 +8,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 import Layout from './components/Layout'
 import Index from './pages/Index'
 import Login from './pages/Login'
+import Register from './pages/Register'
 import ClientArea from './pages/ClientArea'
 import ProfessionalArea from './pages/ProfessionalArea'
 import NotFound from './pages/NotFound'
@@ -27,6 +28,7 @@ const App = () => (
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
             <Route
               path="/cliente"
               element={

@@ -86,7 +86,7 @@ const Login = () => {
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               Não tem uma conta?{' '}
-              <Link to="#" className="underline hover:text-primary">
+              <Link to="/register" className="underline hover:text-primary">
                 Cadastre-se
               </Link>
             </p>
