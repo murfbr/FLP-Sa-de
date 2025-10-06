@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import { Professional } from '@/types'
+import { Professional, Service } from '@/types'
 
 type ProfessionalServiceLink = {
   professionals: Professional
@@ -34,4 +34,53 @@ export async function getAllProfessionals(): Promise<{
     .order('name', { ascending: true })
 
   return { data, error }
+}
+
+export async function getProfessionalById(
+  id: string,
+): Promise<{ data: Professional | null; error: any }> {
+  const { data, error } = await supabase
+    .from('professionals')
+    .select('*')
+    .eq('id', id)
+    .single()
+  return { data, error }
+}
+
+export async function getServicesByProfessional(
+  professionalId: string,
+): Promise<{ data: Service[] | null; error: any }> {
+  const { data, error } = await supabase
+    .from('professional_services')
+    .select('services(*)')
+    .eq('professional_id', professionalId)
+
+  if (error) {
+    return { data: null, error }
+  }
+
+  const services = data?.map((item: any) => item.services).filter(Boolean)
+  return { data: services || null, error: null }
+}
+
+export async function addServiceToProfessional(
+  professionalId: string,
+  serviceId: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from('professional_services')
+    .insert({ professional_id: professionalId, service_id: serviceId })
+  return { error }
+}
+
+export async function removeServiceFromProfessional(
+  professionalId: string,
+  serviceId: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from('professional_services')
+    .delete()
+    .eq('professional_id', professionalId)
+    .eq('service_id', serviceId)
+  return { error }
 }

@@ -12,6 +12,7 @@ import Register from './pages/Register'
 import ClientArea from './pages/ClientArea'
 import ProfessionalArea from './pages/ProfessionalArea'
 import PatientDetail from './pages/admin/PatientDetail'
+import ProfessionalDetail from './pages/admin/ProfessionalDetail'
 import NotFound from './pages/NotFound'
 
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
@@ -58,6 +59,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <PatientDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/profissionais/:id"
+              element={
+                <ProtectedRoute>
+                  <ProfessionalDetail />
                 </ProtectedRoute>
               }
             />

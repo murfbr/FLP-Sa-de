@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { LogOut, UserCircle } from 'lucide-react'
+import { LogOut, UserCircle, Briefcase, LayoutDashboard } from 'lucide-react'
 
 export const Header = () => {
   const { user, signOut } = useAuth()
@@ -62,9 +62,18 @@ export const Header = () => {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuLabel>Navegar como</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => navigate('/')}>
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  <span>Administrador</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/cliente')}>
                   <UserCircle className="mr-2 h-4 w-4" />
-                  <span>Minha Área</span>
+                  <span>Cliente</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/profissional')}>
+                  <Briefcase className="mr-2 h-4 w-4" />
+                  <span>Profissional</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>

@@ -1,6 +1,7 @@
 import { Professional } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useNavigate } from 'react-router-dom'
 
 interface ProfessionalsListProps {
   professionals: Professional[]
@@ -9,6 +10,12 @@ interface ProfessionalsListProps {
 export const ProfessionalsList = ({
   professionals,
 }: ProfessionalsListProps) => {
+  const navigate = useNavigate()
+
+  const handleCardClick = (professionalId: string) => {
+    navigate(`/admin/profissionais/${professionalId}`)
+  }
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -21,7 +28,11 @@ export const ProfessionalsList = ({
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {professionals.map((prof) => (
-        <Card key={prof.id}>
+        <Card
+          key={prof.id}
+          onClick={() => handleCardClick(prof.id)}
+          className="cursor-pointer hover:shadow-md transition-shadow"
+        >
           <CardHeader className="flex flex-row items-center gap-4">
             <Avatar>
               <AvatarImage src={prof.avatar_url || ''} alt={prof.name} />

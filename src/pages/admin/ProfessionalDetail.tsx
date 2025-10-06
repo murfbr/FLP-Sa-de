@@ -1,0 +1,105 @@
+import { useEffect, useState } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { getProfessionalById } from '@/services/professionals'
+import { Professional } from '@/types'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { ProfessionalServicesManager } from '@/components/admin/ProfessionalServicesManager'
+
+const ProfessionalDetail = () => {
+  const { id } = useParams<{ id: string }>()
+  const [professional, setProfessional] = useState<Professional | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchProfessional = async () => {
+      if (!id) return
+      setIsLoading(true)
+      const { data } = await getProfessionalById(id)
+      setProfessional(data)
+      setIsLoading(false)
+    }
+    fetchProfessional()
+  }, [id])
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase()
+  }
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8 px-4 space-y-6">
+        <Skeleton className="h-10 w-64" />
+        <div className="grid md:grid-cols-3 gap-6">
+          <Skeleton className="h-64 md:col-span-1" />
+          <Skeleton className="h-96 md:col-span-2" />
+        </div>
+      </div>
+    )
+  }
+
+  if (!professional) {
+    return (
+      <div className="container mx-auto py-8 px-4 text-center">
+        <h2 className="text-2xl font-bold">Profissional não encontrado</h2>
+        <Button asChild className="mt-4">
+          <Link to="/">Voltar ao Dashboard</Link>
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="container mx-auto py-8 px-4">
+      <Button asChild variant="outline" className="mb-6">
+        <Link to="/">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Voltar ao Dashboard
+        </Link>
+      </Button>
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="md:col-span-1 space-y-6">
+          <Card>
+            <CardHeader className="items-center text-center">
+              <Avatar className="w-24 h-24 mb-4">
+                <AvatarImage
+                  src={professional.avatar_url || ''}
+                  alt={professional.name}
+                />
+                <AvatarFallback className="text-3xl">
+                  {getInitials(professional.name)}
+                </AvatarFallback>
+              </Avatar>
+              <CardTitle className="text-2xl">{professional.name}</CardTitle>
+              <CardDescription>{professional.specialty}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground text-center">
+                {professional.bio || 'Nenhuma biografia disponível.'}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="md:col-span-2">
+          <ProfessionalServicesManager professionalId={professional.id} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default ProfessionalDetail
