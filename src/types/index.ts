@@ -73,3 +73,22 @@ export interface FinancialRecord {
   payment_date: string
   description: string | null
 }
+
+export interface RecurringAvailability {
+  id: string
+  professional_id: string
+  day_of_week: number
+  start_time: string
+  end_time: string
+  created_at: string
+}
+
+export interface AvailabilityOverride {
+  id: string
+  professional_id: string
+  override_date: string
+  start_time: string
+  end_time: string
+  is_available: boolean
+  created_at: string
+}

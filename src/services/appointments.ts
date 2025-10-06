@@ -39,3 +39,47 @@ export async function getAppointmentsByProfessional(
 
   return { data: data as Appointment[] | null, error }
 }
+
+export async function getAppointmentsByProfessionalForRange(
+  professionalId: string,
+  startDate: string,
+  endDate: string,
+): Promise<{ data: Appointment[] | null; error: any }> {
+  const { data: schedules, error: schedulesError } = await supabase
+    .from('schedules')
+    .select('id, start_time, end_time')
+    .eq('professional_id', professionalId)
+    .gte('start_time', startDate)
+    .lte('start_time', endDate)
+
+  if (schedulesError) return { data: null, error: schedulesError }
+  if (!schedules || schedules.length === 0) return { data: [], error: null }
+
+  const scheduleIds = schedules.map((s) => s.id)
+
+  const { data: appointments, error: appointmentsError } = await supabase
+    .from('appointments')
+    .select(
+      `
+      id,
+      status,
+      notes,
+      schedule_id,
+      clients (id, name, email),
+      services (id, name, duration_minutes)
+    `,
+    )
+    .in('schedule_id', scheduleIds)
+
+  if (appointmentsError) return { data: null, error: appointmentsError }
+
+  const appointmentsWithSchedule = appointments?.map((appt) => {
+    const schedule = schedules.find((s) => s.id === appt.schedule_id)
+    return {
+      ...appt,
+      schedules: schedule,
+    }
+  }) as Appointment[] | null
+
+  return { data: appointmentsWithSchedule, error: null }
+}

@@ -1,18 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DashboardStats } from '@/components/professional/DashboardStats'
-import { UpcomingAppointments } from '@/components/professional/UpcomingAppointments'
 import { ClientsTable } from '@/components/professional/ClientsTable'
 import { getAppointmentsByProfessional } from '@/services/appointments'
 import { getClientsByProfessional } from '@/services/clients'
 import { Appointment, Client } from '@/types'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
+import { Agenda } from '@/components/professional/Agenda'
 
-// In a real app, this would be fetched from a 'profiles' table based on the authenticated user.
-const MOCK_PROFESSIONAL_ID = 'c4e6f8d0-3a4b-5c6d-7e8f-9a0b1c2d3e4f' // Dr. Lucas Mendes
+const MOCK_PROFESSIONAL_ID = 'c4e6f8d0-3a4b-5c6d-7e8f-9a0b1c2d3e4f'
 
 const ProfessionalArea = () => {
   const { toast } = useToast()
@@ -26,8 +24,6 @@ const ProfessionalArea = () => {
       if (!user) return
       setIsLoading(true)
       try {
-        // Here you would fetch the professional's profile based on user.id
-        // and use their professional_id for the queries.
         const [apptRes, clientRes] = await Promise.all([
           getAppointmentsByProfessional(MOCK_PROFESSIONAL_ID),
           getClientsByProfessional(MOCK_PROFESSIONAL_ID),
@@ -66,7 +62,7 @@ const ProfessionalArea = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="overview">
+      <Tabs defaultValue="schedule">
         <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="schedule">Agenda</TabsTrigger>
@@ -80,39 +76,21 @@ const ProfessionalArea = () => {
             <DashboardStats
               appointmentsToday={appointmentsToday}
               totalClients={clients.length}
-              monthlyRevenue={5420.5} // Mocked for now
+              monthlyRevenue={5420.5}
             />
           )}
         </TabsContent>
 
         <TabsContent value="schedule">
-          <Card>
-            <CardHeader>
-              <CardTitle>Próximos Agendamentos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : (
-                <UpcomingAppointments appointments={appointments} />
-              )}
-            </CardContent>
-          </Card>
+          <Agenda />
         </TabsContent>
 
         <TabsContent value="clients">
-          <Card>
-            <CardHeader>
-              <CardTitle>Lista de Pacientes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : (
-                <ClientsTable clients={clients} />
-              )}
-            </CardContent>
-          </Card>
+          {isLoading ? (
+            <Skeleton className="h-64 w-full" />
+          ) : (
+            <ClientsTable clients={clients} />
+          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -15,16 +15,479 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      appointments: {
+        Row: {
+          client_id: string
+          client_package_id: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          professional_id: string
+          schedule_id: string
+          service_id: string
+          status: string
+        }
+        Insert: {
+          client_id: string
+          client_package_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          professional_id: string
+          schedule_id: string
+          service_id: string
+          status?: string
+        }
+        Update: {
+          client_id?: string
+          client_package_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          professional_id?: string
+          schedule_id?: string
+          service_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'appointments_client_id_fkey'
+            columns: ['client_id']
+            isOneToOne: false
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'appointments_client_package_id_fkey'
+            columns: ['client_package_id']
+            isOneToOne: false
+            referencedRelation: 'client_packages'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'appointments_professional_id_fkey'
+            columns: ['professional_id']
+            isOneToOne: false
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'appointments_schedule_id_fkey'
+            columns: ['schedule_id']
+            isOneToOne: true
+            referencedRelation: 'schedules'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'appointments_service_id_fkey'
+            columns: ['service_id']
+            isOneToOne: false
+            referencedRelation: 'services'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      client_packages: {
+        Row: {
+          client_id: string
+          id: string
+          package_id: string
+          purchase_date: string
+          sessions_remaining: number
+        }
+        Insert: {
+          client_id: string
+          id?: string
+          package_id: string
+          purchase_date?: string
+          sessions_remaining: number
+        }
+        Update: {
+          client_id?: string
+          id?: string
+          package_id?: string
+          purchase_date?: string
+          sessions_remaining?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'client_packages_client_id_fkey'
+            columns: ['client_id']
+            isOneToOne: false
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'client_packages_package_id_fkey'
+            columns: ['package_id']
+            isOneToOne: false
+            referencedRelation: 'packages'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          phone?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      financial_records: {
+        Row: {
+          amount: number
+          appointment_id: string | null
+          client_id: string
+          client_package_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          payment_date: string
+          payment_method: string | null
+          professional_id: string
+        }
+        Insert: {
+          amount: number
+          appointment_id?: string | null
+          client_id: string
+          client_package_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          payment_date?: string
+          payment_method?: string | null
+          professional_id: string
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string | null
+          client_id?: string
+          client_package_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          payment_date?: string
+          payment_method?: string | null
+          professional_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'financial_records_appointment_id_fkey'
+            columns: ['appointment_id']
+            isOneToOne: false
+            referencedRelation: 'appointments'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'financial_records_client_id_fkey'
+            columns: ['client_id']
+            isOneToOne: false
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'financial_records_client_package_id_fkey'
+            columns: ['client_package_id']
+            isOneToOne: false
+            referencedRelation: 'client_packages'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'financial_records_professional_id_fkey'
+            columns: ['professional_id']
+            isOneToOne: false
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      packages: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price: number
+          service_id: string | null
+          session_count: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price: number
+          service_id?: string | null
+          session_count: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price?: number
+          service_id?: string | null
+          session_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'packages_service_id_fkey'
+            columns: ['service_id']
+            isOneToOne: false
+            referencedRelation: 'services'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      professional_availability_overrides: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          is_available: boolean
+          override_date: string
+          professional_id: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          is_available?: boolean
+          override_date: string
+          professional_id: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_available?: boolean
+          override_date?: string
+          professional_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'professional_availability_overrides_professional_id_fkey'
+            columns: ['professional_id']
+            isOneToOne: false
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      professional_recurring_availability: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          professional_id: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          professional_id: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          professional_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'professional_recurring_availability_professional_id_fkey'
+            columns: ['professional_id']
+            isOneToOne: false
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      professional_services: {
+        Row: {
+          professional_id: string
+          service_id: string
+        }
+        Insert: {
+          professional_id: string
+          service_id: string
+        }
+        Update: {
+          professional_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'professional_services_professional_id_fkey'
+            columns: ['professional_id']
+            isOneToOne: false
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'professional_services_service_id_fkey'
+            columns: ['service_id']
+            isOneToOne: false
+            referencedRelation: 'services'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      professionals: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          id: string
+          name: string
+          specialty: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          specialty?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          specialty?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database['public']['Enums']['user_role']
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          role: Database['public']['Enums']['user_role']
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database['public']['Enums']['user_role']
+        }
+        Relationships: []
+      }
+      schedules: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          is_booked: boolean
+          professional_id: string
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          is_booked?: boolean
+          professional_id: string
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_booked?: boolean
+          professional_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'schedules_professional_id_fkey'
+            columns: ['professional_id']
+            isOneToOne: false
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      services: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          name: string
+          price: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          name: string
+          price: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      book_appointment: {
+        Args: {
+          p_client_id: string
+          p_schedule_id: string
+          p_service_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role: 'client' | 'professional'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -151,6 +614,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ['client', 'professional'],
+    },
   },
 } as const
