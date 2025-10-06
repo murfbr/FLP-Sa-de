@@ -86,3 +86,37 @@ export async function deleteAvailabilityOverride(
     .eq('id', overrideId)
   return { error }
 }
+
+export async function removeDayOverrides(
+  professionalId: string,
+  date: Date,
+): Promise<{ error: any }> {
+  const overrideDate = format(date, 'yyyy-MM-dd')
+  const { error } = await supabase
+    .from('professional_availability_overrides')
+    .delete()
+    .eq('professional_id', professionalId)
+    .eq('override_date', overrideDate)
+
+  return { error }
+}
+
+export async function blockDay(
+  professionalId: string,
+  date: Date,
+): Promise<{ error: any }> {
+  const overrideDate = format(date, 'yyyy-MM-dd')
+  await removeDayOverrides(professionalId, date)
+
+  const { error } = await supabase
+    .from('professional_availability_overrides')
+    .insert({
+      professional_id: professionalId,
+      override_date: overrideDate,
+      start_time: '00:00:00',
+      end_time: '23:59:59',
+      is_available: false,
+    })
+
+  return { error }
+}
