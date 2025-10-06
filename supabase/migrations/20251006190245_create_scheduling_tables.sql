@@ -243,14 +243,14 @@ WHERE
   AND h.hour NOT IN (12, 13); -- Lunch break
 
 -- Packages (10 entries)
-INSERT INTO public.packages (name, description, service_id, session_count, price) VALUES
-('Pacote Fisioterapia Essencial', '5 sessões de Fisioterapia Ortopédica com desconto.', 'f1b5c6a8-3e4d-4b1a-8c9a-0b1c2d3e4f5a', 5, 675.00),
-('Pacote Fisioterapia Completo', '10 sessões de Fisioterapia Ortopédica para um tratamento contínuo.', 'f1b5c6a8-3e4d-4b1a-8c9a-0b1c2d3e4f5a', 10, 1300.00),
-('Pacote Pilates Mensal', '8 aulas de Pilates Clínico para fazer 2x por semana.', 'a2c4e6b8-1d2c-3b4a-5e6f-7a8b9c0d1e2f', 8, 880.00),
-('Pacote Pilates Trimestral', '24 aulas de Pilates Clínico com o melhor custo-benefício.', 'a2c4e6b8-1d2c-3b4a-5e6f-7a8b9c0d1e2f', 24, 2400.00),
-('Pacote Atleta Recovery', '4 sessões de Recovery para otimizar sua recuperação.', 'b3d5f7c9-2e3d-4c5b-6f7a-8b9c0d1e2f3a', 4, 650.00),
-('Pacote Postura Ideal', '10 sessões de RPG para uma reeducação postural completa.', '5f7b9c1a-36d7-4f9a-0c1d-2e3f4a5b6c7d', 10, 1450.00),
-('Pacote Alívio Imediato', '4 sessões combinando Acupuntura e Ventosaterapia.', '6g8c0d2b-47e8-40ab-1d2e-3f4a5b6c7d8e', 4, 480.00),
-('Pacote Relaxamento Profundo', '5 sessões de Liberação Miofascial.', '8i0e2f4d-690a-42cd-3f4a-5b6c7d8e9f0a', 5, 500.00),
-('Pacote Pós-Operatório', '10 sessões de Drenagem Linfática para acelerar sua recuperação.', '0k2g4h6f-8b2c-44ef-5b6c-7d8e9f0a1b2c', 10, 1250.00),
-('Pacote Bem-Estar Total', 'Inclui 2 Fisioterapias, 2 Pilates e 1 Recovery.', null, 5, 750.00);
+INSERT INTO public.packages (id, name, description, service_id, session_count, price) VALUES
+('1a2b3c4d-5e6f-7g8h-9i0j-k1l2m3n4o5p6', 'Pacote Fisioterapia Essencial', '5 sessões de Fisioterapia Ortopédica com desconto.', 'f1b5c6a8-3e4d-4b1a-8c9a-0b1c2d3e4f5a', 5, 675.00),
+('2b3c4d5e-6f7g-8h9i-0j1k-l2m3n4o5p6q7', 'Pacote Fisioterapia Completo', '10 sessões de Fisioterapia Ortopédica para um tratamento contínuo.', 'f1b5c6a8-3e4d-4b1a-8c9a-0b1c2d3e4f5a', 10, 1300.00),
+('3c4d5e6f-7g8h-9i0j-1k2l-m3n4o5p6q7r8', 'Pacote Pilates Mensal', '8 aulas de Pilates Clínico para fazer 2x por semana.', 'a2c4e6b8-1d2c-3b4a-5e6f-7a8b9c0d1e2f', 8, 880.00),
+('4d5e6f7g-8h9i-0j1k-2l3m-n4o5p6q7r8s9', 'Pacote Pilates Trimestral', '24 aulas de Pilates Clínico com o melhor custo-benefício.', 'a2c4e6b8-1d2c-3b4a-5e6f-7a8b9c0d1e2f', 24, 2400.00),
+('5e6f7g8h-9i0j-1k2l-3m4n-o5p6q7r8s9t0', 'Pacote Atleta Recovery', '4 sessões de Recovery para otimizar sua recuperação.', 'b3d5f7c9-2e3d-4c5b-6f7a-8b9c0d1e2f3a', 4, 650.00),
+('6f7g8h9i-0j1k-2l3m-4n5o-p6q7r8s9t0u1', 'Pacote Postura Ideal', '10 sessões de RPG para uma reeducação postural completa.', '5f7b9c1a-36d7-4f9a-0c1d-2e3f4a5b6c7d', 10, 1450.00),
+('7g8h9i0j-1k2l-3m4n-5o6p-q7r8s9t0u1v2', 'Pacote Alívio Imediato', '4 sessões combinando Acupuntura e Ventosaterapia.', '6g8c0d2b-47e8-40ab-1d2e-3f4a5b6c7d8e', 4, 480.00),
+('8h9i0j1k-2l3m-4n5o-6p7q-r8s9t0u1v2w3', 'Pacote Relaxamento Profundo', '5 sessões de Liberação Miofascial.', '8i0e2f4d-690a-42cd-3f4a-5b6c7d8e9f0a', 5, 500.00),
+('9i0j1k2l-3m4n-5o6p-7q8r-s9t0u1v2w3x4', 'Pacote Pós-Operatório', '10 sessões de Drenagem Linfática para acelerar sua recuperação.', '0k2g4h6f-8b2c-44ef-5b6c-7d8e9f0a1b2c', 10, 1250.00),
+('0j1k2l3m-4n5o-6p7q-8r9s-t0u1v2w3x4y5', 'Pacote Bem-Estar Total', 'Inclui 2 Fisioterapias, 2 Pilates e 1 Recovery.', null, 5, 750.00);
