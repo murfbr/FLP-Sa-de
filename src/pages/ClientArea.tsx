@@ -24,6 +24,7 @@ import {
   User,
   Stethoscope,
   CheckCircle,
+  Info,
 } from 'lucide-react'
 import { getServices } from '@/services/services'
 import { getProfessionalsByService } from '@/services/professionals'
@@ -34,18 +35,20 @@ import { AvailableSlots } from '@/components/AvailableSlots'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useAuth } from '@/hooks/use-auth'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
-const MOCK_CLIENT_ID = '8a3c6d2e-4b5f-4c6d-8e9f-0a1b2c3d4e5f' // Carlos Pereira
+const MOCK_CLIENT_ID = '8a3c6d2e-4b5f-4c6d-8e9f-0a1b2c3d4e5f' // This will be replaced by auth user
 
 const ClientArea = () => {
   const { toast } = useToast()
+  const { user } = useAuth()
   const [services, setServices] = useState<Service[]>([])
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [schedules, setSchedules] = useState<Schedule[] | null>(null)
-  const [selectedService, setSelectedService] = useState<string | null>(null)
-  const [selectedProfessional, setSelectedProfessional] = useState<
-    string | null
-  >(null)
+  const [selectedService, setSelectedService] = useState<Service | null>(null)
+  const [selectedProfessional, setSelectedProfessional] =
+    useState<Professional | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [selectedSlot, setSelectedSlot] = useState<Schedule | null>(null)
   const [isLoadingServices, setIsLoadingServices] = useState(true)
@@ -60,7 +63,7 @@ const ClientArea = () => {
       setSchedules(null)
       setSelectedSlot(null)
       const { data, error } = await getAvailableSchedules(
-        selectedProfessional,
+        selectedProfessional.id,
         selectedDate,
       )
       if (error) {
@@ -100,11 +103,14 @@ const ClientArea = () => {
 
   const handleServiceChange = useCallback(
     async (serviceId: string) => {
-      setSelectedService(serviceId)
+      const service = services.find((s) => s.id === serviceId) || null
+      setSelectedService(service)
       setSelectedProfessional(null)
       setSchedules(null)
       setSelectedSlot(null)
       setBookingSuccess(false)
+      if (!service) return
+
       setIsLoadingProfessionals(true)
       const { data, error } = await getProfessionalsByService(serviceId)
       if (error) {
@@ -119,11 +125,13 @@ const ClientArea = () => {
       }
       setIsLoadingProfessionals(false)
     },
-    [toast],
+    [services, toast],
   )
 
   const handleProfessionalChange = (professionalId: string) => {
-    setSelectedProfessional(professionalId)
+    const professional =
+      professionals.find((p) => p.id === professionalId) || null
+    setSelectedProfessional(professional)
     setSchedules(null)
     setSelectedSlot(null)
     setBookingSuccess(false)
@@ -142,12 +150,13 @@ const ClientArea = () => {
   }
 
   const handleBooking = async () => {
-    if (!selectedSlot || !selectedService) return
+    if (!selectedSlot || !selectedService || !user) return
     setIsBooking(true)
+    // In a real app, you'd get the client ID from the user's profile
     const { error } = await bookAppointment(
       selectedSlot.id,
       MOCK_CLIENT_ID,
-      selectedService,
+      selectedService.id,
     )
     if (error) {
       toast({
@@ -168,11 +177,6 @@ const ClientArea = () => {
     setIsBooking(false)
   }
 
-  const serviceName = services.find((s) => s.id === selectedService)?.name
-  const professionalName = professionals.find(
-    (p) => p.id === selectedProfessional,
-  )?.name
-
   if (bookingSuccess && selectedSlot) {
     return (
       <div className="container mx-auto py-8 px-4 flex flex-col items-center justify-center text-center">
@@ -188,10 +192,10 @@ const ClientArea = () => {
           </CardHeader>
           <CardContent className="space-y-2 text-left">
             <p>
-              <strong>Serviço:</strong> {serviceName}
+              <strong>Serviço:</strong> {selectedService?.name}
             </p>
             <p>
-              <strong>Profissional:</strong> {professionalName}
+              <strong>Profissional:</strong> {selectedProfessional?.name}
             </p>
             <p>
               <strong>Data:</strong>{' '}
@@ -257,7 +261,7 @@ const ClientArea = () => {
               ) : (
                 <Select
                   onValueChange={handleServiceChange}
-                  value={selectedService ?? ''}
+                  value={selectedService?.id ?? ''}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um serviço" />
@@ -273,6 +277,15 @@ const ClientArea = () => {
               )}
             </CardContent>
           </Card>
+
+          {selectedService && (
+            <Alert className="animate-fade-in">
+              <Info className="h-4 w-4" />
+              <AlertTitle>{selectedService.name}</AlertTitle>
+              <AlertDescription>{selectedService.description}</AlertDescription>
+            </Alert>
+          )}
+
           {selectedService && (
             <Card className="animate-fade-in">
               <CardHeader>
@@ -287,7 +300,7 @@ const ClientArea = () => {
                 ) : (
                   <Select
                     onValueChange={handleProfessionalChange}
-                    value={selectedProfessional ?? ''}
+                    value={selectedProfessional?.id ?? ''}
                     disabled={professionals.length === 0}
                   >
                     <SelectTrigger>
@@ -321,7 +334,8 @@ const ClientArea = () => {
                   3. Escolha a Data e Hora
                 </CardTitle>
                 <CardDescription>
-                  Selecione um dia e um horário disponível.
+                  Selecione um dia e um horário disponível para{' '}
+                  <strong>{selectedProfessional.name}</strong>.
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid md:grid-cols-2 gap-6">

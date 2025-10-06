@@ -9,19 +9,25 @@ import { getAppointmentsByProfessional } from '@/services/appointments'
 import { getClientsByProfessional } from '@/services/clients'
 import { Appointment, Client } from '@/types'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/use-auth'
 
+// In a real app, this would be fetched from a 'profiles' table based on the authenticated user.
 const MOCK_PROFESSIONAL_ID = 'c4e6f8d0-3a4b-5c6d-7e8f-9a0b1c2d3e4f' // Dr. Lucas Mendes
 
 const ProfessionalArea = () => {
   const { toast } = useToast()
+  const { user } = useAuth()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!user) return
       setIsLoading(true)
       try {
+        // Here you would fetch the professional's profile based on user.id
+        // and use their professional_id for the queries.
         const [apptRes, clientRes] = await Promise.all([
           getAppointmentsByProfessional(MOCK_PROFESSIONAL_ID),
           getClientsByProfessional(MOCK_PROFESSIONAL_ID),
@@ -43,7 +49,7 @@ const ProfessionalArea = () => {
       }
     }
     fetchData()
-  }, [toast])
+  }, [toast, user])
 
   const appointmentsToday = appointments.filter((a) => {
     const today = new Date().setHours(0, 0, 0, 0)

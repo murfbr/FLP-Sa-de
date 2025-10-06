@@ -2,12 +2,16 @@ export interface Service {
   id: string
   name: string
   description: string | null
+  duration_minutes: number
+  price: number
 }
 
 export interface Professional {
   id: string
+  user_id: string | null
   name: string
   specialty: string | null
+  bio: string | null
   avatar_url: string | null
 }
 
@@ -62,6 +66,7 @@ export interface ClientPackage {
 export interface FinancialRecord {
   id: string
   client_id: string
+  professional_id: string
   appointment_id: string | null
   client_package_id: string | null
   amount: number
