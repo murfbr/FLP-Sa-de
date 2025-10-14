@@ -27,6 +27,10 @@ export const UpcomingAppointments = () => {
     fetchAppointments()
   }, [])
 
+  const validAppointments = appointments.filter(
+    (appt) => appt.schedules?.start_time,
+  )
+
   return (
     <Card>
       <CardHeader>
@@ -45,18 +49,19 @@ export const UpcomingAppointments = () => {
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
-        ) : appointments.length === 0 ? (
+        ) : validAppointments.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
             Nenhum agendamento futuro encontrado.
           </p>
         ) : (
           <ul className="space-y-3">
-            {appointments.map((appt) => (
+            {validAppointments.map((appt) => (
               <li key={appt.id} className="flex items-center justify-between">
                 <div className="font-medium">
-                  <p>{appt.clients.name}</p>
+                  <p>{appt.clients?.name || 'Cliente não informado'}</p>
                   <p className="text-sm text-muted-foreground">
-                    com {appt.professionals.name}
+                    com{' '}
+                    {appt.professionals?.name || 'Profissional não informado'}
                   </p>
                 </div>
                 <div className="text-right">

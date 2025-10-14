@@ -267,6 +267,7 @@ export type Database = {
           is_available: boolean
           override_date: string
           professional_id: string
+          service_ids: string[] | null
           start_time: string
         }
         Insert: {
@@ -276,6 +277,7 @@ export type Database = {
           is_available?: boolean
           override_date: string
           professional_id: string
+          service_ids?: string[] | null
           start_time: string
         }
         Update: {
@@ -285,6 +287,7 @@ export type Database = {
           is_available?: boolean
           override_date?: string
           professional_id?: string
+          service_ids?: string[] | null
           start_time?: string
         }
         Relationships: [
@@ -304,6 +307,7 @@ export type Database = {
           end_time: string
           id: string
           professional_id: string
+          service_ids: string[] | null
           start_time: string
         }
         Insert: {
@@ -312,6 +316,7 @@ export type Database = {
           end_time: string
           id?: string
           professional_id: string
+          service_ids?: string[] | null
           start_time: string
         }
         Update: {
@@ -320,6 +325,7 @@ export type Database = {
           end_time?: string
           id?: string
           professional_id?: string
+          service_ids?: string[] | null
           start_time?: string
         }
         Relationships: [
@@ -453,6 +459,7 @@ export type Database = {
           id: string
           name: string
           price: number
+          value_type: Database['public']['Enums']['service_value_type']
         }
         Insert: {
           created_at?: string
@@ -461,6 +468,7 @@ export type Database = {
           id?: string
           name: string
           price: number
+          value_type?: Database['public']['Enums']['service_value_type']
         }
         Update: {
           created_at?: string
@@ -469,6 +477,7 @@ export type Database = {
           id?: string
           name?: string
           price?: number
+          value_type?: Database['public']['Enums']['service_value_type']
         }
         Relationships: []
       }
@@ -487,6 +496,7 @@ export type Database = {
       }
     }
     Enums: {
+      service_value_type: 'session' | 'monthly'
       user_role: 'client' | 'professional'
     }
     CompositeTypes: {
@@ -615,6 +625,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      service_value_type: ['session', 'monthly'],
       user_role: ['client', 'professional'],
     },
   },

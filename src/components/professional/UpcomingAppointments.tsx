@@ -18,6 +18,10 @@ interface UpcomingAppointmentsProps {
 export const UpcomingAppointments = ({
   appointments,
 }: UpcomingAppointmentsProps) => {
+  const validAppointments = appointments.filter(
+    (appt) => appt.schedules?.start_time,
+  )
+
   return (
     <Table>
       <TableHeader>
@@ -29,34 +33,39 @@ export const UpcomingAppointments = ({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {appointments.length === 0 && (
+        {validAppointments.length === 0 ? (
           <TableRow>
             <TableCell colSpan={4} className="text-center">
               Nenhum agendamento encontrado.
             </TableCell>
           </TableRow>
+        ) : (
+          validAppointments.map((appt) => (
+            <TableRow key={appt.id}>
+              <TableCell>
+                <div className="font-medium">
+                  {appt.clients?.name || 'Cliente não informado'}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {appt.clients?.email || ''}
+                </div>
+              </TableCell>
+              <TableCell>
+                {appt.services?.name || 'Serviço não informado'}
+              </TableCell>
+              <TableCell>
+                {format(
+                  new Date(appt.schedules.start_time),
+                  "dd/MM/yyyy 'às' HH:mm",
+                  { locale: ptBR },
+                )}
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline">{appt.status}</Badge>
+              </TableCell>
+            </TableRow>
+          ))
         )}
-        {appointments.map((appt) => (
-          <TableRow key={appt.id}>
-            <TableCell>
-              <div className="font-medium">{appt.clients.name}</div>
-              <div className="text-sm text-muted-foreground">
-                {appt.clients.email}
-              </div>
-            </TableCell>
-            <TableCell>{appt.services.name}</TableCell>
-            <TableCell>
-              {format(
-                new Date(appt.schedules.start_time),
-                "dd/MM/yyyy 'às' HH:mm",
-                { locale: ptBR },
-              )}
-            </TableCell>
-            <TableCell>
-              <Badge variant="outline">{appt.status}</Badge>
-            </TableCell>
-          </TableRow>
-        ))}
       </TableBody>
     </Table>
   )
