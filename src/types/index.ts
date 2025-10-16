@@ -32,6 +32,7 @@ export interface Client {
   name: string
   email: string
   phone?: string | null
+  partnership_id?: string | null
 }
 
 export interface Appointment {
@@ -96,4 +97,19 @@ export interface AvailabilityOverride {
   is_available: boolean
   created_at: string
   service_ids: string[] | null
+}
+
+export interface Partnership {
+  id: string
+  name: string
+  description: string | null
+  created_at: string
+}
+
+export interface PartnershipDiscount {
+  id: string
+  partnership_id: string
+  service_id: string | null
+  discount_percentage: number
+  created_at: string
 }

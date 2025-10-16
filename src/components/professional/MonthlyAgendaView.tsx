@@ -22,6 +22,7 @@ import { Badge } from '../ui/badge'
 import { Switch } from '../ui/switch'
 import { Label } from '../ui/label'
 import { useToast } from '@/hooks/use-toast'
+import { AppointmentNotesDialog } from '../admin/AppointmentNotesDialog'
 
 interface MonthlyAgendaViewProps {
   professionalId: string
@@ -36,6 +37,9 @@ export const MonthlyAgendaView = ({
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [overrides, setOverrides] = useState<AvailabilityOverride[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<Appointment | null>(null)
+  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false)
 
   const fetchMonthData = useCallback(async () => {
     setIsLoading(true)
@@ -97,85 +101,101 @@ export const MonthlyAgendaView = ({
     }
   }
 
+  const handleAppointmentClick = (appt: Appointment) => {
+    setSelectedAppointment(appt)
+    setIsNotesDialogOpen(true)
+  }
+
   return (
-    <div className="grid md:grid-cols-2 gap-6">
-      <div>
-        {isLoading ? (
-          <Skeleton className="h-[300px] w-full" />
-        ) : (
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={setDate}
-            month={currentMonth}
-            onMonthChange={setCurrentMonth}
-            className="rounded-md border p-3"
-            disabled={blockedDays}
-            modifiers={{
-              booked: appointments.map((a) => new Date(a.schedules.start_time)),
-            }}
-            modifiersStyles={{
-              booked: {
-                fontWeight: 'bold',
-                textDecoration: 'underline',
-                textDecorationColor: 'hsl(var(--primary))',
-              },
-              disabled: {
-                color: 'hsl(var(--destructive))',
-                textDecoration: 'line-through',
-              },
-            }}
-          />
-        )}
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Detalhes para {date ? format(date, 'dd/MM/yyyy') : '...'}
-          </CardTitle>
-          <CardDescription>
-            {appointmentsOnSelectedDay.length} agendamento(s) encontrado(s).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {appointmentsOnSelectedDay.length > 0 ? (
-            appointmentsOnSelectedDay.map((appt) => (
-              <div
-                key={appt.id}
-                className="p-3 border rounded-md flex justify-between items-center"
-              >
-                <div>
-                  <p className="font-semibold">{appt.clients.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {appt.services.name}
-                  </p>
-                </div>
-                <Badge variant="secondary">
-                  {format(new Date(appt.schedules.start_time), 'HH:mm')}
-                </Badge>
-              </div>
-            ))
+    <>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div>
+          {isLoading ? (
+            <Skeleton className="h-[300px] w-full" />
           ) : (
-            <p className="text-center text-muted-foreground pt-8">
-              Nenhum agendamento para o dia selecionado.
-            </p>
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              month={currentMonth}
+              onMonthChange={setCurrentMonth}
+              className="rounded-md border p-3"
+              disabled={blockedDays}
+              modifiers={{
+                booked: appointments.map(
+                  (a) => new Date(a.schedules.start_time),
+                ),
+              }}
+              modifiersStyles={{
+                booked: {
+                  fontWeight: 'bold',
+                  textDecoration: 'underline',
+                  textDecorationColor: 'hsl(var(--primary))',
+                },
+                disabled: {
+                  color: 'hsl(var(--destructive))',
+                  textDecoration: 'line-through',
+                },
+              }}
+            />
           )}
-        </CardContent>
-        {date && (
-          <CardFooter className="border-t pt-4">
-            <div className="flex items-center space-x-2 w-full justify-between">
-              <Label htmlFor="availability-toggle" className="font-semibold">
-                {isSelectedDayBlocked ? 'Dia Indisponível' : 'Dia Disponível'}
-              </Label>
-              <Switch
-                id="availability-toggle"
-                checked={!isSelectedDayBlocked}
-                onCheckedChange={handleAvailabilityToggle}
-              />
-            </div>
-          </CardFooter>
-        )}
-      </Card>
-    </div>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              Detalhes para {date ? format(date, 'dd/MM/yyyy') : '...'}
+            </CardTitle>
+            <CardDescription>
+              {appointmentsOnSelectedDay.length} agendamento(s) encontrado(s).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {appointmentsOnSelectedDay.length > 0 ? (
+              appointmentsOnSelectedDay.map((appt) => (
+                <div
+                  key={appt.id}
+                  className="p-3 border rounded-md flex justify-between items-center cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleAppointmentClick(appt)}
+                >
+                  <div>
+                    <p className="font-semibold">{appt.clients.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {appt.services.name}
+                    </p>
+                  </div>
+                  <Badge variant="secondary">
+                    {format(new Date(appt.schedules.start_time), 'HH:mm')}
+                  </Badge>
+                </div>
+              ))
+            ) : (
+              <p className="text-center text-muted-foreground pt-8">
+                Nenhum agendamento para o dia selecionado.
+              </p>
+            )}
+          </CardContent>
+          {date && (
+            <CardFooter className="border-t pt-4">
+              <div className="flex items-center space-x-2 w-full justify-between">
+                <Label htmlFor="availability-toggle" className="font-semibold">
+                  {isSelectedDayBlocked ? 'Dia Indisponível' : 'Dia Disponível'}
+                </Label>
+                <Switch
+                  id="availability-toggle"
+                  checked={!isSelectedDayBlocked}
+                  onCheckedChange={handleAvailabilityToggle}
+                />
+              </div>
+            </CardFooter>
+          )}
+        </Card>
+      </div>
+      <AppointmentNotesDialog
+        appointment={selectedAppointment}
+        isOpen={isNotesDialogOpen}
+        onOpenChange={setIsNotesDialogOpen}
+        onNoteSave={fetchMonthData}
+      />
+    </>
   )
 }

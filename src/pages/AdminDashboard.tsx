@@ -9,6 +9,7 @@ import {
   Briefcase,
   BarChart,
   LayoutDashboard,
+  Handshake,
 } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { Professional, Client } from '@/types'
@@ -20,6 +21,7 @@ import { PatientsList } from '@/components/admin/PatientsList'
 import { ServicesManager } from '@/components/admin/ServicesManager'
 import { AgendaView } from '@/components/admin/AgendaView'
 import { KpiDashboard } from '@/components/admin/KpiDashboard'
+import { PartnershipsManager } from '@/components/admin/PartnershipsManager'
 
 const AdminDashboard = () => {
   const { user } = useAuth()
@@ -53,7 +55,7 @@ const AdminDashboard = () => {
       </div>
 
       <Tabs defaultValue="overview">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 mb-6">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 mb-6">
           <TabsTrigger value="overview">
             <BarChart className="w-4 h-4 mr-2" />
             Visão Geral
@@ -77,6 +79,10 @@ const AdminDashboard = () => {
           <TabsTrigger value="services">
             <Stethoscope className="w-4 h-4 mr-2" />
             Serviços
+          </TabsTrigger>
+          <TabsTrigger value="partnerships">
+            <Handshake className="w-4 h-4 mr-2" />
+            Parcerias
           </TabsTrigger>
         </TabsList>
 
@@ -174,6 +180,17 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <ServicesManager />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="partnerships">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gerenciar Parcerias e Descontos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PartnershipsManager />
             </CardContent>
           </Card>
         </TabsContent>

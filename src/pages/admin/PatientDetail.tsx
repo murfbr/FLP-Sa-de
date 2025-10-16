@@ -12,15 +12,13 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Mail, Phone, User, Calendar } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, User, Calendar, FileText } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
@@ -101,42 +99,45 @@ const PatientDetail = () => {
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
-              <Calendar className="w-6 h-6" />
-              Histórico de Agendamentos
+              <FileText className="w-6 h-6" />
+              Prontuário e Histórico
             </CardTitle>
             <CardDescription>
               Total de {appointments.length} agendamentos.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead>Profissional</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {appointments.map((appt) => (
-                  <TableRow key={appt.id}>
-                    <TableCell>
-                      {format(
-                        new Date(appt.schedules.start_time),
-                        'dd/MM/yyyy HH:mm',
-                        { locale: ptBR },
-                      )}
-                    </TableCell>
-                    <TableCell>{appt.services.name}</TableCell>
-                    <TableCell>{appt.professionals.name}</TableCell>
-                    <TableCell>
-                      <Badge>{appt.status}</Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <Accordion type="single" collapsible className="w-full">
+              {appointments.map((appt) => (
+                <AccordionItem value={appt.id} key={appt.id}>
+                  <AccordionTrigger>
+                    <div className="flex justify-between w-full pr-4">
+                      <span>
+                        {appt.services.name} com {appt.professionals.name}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {format(
+                          new Date(appt.schedules.start_time),
+                          'dd/MM/yyyy',
+                          { locale: ptBR },
+                        )}
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="prose prose-sm max-w-none">
+                    <p>
+                      <strong>Status:</strong> <Badge>{appt.status}</Badge>
+                    </p>
+                    <p>
+                      <strong>Anotações da Sessão:</strong>
+                    </p>
+                    <div className="p-2 border rounded-md bg-muted/50">
+                      {appt.notes || 'Nenhuma anotação para esta sessão.'}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </CardContent>
         </Card>
       </div>

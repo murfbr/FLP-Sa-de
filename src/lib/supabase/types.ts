@@ -497,7 +497,7 @@ export type Database = {
     }
     Enums: {
       service_value_type: 'session' | 'monthly'
-      user_role: 'client' | 'professional'
+      user_role: 'client' | 'professional' | 'admin'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -626,7 +626,7 @@ export const Constants = {
   public: {
     Enums: {
       service_value_type: ['session', 'monthly'],
-      user_role: ['client', 'professional'],
+      user_role: ['client', 'professional', 'admin'],
     },
   },
 } as const

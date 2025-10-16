@@ -46,43 +46,23 @@ export async function getAppointmentsByProfessionalForRange(
   startDate: string,
   endDate: string,
 ): Promise<{ data: Appointment[] | null; error: any }> {
-  const { data: schedules, error: schedulesError } = await supabase
-    .from('schedules')
-    .select('id, start_time, end_time')
-    .eq('professional_id', professionalId)
-    .gte('start_time', startDate)
-    .lte('start_time', endDate)
-
-  if (schedulesError) return { data: null, error: schedulesError }
-  if (!schedules || schedules.length === 0) return { data: [], error: null }
-
-  const scheduleIds = schedules.map((s) => s.id)
-
-  const { data: appointments, error: appointmentsError } = await supabase
+  const { data, error } = await supabase
     .from('appointments')
     .select(
       `
       id,
       status,
       notes,
-      schedule_id,
-      clients (id, name, email),
-      services (id, name, duration_minutes)
+      clients:clients (id, name, email),
+      services:services (id, name, duration_minutes),
+      schedules:schedules (id, start_time, end_time)
     `,
     )
-    .in('schedule_id', scheduleIds)
+    .eq('professional_id', professionalId)
+    .gte('schedules.start_time', startDate)
+    .lte('schedules.start_time', endDate)
 
-  if (appointmentsError) return { data: null, error: appointmentsError }
-
-  const appointmentsWithSchedule = appointments?.map((appt) => {
-    const schedule = schedules.find((s) => s.id === appt.schedule_id)
-    return {
-      ...appt,
-      schedules: schedule,
-    }
-  }) as Appointment[] | null
-
-  return { data: appointmentsWithSchedule, error: null }
+  return { data: data as Appointment[] | null, error }
 }
 
 export async function getAllAppointments(
@@ -144,6 +124,7 @@ export async function getAppointmentsByClientId(
       `
       id,
       status,
+      notes,
       created_at,
       professionals (id, name),
       services (id, name),
@@ -182,4 +163,15 @@ export async function getFutureAppointmentsCount(): Promise<{
     .gte('schedules.start_time', now)
 
   return { data: count, error }
+}
+
+export async function updateAppointmentNotes(
+  appointmentId: string,
+  notes: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from('appointments')
+    .update({ notes })
+    .eq('id', appointmentId)
+  return { error }
 }
