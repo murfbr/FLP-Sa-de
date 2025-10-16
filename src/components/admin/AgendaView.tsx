@@ -13,19 +13,20 @@ type ViewMode = 'list' | 'month' | 'week' | 'day'
 export const AgendaView = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const renderView = () => {
     switch (viewMode) {
       case 'list':
-        return <AgendaListView />
+        return <AgendaListView key={refreshKey} />
       case 'month':
-        return <AgendaCalendarView />
+        return <AgendaCalendarView key={refreshKey} />
       case 'week':
-        return <AgendaWeekView />
+        return <AgendaWeekView key={refreshKey} />
       case 'day':
-        return <AgendaDayView />
+        return <AgendaDayView key={refreshKey} />
       default:
-        return <AgendaListView />
+        return <AgendaListView key={refreshKey} />
     }
   }
 
@@ -63,8 +64,7 @@ export const AgendaView = () => {
         isOpen={isFormOpen}
         onOpenChange={setIsFormOpen}
         onAppointmentCreated={() => {
-          // This is a simple way to refresh, a more robust solution might involve a shared state/context
-          window.location.reload()
+          setRefreshKey((prevKey) => prevKey + 1)
         }}
       />
     </>

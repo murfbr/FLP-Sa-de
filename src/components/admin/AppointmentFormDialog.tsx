@@ -107,7 +107,7 @@ export const AppointmentFormDialog = ({
       setIsLoading((prev) => ({ ...prev, services: true }))
       getServicesByProfessional(professionalId).then((res) => {
         setServices(res.data || [])
-        form.setValue('serviceId', '')
+        form.setValue('serviceId', '' as any)
         setIsLoading((prev) => ({ ...prev, services: false }))
       })
     } else {
@@ -121,7 +121,7 @@ export const AppointmentFormDialog = ({
       getFilteredAvailableSchedules(professionalId, serviceId, date).then(
         (res) => {
           setSchedules(res.data || [])
-          form.setValue('scheduleId', '')
+          form.setValue('scheduleId', '' as any)
           setIsLoading((prev) => ({ ...prev, schedules: false }))
         },
       )
@@ -274,7 +274,7 @@ export const AppointmentFormDialog = ({
                         selected={field.value}
                         onSelect={field.onChange}
                         disabled={(date) =>
-                          date < new Date() || date < new Date('1900-01-01')
+                          date < new Date(new Date().setHours(0, 0, 0, 0))
                         }
                         initialFocus
                       />
