@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Appointment } from '@/types'
 import { format, addMinutes } from 'date-fns'
@@ -16,20 +19,46 @@ import {
   Calendar,
   Clock,
   FileText,
+  CheckCircle,
+  Loader2,
 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { completeAppointment } from '@/services/appointments'
 
 interface AppointmentDetailDialogProps {
   appointment: Appointment | null
   isOpen: boolean
   onOpenChange: (isOpen: boolean) => void
+  onAppointmentUpdated: () => void
 }
 
 export const AppointmentDetailDialog = ({
   appointment,
   isOpen,
   onOpenChange,
+  onAppointmentUpdated,
 }: AppointmentDetailDialogProps) => {
+  const { toast } = useToast()
+  const [isCompleting, setIsCompleting] = useState(false)
+
   if (!appointment) return null
+
+  const handleCompleteAppointment = async () => {
+    setIsCompleting(true)
+    const { error } = await completeAppointment(appointment.id)
+    if (error) {
+      toast({
+        title: 'Erro ao confirmar realização',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } else {
+      toast({ title: 'Agendamento confirmado com sucesso!' })
+      onAppointmentUpdated()
+      onOpenChange(false)
+    }
+    setIsCompleting(false)
+  }
 
   const startTime = new Date(appointment.schedules.start_time)
   const duration = appointment.services.duration_minutes || 30
@@ -102,6 +131,19 @@ export const AppointmentDetailDialog = ({
             </div>
           </div>
         </div>
+        <DialogFooter>
+          <Button
+            onClick={handleCompleteAppointment}
+            disabled={appointment.status === 'completed' || isCompleting}
+          >
+            {isCompleting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle className="mr-2 h-4 w-4" />
+            )}
+            {isCompleting ? 'Confirmando...' : 'Confirmar Realização'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

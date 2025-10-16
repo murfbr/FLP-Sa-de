@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/providers/AuthProvider'
 import { Agenda } from '@/components/professional/Agenda'
 
-const MOCK_PROFESSIONAL_ID = 'c4e6f8d0-3a4b-5c6d-7e8f-9a0b1c2d3e4f'
+const MOCK_PROFESSIONAL_ID = 'b2b2b2b2-b2b2-b2b2-b2b2-b2b2b2b2b2b2' // Estag. David
 
 const ProfessionalArea = () => {
   const { toast } = useToast()

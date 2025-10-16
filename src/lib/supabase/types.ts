@@ -565,6 +565,17 @@ export type Database = {
         }
         Returns: string
       }
+      get_available_dates: {
+        Args: {
+          p_end_date: string
+          p_professional_id: string
+          p_service_id: string
+          p_start_date: string
+        }
+        Returns: {
+          available_date: string
+        }[]
+      }
     }
     Enums: {
       service_value_type: 'session' | 'monthly'

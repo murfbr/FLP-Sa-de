@@ -25,6 +25,10 @@ export const AgendaView = () => {
     setIsDetailOpen(true)
   }
 
+  const handleDataRefresh = () => {
+    setRefreshKey((prevKey) => prevKey + 1)
+  }
+
   const renderView = () => {
     const props = {
       key: refreshKey,
@@ -77,14 +81,13 @@ export const AgendaView = () => {
       <AppointmentFormDialog
         isOpen={isFormOpen}
         onOpenChange={setIsFormOpen}
-        onAppointmentCreated={() => {
-          setRefreshKey((prevKey) => prevKey + 1)
-        }}
+        onAppointmentCreated={handleDataRefresh}
       />
       <AppointmentDetailDialog
         isOpen={isDetailOpen}
         onOpenChange={setIsDetailOpen}
         appointment={selectedAppointment}
+        onAppointmentUpdated={handleDataRefresh}
       />
     </>
   )

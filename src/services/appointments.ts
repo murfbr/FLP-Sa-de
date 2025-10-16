@@ -177,3 +177,12 @@ export async function updateAppointmentNotes(
     .eq('id', appointmentId)
   return { error }
 }
+
+export async function completeAppointment(
+  appointmentId: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase.rpc('complete_appointment', {
+    p_appointment_id: appointmentId,
+  })
+  return { error }
+}
