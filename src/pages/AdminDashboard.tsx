@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Handshake,
   Clock,
+  PlusCircle,
 } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { Professional, Client } from '@/types'
@@ -24,195 +25,212 @@ import { AgendaView } from '@/components/admin/AgendaView'
 import { KpiDashboard } from '@/components/admin/KpiDashboard'
 import { PartnershipsManager } from '@/components/admin/PartnershipsManager'
 import { AdminAvailabilityManager } from '@/components/admin/AdminAvailabilityManager'
+import { Button } from '@/components/ui/button'
+import { PatientFormDialog } from '@/components/admin/PatientFormDialog'
 
 const AdminDashboard = () => {
   const { user } = useAuth()
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isPatientFormOpen, setIsPatientFormOpen] = useState(false)
+
+  const fetchData = async () => {
+    setIsLoading(true)
+    const [profRes, clientRes] = await Promise.all([
+      getAllProfessionals(),
+      getAllClients(),
+    ])
+    if (profRes.data) setProfessionals(profRes.data)
+    if (clientRes.data) setClients(clientRes.data)
+    setIsLoading(false)
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true)
-      const [profRes, clientRes] = await Promise.all([
-        getAllProfessionals(),
-        getAllClients(),
-      ])
-      if (profRes.data) setProfessionals(profRes.data)
-      if (clientRes.data) setClients(clientRes.data)
-      setIsLoading(false)
-    }
     fetchData()
   }, [])
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold font-sans">
-          Dashboard Administrativo
-        </h1>
-        <p className="text-lg text-muted-foreground">
-          Bem-vindo, {user?.email || 'Administrador'}.
-        </p>
+    <>
+      <div className="container mx-auto py-8 px-4">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold font-sans">
+            Dashboard Administrativo
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            Bem-vindo, {user?.email || 'Administrador'}.
+          </p>
+        </div>
+
+        <Tabs defaultValue="overview">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-8 mb-6">
+            <TabsTrigger value="overview">
+              <BarChart className="w-4 h-4 mr-2" />
+              Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="kpi">
+              <LayoutDashboard className="w-4 h-4 mr-2" />
+              Indicadores
+            </TabsTrigger>
+            <TabsTrigger value="agenda">
+              <Calendar className="w-4 h-4 mr-2" />
+              Agenda
+            </TabsTrigger>
+            <TabsTrigger value="availability">
+              <Clock className="w-4 h-4 mr-2" />
+              Disponibilidade
+            </TabsTrigger>
+            <TabsTrigger value="professionals">
+              <Briefcase className="w-4 h-4 mr-2" />
+              Profissionais
+            </TabsTrigger>
+            <TabsTrigger value="patients">
+              <Users className="w-4 h-4 mr-2" />
+              Pacientes
+            </TabsTrigger>
+            <TabsTrigger value="services">
+              <Stethoscope className="w-4 h-4 mr-2" />
+              Serviços
+            </TabsTrigger>
+            <TabsTrigger value="partnerships">
+              <Handshake className="w-4 h-4 mr-2" />
+              Parcerias
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="md:col-span-2">
+                <UpcomingAppointments />
+              </div>
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Profissionais</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoading ? (
+                      <Skeleton className="h-10 w-24" />
+                    ) : (
+                      <div className="text-3xl font-bold">
+                        {professionals.length}
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Profissionais cadastrados
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pacientes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoading ? (
+                      <Skeleton className="h-10 w-24" />
+                    ) : (
+                      <div className="text-3xl font-bold">{clients.length}</div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Pacientes ativos
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="kpi">
+            <KpiDashboard />
+          </TabsContent>
+
+          <TabsContent value="agenda">
+            <Card>
+              <CardHeader>
+                <CardTitle>Agenda Centralizada</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AgendaView />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="availability">
+            <Card>
+              <CardHeader>
+                <CardTitle>Gerenciar Disponibilidade</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AdminAvailabilityManager />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="professionals">
+            <Card>
+              <CardHeader>
+                <CardTitle>Gerenciar Profissionais</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <Skeleton className="h-64 w-full" />
+                ) : (
+                  <ProfessionalsList professionals={professionals} />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="patients">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Gerenciar Pacientes</CardTitle>
+                  <Button onClick={() => setIsPatientFormOpen(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Novo Paciente
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <Skeleton className="h-64 w-full" />
+                ) : (
+                  <PatientsList patients={clients} />
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="services">
+            <Card>
+              <CardHeader>
+                <CardTitle>Gerenciar Serviços</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ServicesManager />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="partnerships">
+            <Card>
+              <CardHeader>
+                <CardTitle>Gerenciar Parcerias e Descontos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PartnershipsManager />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <Tabs defaultValue="overview">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-8 mb-6">
-          <TabsTrigger value="overview">
-            <BarChart className="w-4 h-4 mr-2" />
-            Visão Geral
-          </TabsTrigger>
-          <TabsTrigger value="kpi">
-            <LayoutDashboard className="w-4 h-4 mr-2" />
-            Indicadores
-          </TabsTrigger>
-          <TabsTrigger value="agenda">
-            <Calendar className="w-4 h-4 mr-2" />
-            Agenda
-          </TabsTrigger>
-          <TabsTrigger value="availability">
-            <Clock className="w-4 h-4 mr-2" />
-            Disponibilidade
-          </TabsTrigger>
-          <TabsTrigger value="professionals">
-            <Briefcase className="w-4 h-4 mr-2" />
-            Profissionais
-          </TabsTrigger>
-          <TabsTrigger value="patients">
-            <Users className="w-4 h-4 mr-2" />
-            Pacientes
-          </TabsTrigger>
-          <TabsTrigger value="services">
-            <Stethoscope className="w-4 h-4 mr-2" />
-            Serviços
-          </TabsTrigger>
-          <TabsTrigger value="partnerships">
-            <Handshake className="w-4 h-4 mr-2" />
-            Parcerias
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview">
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="md:col-span-2">
-              <UpcomingAppointments />
-            </div>
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profissionais</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-10 w-24" />
-                  ) : (
-                    <div className="text-3xl font-bold">
-                      {professionals.length}
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Profissionais cadastrados
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Pacientes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="h-10 w-24" />
-                  ) : (
-                    <div className="text-3xl font-bold">{clients.length}</div>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Pacientes ativos
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="kpi">
-          <KpiDashboard />
-        </TabsContent>
-
-        <TabsContent value="agenda">
-          <Card>
-            <CardHeader>
-              <CardTitle>Agenda Centralizada</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AgendaView />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="availability">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gerenciar Disponibilidade</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AdminAvailabilityManager />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="professionals">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gerenciar Profissionais</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : (
-                <ProfessionalsList professionals={professionals} />
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="patients">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gerenciar Pacientes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : (
-                <PatientsList patients={clients} />
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="services">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gerenciar Serviços</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ServicesManager />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="partnerships">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gerenciar Parcerias e Descontos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PartnershipsManager />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+      <PatientFormDialog
+        isOpen={isPatientFormOpen}
+        onOpenChange={setIsPatientFormOpen}
+        onPatientCreated={fetchData}
+      />
+    </>
   )
 }
 

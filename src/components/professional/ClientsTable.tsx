@@ -7,12 +7,19 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Client } from '@/types'
+import { useNavigate } from 'react-router-dom'
 
 interface ClientsTableProps {
   clients: Client[]
 }
 
 export const ClientsTable = ({ clients }: ClientsTableProps) => {
+  const navigate = useNavigate()
+
+  const handleRowClick = (clientId: string) => {
+    navigate(`/profissional/pacientes/${clientId}`)
+  }
+
   return (
     <Table>
       <TableHeader>
@@ -31,7 +38,11 @@ export const ClientsTable = ({ clients }: ClientsTableProps) => {
           </TableRow>
         )}
         {clients.map((client) => (
-          <TableRow key={client.id}>
+          <TableRow
+            key={client.id}
+            onClick={() => handleRowClick(client.id)}
+            className="cursor-pointer hover:bg-muted/50"
+          >
             <TableCell className="font-medium">{client.name}</TableCell>
             <TableCell>{client.email}</TableCell>
             <TableCell>{client.phone || 'Não informado'}</TableCell>

@@ -3,9 +3,11 @@ import { AvailabilitySettings } from './AvailabilitySettings'
 import { MonthlyAgendaView } from './MonthlyAgendaView'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-const MOCK_PROFESSIONAL_ID = 'c4e6f8d0-3a4b-5c6d-7e8f-9a0b1c2d3e4f'
+interface AgendaProps {
+  professionalId: string
+}
 
-export const Agenda = () => {
+export const Agenda = ({ professionalId }: AgendaProps) => {
   return (
     <Card>
       <CardHeader>
@@ -30,10 +32,10 @@ export const Agenda = () => {
             </p>
           </TabsContent>
           <TabsContent value="monthly" className="pt-4">
-            <MonthlyAgendaView professionalId={MOCK_PROFESSIONAL_ID} />
+            <MonthlyAgendaView professionalId={professionalId} />
           </TabsContent>
           <TabsContent value="settings" className="pt-4">
-            <AvailabilitySettings professionalId={MOCK_PROFESSIONAL_ID} />
+            <AvailabilitySettings professionalId={professionalId} />
           </TabsContent>
         </Tabs>
       </CardContent>

@@ -14,6 +14,7 @@ import PatientDetail from './pages/admin/PatientDetail'
 import ProfessionalDetail from './pages/admin/ProfessionalDetail'
 import NotFound from './pages/NotFound'
 import ClientAreaUnavailable from './pages/ClientAreaUnavailable'
+import ProfessionalPatientDetail from './pages/professional/PatientDetail'
 
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
 // AVOID REMOVING ANY CONTEXT PROVIDERS FROM THIS FILE (e.g. TooltipProvider, Toaster, Sonner)
@@ -47,6 +48,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ProfessionalArea />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profissional/pacientes/:id"
+              element={
+                <ProtectedRoute>
+                  <ProfessionalPatientDetail />
                 </ProtectedRoute>
               }
             />

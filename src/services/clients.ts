@@ -51,3 +51,14 @@ export async function getClientById(
 
   return { data, error }
 }
+
+export async function createClient(
+  clientData: Omit<Client, 'id' | 'created_at' | 'user_id'>,
+): Promise<{ data: Client | null; error: any }> {
+  const { data, error } = await supabase
+    .from('clients')
+    .insert(clientData)
+    .select()
+    .single()
+  return { data, error }
+}
