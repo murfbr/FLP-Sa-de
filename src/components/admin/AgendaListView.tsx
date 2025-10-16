@@ -22,7 +22,11 @@ import { Appointment, Professional } from '@/types'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
-export const AgendaListView = () => {
+interface AgendaListViewProps {
+  onAppointmentClick: (appointment: Appointment) => void
+}
+
+export const AgendaListView = ({ onAppointmentClick }: AgendaListViewProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [selectedProfessional, setSelectedProfessional] = useState('all')
@@ -84,7 +88,11 @@ export const AgendaListView = () => {
               </TableRow>
             ) : (
               appointments.map((appt) => (
-                <TableRow key={appt.id}>
+                <TableRow
+                  key={appt.id}
+                  onClick={() => onAppointmentClick(appt)}
+                  className="cursor-pointer hover:bg-muted/50"
+                >
                   <TableCell>{appt.clients.name}</TableCell>
                   <TableCell>{appt.professionals.name}</TableCell>
                   <TableCell>{appt.services.name}</TableCell>

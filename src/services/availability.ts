@@ -121,3 +121,28 @@ export async function blockDay(
 
   return { error }
 }
+
+export async function getAvailableDatesForProfessional(
+  professionalId: string,
+  serviceId: string,
+  month: Date,
+): Promise<{ data: string[] | null; error: any }> {
+  const startDate = format(startOfMonth(month), 'yyyy-MM-dd')
+  const endDate = format(endOfMonth(month), 'yyyy-MM-dd')
+
+  const { data, error } = await supabase.rpc('get_available_dates', {
+    p_professional_id: professionalId,
+    p_service_id: serviceId,
+    p_start_date: startDate,
+    p_end_date: endDate,
+  })
+
+  if (error) {
+    console.error('Error fetching available dates:', error)
+    return { data: null, error }
+  }
+
+  const availableDates =
+    data?.map((d: { available_date: string }) => d.available_date) || []
+  return { data: availableDates, error: null }
+}

@@ -44,6 +44,7 @@ import {
   getServicesByProfessional,
 } from '@/services/professionals'
 import { getFilteredAvailableSchedules } from '@/services/schedules'
+import { getAvailableDatesForProfessional } from '@/services/availability'
 import { bookAppointment } from '@/services/appointments'
 import { AvailableSlots } from '../AvailableSlots'
 
@@ -73,11 +74,14 @@ export const AppointmentFormDialog = ({
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [schedules, setSchedules] = useState<Schedule[]>([])
+  const [availableDates, setAvailableDates] = useState<string[] | null>(null)
+  const [currentMonth, setCurrentMonth] = useState(new Date())
   const [isLoading, setIsLoading] = useState({
     clients: true,
     professionals: true,
     services: false,
     schedules: false,
+    dates: false,
   })
 
   const form = useForm<AppointmentFormValues>({
@@ -107,7 +111,7 @@ export const AppointmentFormDialog = ({
       setIsLoading((prev) => ({ ...prev, services: true }))
       getServicesByProfessional(professionalId).then((res) => {
         setServices(res.data || [])
-        form.setValue('serviceId', '' as any)
+        form.resetField('serviceId')
         setIsLoading((prev) => ({ ...prev, services: false }))
       })
     } else {
@@ -116,12 +120,27 @@ export const AppointmentFormDialog = ({
   }, [professionalId, form])
 
   useEffect(() => {
+    if (professionalId && serviceId) {
+      setIsLoading((prev) => ({ ...prev, dates: true }))
+      getAvailableDatesForProfessional(professionalId, serviceId, currentMonth)
+        .then((res) => {
+          setAvailableDates(res.data || [])
+        })
+        .finally(() => {
+          setIsLoading((prev) => ({ ...prev, dates: false }))
+        })
+    } else {
+      setAvailableDates(null)
+    }
+  }, [professionalId, serviceId, currentMonth])
+
+  useEffect(() => {
     if (professionalId && serviceId && date) {
       setIsLoading((prev) => ({ ...prev, schedules: true }))
       getFilteredAvailableSchedules(professionalId, serviceId, date).then(
         (res) => {
           setSchedules(res.data || [])
-          form.setValue('scheduleId', '' as any)
+          form.resetField('scheduleId')
           setIsLoading((prev) => ({ ...prev, schedules: false }))
         },
       )
@@ -273,9 +292,19 @@ export const AppointmentFormDialog = ({
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date(new Date().setHours(0, 0, 0, 0))
-                        }
+                        month={currentMonth}
+                        onMonthChange={setCurrentMonth}
+                        disabled={(day) => {
+                          if (day < new Date(new Date().setHours(0, 0, 0, 0)))
+                            return true
+                          if (availableDates) {
+                            return !availableDates.includes(
+                              format(day, 'yyyy-MM-dd'),
+                            )
+                          }
+                          if (!professionalId || !serviceId) return true
+                          return isLoading.dates
+                        }}
                         initialFocus
                       />
                     </PopoverContent>

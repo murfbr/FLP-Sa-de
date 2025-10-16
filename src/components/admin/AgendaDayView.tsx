@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { addDays, subDays, format, startOfDay, endOfDay } from 'date-fns'
+import { addDays, subDays, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,11 @@ import { getAllAppointments } from '@/services/appointments'
 import { Appointment } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-export const AgendaDayView = () => {
+interface AgendaDayViewProps {
+  onAppointmentClick: (appointment: Appointment) => void
+}
+
+export const AgendaDayView = ({ onAppointmentClick }: AgendaDayViewProps) => {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -68,7 +72,8 @@ export const AgendaDayView = () => {
                   .map((appt) => (
                     <li
                       key={appt.id}
-                      className="p-3 border rounded-md flex items-center justify-between"
+                      className="p-3 border rounded-md flex items-center justify-between cursor-pointer hover:bg-muted/50"
+                      onClick={() => onAppointmentClick(appt)}
                     >
                       <div>
                         <p className="font-semibold">{appt.clients.name}</p>

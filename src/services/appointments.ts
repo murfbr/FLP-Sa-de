@@ -31,7 +31,7 @@ export async function getAppointmentsByProfessional(
       status,
       created_at,
       clients (id, name, email),
-      services (id, name),
+      services (id, name, duration_minutes),
       schedules (start_time, end_time)
     `,
     )
@@ -74,9 +74,10 @@ export async function getAllAppointments(
       `
       id,
       status,
+      notes,
       clients (id, name, email),
       professionals (id, name),
-      services (id, name),
+      services (id, name, duration_minutes),
       schedules (start_time, end_time)
     `,
     )
@@ -102,9 +103,10 @@ export async function getUpcomingAppointments(): Promise<{
       `
       id,
       status,
+      notes,
       clients (id, name),
       professionals (id, name),
-      services (id, name),
+      services (id, name, duration_minutes),
       schedules (start_time)
     `,
     )
@@ -127,7 +129,7 @@ export async function getAppointmentsByClientId(
       notes,
       created_at,
       professionals (id, name),
-      services (id, name),
+      services (id, name, duration_minutes),
       schedules (start_time, end_time)
     `,
     )

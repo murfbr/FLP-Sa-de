@@ -18,7 +18,13 @@ import { getAllAppointments } from '@/services/appointments'
 import { Appointment } from '@/types'
 import { cn } from '@/lib/utils'
 
-export const AgendaCalendarView = () => {
+interface AgendaCalendarViewProps {
+  onAppointmentClick: (appointment: Appointment) => void
+}
+
+export const AgendaCalendarView = ({
+  onAppointmentClick,
+}: AgendaCalendarViewProps) => {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -105,7 +111,8 @@ export const AgendaCalendarView = () => {
                   {dayAppointments.slice(0, 2).map((appt) => (
                     <div
                       key={appt.id}
-                      className="text-xs p-1 bg-secondary text-secondary-foreground rounded truncate"
+                      className="text-xs p-1 bg-secondary text-secondary-foreground rounded truncate cursor-pointer"
+                      onClick={() => onAppointmentClick(appt)}
                     >
                       {appt.clients.name}
                     </div>

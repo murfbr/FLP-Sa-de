@@ -16,7 +16,11 @@ import { getAllAppointments } from '@/services/appointments'
 import { Appointment } from '@/types'
 import { cn } from '@/lib/utils'
 
-export const AgendaWeekView = () => {
+interface AgendaWeekViewProps {
+  onAppointmentClick: (appointment: Appointment) => void
+}
+
+export const AgendaWeekView = ({ onAppointmentClick }: AgendaWeekViewProps) => {
   const [currentWeek, setCurrentWeek] = useState(new Date())
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -99,7 +103,8 @@ export const AgendaWeekView = () => {
                     .map((appt) => (
                       <div
                         key={appt.id}
-                        className="text-xs p-1 bg-secondary text-secondary-foreground rounded truncate"
+                        className="text-xs p-1 bg-secondary text-secondary-foreground rounded truncate cursor-pointer"
+                        onClick={() => onAppointmentClick(appt)}
                       >
                         {format(new Date(appt.schedules.start_time), 'HH:mm')} -{' '}
                         {appt.clients.name}

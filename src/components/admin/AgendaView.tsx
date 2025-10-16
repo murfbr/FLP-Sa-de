@@ -7,26 +7,40 @@ import { AgendaWeekView } from './AgendaWeekView'
 import { AgendaDayView } from './AgendaDayView'
 import { Button } from '../ui/button'
 import { AppointmentFormDialog } from './AppointmentFormDialog'
+import { Appointment } from '@/types'
+import { AppointmentDetailDialog } from './AppointmentDetailDialog'
 
 type ViewMode = 'list' | 'month' | 'week' | 'day'
 
 export const AgendaView = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<Appointment | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
+  const handleAppointmentClick = (appointment: Appointment) => {
+    setSelectedAppointment(appointment)
+    setIsDetailOpen(true)
+  }
+
   const renderView = () => {
+    const props = {
+      key: refreshKey,
+      onAppointmentClick: handleAppointmentClick,
+    }
     switch (viewMode) {
       case 'list':
-        return <AgendaListView key={refreshKey} />
+        return <AgendaListView {...props} />
       case 'month':
-        return <AgendaCalendarView key={refreshKey} />
+        return <AgendaCalendarView {...props} />
       case 'week':
-        return <AgendaWeekView key={refreshKey} />
+        return <AgendaWeekView {...props} />
       case 'day':
-        return <AgendaDayView key={refreshKey} />
+        return <AgendaDayView {...props} />
       default:
-        return <AgendaListView key={refreshKey} />
+        return <AgendaListView {...props} />
     }
   }
 
@@ -66,6 +80,11 @@ export const AgendaView = () => {
         onAppointmentCreated={() => {
           setRefreshKey((prevKey) => prevKey + 1)
         }}
+      />
+      <AppointmentDetailDialog
+        isOpen={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        appointment={selectedAppointment}
       />
     </>
   )
