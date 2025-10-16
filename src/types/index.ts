@@ -26,6 +26,13 @@ export interface Schedule {
   is_booked: boolean
 }
 
+export interface Partnership {
+  id: string
+  name: string
+  description: string | null
+  created_at: string
+}
+
 export interface Client {
   id: string
   user_id?: string | null
@@ -34,6 +41,7 @@ export interface Client {
   phone?: string | null
   partnership_id?: string | null
   is_active: boolean
+  partnerships?: Partnership | null
 }
 
 export interface Appointment {
@@ -98,13 +106,6 @@ export interface AvailabilityOverride {
   is_available: boolean
   created_at: string
   service_ids: string[] | null
-}
-
-export interface Partnership {
-  id: string
-  name: string
-  description: string | null
-  created_at: string
 }
 
 export interface PartnershipDiscount {

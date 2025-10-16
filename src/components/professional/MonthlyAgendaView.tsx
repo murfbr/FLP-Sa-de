@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Calendar } from '@/components/ui/calendar'
+import { Calendar, CalendarDayButton } from '@/components/ui/calendar'
 import {
   Card,
   CardContent,
@@ -23,13 +23,16 @@ import { Switch } from '../ui/switch'
 import { Label } from '../ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { AppointmentNotesDialog } from '../admin/AppointmentNotesDialog'
+import { DayProps } from 'react-day-picker'
 
 interface MonthlyAgendaViewProps {
   professionalId: string
+  onDateSelect: (date: Date) => void
 }
 
 export const MonthlyAgendaView = ({
   professionalId,
+  onDateSelect,
 }: MonthlyAgendaViewProps) => {
   const { toast } = useToast()
   const [date, setDate] = useState<Date | undefined>(new Date())
@@ -61,6 +64,30 @@ export const MonthlyAgendaView = ({
   useEffect(() => {
     fetchMonthData()
   }, [fetchMonthData])
+
+  const appointmentsByDay = useMemo(() => {
+    const counts = new Map<string, number>()
+    appointments.forEach((appt) => {
+      const day = format(new Date(appt.schedules.start_time), 'yyyy-MM-dd')
+      counts.set(day, (counts.get(day) || 0) + 1)
+    })
+    return counts
+  }, [appointments])
+
+  const CustomDay = (props: DayProps) => {
+    const dayKey = format(props.date, 'yyyy-MM-dd')
+    const count = appointmentsByDay.get(dayKey)
+    return (
+      <div className="relative">
+        <CalendarDayButton {...props} />
+        {count && count > 0 && (
+          <div className="absolute bottom-0 right-0 text-xs bg-primary text-primary-foreground rounded-full h-4 w-4 flex items-center justify-center pointer-events-none">
+            {count}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const { appointmentsOnSelectedDay, isSelectedDayBlocked } = useMemo(() => {
     if (!date)
@@ -116,27 +143,23 @@ export const MonthlyAgendaView = ({
             <Calendar
               mode="single"
               selected={date}
-              onSelect={setDate}
+              onSelect={(selectedDate) => {
+                if (selectedDate) {
+                  setDate(selectedDate)
+                  onDateSelect(selectedDate)
+                }
+              }}
               month={currentMonth}
               onMonthChange={setCurrentMonth}
               className="rounded-md border p-3"
               disabled={blockedDays}
-              modifiers={{
-                booked: appointments.map(
-                  (a) => new Date(a.schedules.start_time),
-                ),
-              }}
               modifiersStyles={{
-                booked: {
-                  fontWeight: 'bold',
-                  textDecoration: 'underline',
-                  textDecorationColor: 'hsl(var(--primary))',
-                },
                 disabled: {
                   color: 'hsl(var(--destructive))',
                   textDecoration: 'line-through',
                 },
               }}
+              components={{ Day: CustomDay }}
             />
           )}
         </div>

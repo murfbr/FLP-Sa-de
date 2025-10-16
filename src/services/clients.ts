@@ -22,7 +22,7 @@ export async function getClientsByProfessional(
 
   const { data: clients, error: clientError } = await supabase
     .from('clients')
-    .select('*')
+    .select('*, partnerships(*)')
     .in('id', clientIds)
     .eq('is_active', true) // Professionals should only see active clients
 
@@ -34,7 +34,7 @@ export async function getAllClients(filter?: {
 }): Promise<{ data: Client[] | null; error: any }> {
   let query = supabase
     .from('clients')
-    .select('*')
+    .select('*, partnerships(*)')
     .order('name', { ascending: true })
 
   if (filter?.status === 'active') {
@@ -52,7 +52,7 @@ export async function getClientById(
 ): Promise<{ data: Client | null; error: any }> {
   const { data, error } = await supabase
     .from('clients')
-    .select('*')
+    .select('*, partnerships(*)')
     .eq('id', clientId)
     .single()
 

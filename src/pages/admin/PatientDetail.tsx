@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getClientById, updateClient, deleteClient } from '@/services/clients'
 import { getAppointmentsByClientId } from '@/services/appointments'
-import { Client, Appointment } from '@/types'
+import { Client, Appointment, Partnership } from '@/types'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Card,
@@ -40,12 +40,21 @@ import {
   FileText,
   Edit,
   Trash2,
+  Handshake,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { PatientEditDialog } from '@/components/admin/PatientEditDialog'
+import { getAllPartnerships } from '@/services/partnerships'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const PatientDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -53,18 +62,21 @@ const PatientDetail = () => {
   const { toast } = useToast()
   const [patient, setPatient] = useState<Client | null>(null)
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [partnerships, setPartnerships] = useState<Partnership[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   const fetchPatientData = async () => {
     if (!id) return
     setIsLoading(true)
-    const [patientRes, apptRes] = await Promise.all([
+    const [patientRes, apptRes, partnershipRes] = await Promise.all([
       getClientById(id),
       getAppointmentsByClientId(id),
+      getAllPartnerships(),
     ])
     setPatient(patientRes.data)
     setAppointments(apptRes.data || [])
+    setPartnerships(partnershipRes.data || [])
     setIsLoading(false)
   }
 
@@ -80,7 +92,7 @@ const PatientDetail = () => {
     if (error) {
       toast({ title: 'Erro ao atualizar status', variant: 'destructive' })
     } else if (data) {
-      setPatient(data)
+      setPatient((prev) => (prev ? { ...prev, ...data } : data))
       toast({
         title: `Paciente ${isActive ? 'ativado' : 'inativado'} com sucesso!`,
       })
@@ -95,6 +107,24 @@ const PatientDetail = () => {
     } else {
       toast({ title: 'Paciente excluído com sucesso!' })
       navigate('/')
+    }
+  }
+
+  const handlePartnershipChange = async (partnershipId: string) => {
+    if (!patient) return
+    const newPartnershipId = partnershipId === 'none' ? null : partnershipId
+
+    const { data, error } = await updateClient(patient.id, {
+      partnership_id: newPartnershipId,
+    })
+
+    if (error) {
+      toast({ title: 'Erro ao atualizar parceria', variant: 'destructive' })
+    } else if (data) {
+      const selectedPartnership =
+        partnerships.find((p) => p.id === newPartnershipId) || null
+      setPatient({ ...patient, ...data, partnerships: selectedPartnership })
+      toast({ title: 'Parceria atualizada com sucesso!' })
     }
   }
 
@@ -155,6 +185,31 @@ const PatientDetail = () => {
                   <span className="text-sm">
                     {patient.phone || 'Não informado'}
                   </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Handshake className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    {patient.partnerships?.name || 'Nenhuma parceria'}
+                  </span>
+                </div>
+                <div className="pt-2">
+                  <Label htmlFor="partnership-select">Alterar Parceria</Label>
+                  <Select
+                    value={patient.partnership_id || 'none'}
+                    onValueChange={handlePartnershipChange}
+                  >
+                    <SelectTrigger id="partnership-select">
+                      <SelectValue placeholder="Selecione uma parceria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma</SelectItem>
+                      {partnerships.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-2">
