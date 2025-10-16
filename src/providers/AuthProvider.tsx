@@ -7,10 +7,12 @@ import {
 } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
+import { UserRole } from '@/types'
 
 interface AuthContextType {
   user: User | null
   session: Session | null
+  role: UserRole | null
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<{ error: any }>
@@ -30,23 +32,39 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
+  const [role, setRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    const fetchUserRole = async (user: User | null) => {
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+        setRole((data?.role as UserRole) ?? 'admin')
+      } else {
+        setRole(null)
+      }
+      setLoading(false)
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
+      fetchUserRole(currentUser)
+    })
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
+      setLoading(true)
+      fetchUserRole(currentUser)
     })
 
     return () => subscription.unsubscribe()
@@ -54,13 +72,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`
-
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: redirectUrl,
-      },
+      options: { emailRedirectTo: redirectUrl },
     })
     return { error }
   }
@@ -78,14 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error }
   }
 
-  const value = {
-    user,
-    session,
-    signUp,
-    signIn,
-    signOut,
-    loading,
-  }
+  const value = { user, session, role, signUp, signIn, signOut, loading }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

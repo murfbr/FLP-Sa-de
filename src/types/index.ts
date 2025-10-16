@@ -1,3 +1,5 @@
+export type UserRole = 'client' | 'professional' | 'admin'
+
 export interface Service {
   id: string
   name: string

@@ -10,10 +10,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { LogOut, UserCircle, Briefcase, LayoutDashboard } from 'lucide-react'
+import { LogOut, Briefcase, LayoutDashboard } from 'lucide-react'
 
 export const Header = () => {
-  const { user, signOut } = useAuth()
+  const { user, signOut, role } = useAuth()
   const navigate = useNavigate()
 
   const handleSignOut = async () => {
@@ -62,19 +62,19 @@ export const Header = () => {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel>Navegar como</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => navigate('/')}>
-                  <LayoutDashboard className="mr-2 h-4 w-4" />
-                  <span>Administrador</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/cliente')}>
-                  <UserCircle className="mr-2 h-4 w-4" />
-                  <span>Cliente</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/profissional')}>
-                  <Briefcase className="mr-2 h-4 w-4" />
-                  <span>Profissional</span>
-                </DropdownMenuItem>
+                <DropdownMenuLabel>Navegar para</DropdownMenuLabel>
+                {role === 'admin' && (
+                  <DropdownMenuItem onClick={() => navigate('/')}>
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span>Dashboard Admin</span>
+                  </DropdownMenuItem>
+                )}
+                {(role === 'admin' || role === 'professional') && (
+                  <DropdownMenuItem onClick={() => navigate('/profissional')}>
+                    <Briefcase className="mr-2 h-4 w-4" />
+                    <span>Área do Profissional</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />

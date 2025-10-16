@@ -9,11 +9,11 @@ import Layout from './components/Layout'
 import Index from './pages/Index'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import ClientArea from './pages/ClientArea'
 import ProfessionalArea from './pages/ProfessionalArea'
 import PatientDetail from './pages/admin/PatientDetail'
 import ProfessionalDetail from './pages/admin/ProfessionalDetail'
 import NotFound from './pages/NotFound'
+import ClientAreaUnavailable from './pages/ClientAreaUnavailable'
 
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
 // AVOID REMOVING ANY CONTEXT PROVIDERS FROM THIS FILE (e.g. TooltipProvider, Toaster, Sonner)
@@ -39,12 +39,8 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route
-              path="/cliente"
-              element={
-                <ProtectedRoute>
-                  <ClientArea />
-                </ProtectedRoute>
-              }
+              path="/cliente-indisponivel"
+              element={<ClientAreaUnavailable />}
             />
             <Route
               path="/profissional"
