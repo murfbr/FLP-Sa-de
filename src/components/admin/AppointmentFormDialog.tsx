@@ -93,17 +93,18 @@ export const AppointmentFormDialog = ({
   const date = form.watch('date')
 
   useEffect(() => {
-    Promise.all([getAllClients(), getAllProfessionals()]).then(
-      ([clientRes, profRes]) => {
-        setClients(clientRes.data || [])
-        setProfessionals(profRes.data || [])
-        setIsLoading((prev) => ({
-          ...prev,
-          clients: false,
-          professionals: false,
-        }))
-      },
-    )
+    Promise.all([
+      getAllClients({ status: 'active' }),
+      getAllProfessionals(),
+    ]).then(([clientRes, profRes]) => {
+      setClients(clientRes.data || [])
+      setProfessionals(profRes.data || [])
+      setIsLoading((prev) => ({
+        ...prev,
+        clients: false,
+        professionals: false,
+      }))
+    })
   }, [])
 
   useEffect(() => {

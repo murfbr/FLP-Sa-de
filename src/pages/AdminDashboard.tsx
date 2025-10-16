@@ -28,6 +28,15 @@ import { AdminAvailabilityManager } from '@/components/admin/AdminAvailabilityMa
 import { Button } from '@/components/ui/button'
 import { PatientFormDialog } from '@/components/admin/PatientFormDialog'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
+type ClientStatusFilter = 'all' | 'active' | 'inactive'
 
 const AdminDashboard = () => {
   const { user } = useAuth()
@@ -35,12 +44,14 @@ const AdminDashboard = () => {
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false)
+  const [clientStatusFilter, setClientStatusFilter] =
+    useState<ClientStatusFilter>('active')
 
   const fetchData = async () => {
     setIsLoading(true)
     const [profRes, clientRes] = await Promise.all([
       getAllProfessionals(),
-      getAllClients(),
+      getAllClients({ status: clientStatusFilter }),
     ])
     if (profRes.data) setProfessionals(profRes.data)
     if (clientRes.data) setClients(clientRes.data)
@@ -49,7 +60,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [clientStatusFilter])
 
   return (
     <>
@@ -65,7 +76,7 @@ const AdminDashboard = () => {
 
         <Tabs defaultValue="overview" className="w-full">
           <ScrollArea className="w-full whitespace-nowrap">
-            <TabsList className="inline-flex h-auto p-1 mb-6 w-max">
+            <TabsList className="inline-flex h-auto p-1 mb-6 w-max flex-wrap sm:flex-nowrap">
               <TabsTrigger value="overview">
                 <BarChart className="w-4 h-4 mr-2" />
                 Visão Geral
@@ -136,7 +147,7 @@ const AdminDashboard = () => {
                       <div className="text-3xl font-bold">{clients.length}</div>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Pacientes ativos
+                      Pacientes ({clientStatusFilter})
                     </p>
                   </CardContent>
                 </Card>
@@ -190,10 +201,30 @@ const AdminDashboard = () => {
               <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <CardTitle>Gerenciar Pacientes</CardTitle>
-                  <Button onClick={() => setIsPatientFormOpen(true)}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Novo Paciente
-                  </Button>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <Select
+                      value={clientStatusFilter}
+                      onValueChange={(v) =>
+                        setClientStatusFilter(v as ClientStatusFilter)
+                      }
+                    >
+                      <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Ativos</SelectItem>
+                        <SelectItem value="inactive">Inativos</SelectItem>
+                        <SelectItem value="all">Todos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={() => setIsPatientFormOpen(true)}
+                      className="w-full sm:w-auto"
+                    >
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Novo
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

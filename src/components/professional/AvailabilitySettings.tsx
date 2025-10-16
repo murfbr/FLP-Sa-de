@@ -195,102 +195,108 @@ export const AvailabilitySettings = ({
                             {slots.map((slot, slotIndex) => (
                               <div
                                 key={slotIndex}
-                                className="flex items-center gap-2"
+                                className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
                               >
-                                <Controller
-                                  name={`days.${dayIndex}.slots.${slotIndex}.start_time`}
-                                  control={control}
-                                  render={({ field }) => (
-                                    <Input type="time" {...field} />
-                                  )}
-                                />
-                                <span>-</span>
-                                <Controller
-                                  name={`days.${dayIndex}.slots.${slotIndex}.end_time`}
-                                  control={control}
-                                  render={({ field }) => (
-                                    <Input type="time" {...field} />
-                                  )}
-                                />
-                                <Controller
-                                  name={`days.${dayIndex}.slots.${slotIndex}.service_ids`}
-                                  control={control}
-                                  render={({ field }) => (
-                                    <Popover>
-                                      <PopoverTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          role="combobox"
-                                          className="w-[200px] justify-between"
-                                        >
-                                          {field.value && field.value.length > 0
-                                            ? `${field.value.length} serviço(s)`
-                                            : 'Todos os serviços'}
-                                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-[200px] p-0">
-                                        <Command>
-                                          <CommandInput placeholder="Buscar serviço..." />
-                                          <CommandList>
-                                            <CommandEmpty>
-                                              Nenhum serviço encontrado.
-                                            </CommandEmpty>
-                                            <CommandGroup>
-                                              {services.map((service) => (
-                                                <CommandItem
-                                                  key={service.id}
-                                                  value={service.name}
-                                                  onSelect={() => {
-                                                    const currentIds =
-                                                      field.value || []
-                                                    const newIds =
-                                                      currentIds.includes(
-                                                        service.id,
-                                                      )
-                                                        ? currentIds.filter(
-                                                            (id) =>
-                                                              id !== service.id,
-                                                          )
-                                                        : [
-                                                            ...currentIds,
-                                                            service.id,
-                                                          ]
-                                                    field.onChange(newIds)
-                                                  }}
-                                                >
-                                                  <Check
-                                                    className={cn(
-                                                      'mr-2 h-4 w-4',
-                                                      field.value?.includes(
-                                                        service.id,
-                                                      )
-                                                        ? 'opacity-100'
-                                                        : 'opacity-0',
-                                                    )}
-                                                  />
-                                                  {service.name}
-                                                </CommandItem>
-                                              ))}
-                                            </CommandGroup>
-                                          </CommandList>
-                                        </Command>
-                                      </PopoverContent>
-                                    </Popover>
-                                  )}
-                                />
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    const newSlots = [...slots]
-                                    newSlots.splice(slotIndex, 1)
-                                    onChange(newSlots)
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex-1 flex items-center gap-2">
+                                  <Controller
+                                    name={`days.${dayIndex}.slots.${slotIndex}.start_time`}
+                                    control={control}
+                                    render={({ field }) => (
+                                      <Input type="time" {...field} />
+                                    )}
+                                  />
+                                  <span>-</span>
+                                  <Controller
+                                    name={`days.${dayIndex}.slots.${slotIndex}.end_time`}
+                                    control={control}
+                                    render={({ field }) => (
+                                      <Input type="time" {...field} />
+                                    )}
+                                  />
+                                </div>
+                                <div className="flex-1 flex items-center gap-2">
+                                  <Controller
+                                    name={`days.${dayIndex}.slots.${slotIndex}.service_ids`}
+                                    control={control}
+                                    render={({ field }) => (
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className="w-full sm:w-[200px] justify-between"
+                                          >
+                                            {field.value &&
+                                            field.value.length > 0
+                                              ? `${field.value.length} serviço(s)`
+                                              : 'Todos os serviços'}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[200px] p-0">
+                                          <Command>
+                                            <CommandInput placeholder="Buscar serviço..." />
+                                            <CommandList>
+                                              <CommandEmpty>
+                                                Nenhum serviço encontrado.
+                                              </CommandEmpty>
+                                              <CommandGroup>
+                                                {services.map((service) => (
+                                                  <CommandItem
+                                                    key={service.id}
+                                                    value={service.name}
+                                                    onSelect={() => {
+                                                      const currentIds =
+                                                        field.value || []
+                                                      const newIds =
+                                                        currentIds.includes(
+                                                          service.id,
+                                                        )
+                                                          ? currentIds.filter(
+                                                              (id) =>
+                                                                id !==
+                                                                service.id,
+                                                            )
+                                                          : [
+                                                              ...currentIds,
+                                                              service.id,
+                                                            ]
+                                                      field.onChange(newIds)
+                                                    }}
+                                                  >
+                                                    <Check
+                                                      className={cn(
+                                                        'mr-2 h-4 w-4',
+                                                        field.value?.includes(
+                                                          service.id,
+                                                        )
+                                                          ? 'opacity-100'
+                                                          : 'opacity-0',
+                                                      )}
+                                                    />
+                                                    {service.name}
+                                                  </CommandItem>
+                                                ))}
+                                              </CommandGroup>
+                                            </CommandList>
+                                          </Command>
+                                        </PopoverContent>
+                                      </Popover>
+                                    )}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      const newSlots = [...slots]
+                                      newSlots.splice(slotIndex, 1)
+                                      onChange(newSlots)
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
                             ))}
                             <Button

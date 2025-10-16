@@ -24,19 +24,26 @@ export async function getClientsByProfessional(
     .from('clients')
     .select('*')
     .in('id', clientIds)
+    .eq('is_active', true) // Professionals should only see active clients
 
   return { data: clients, error: clientError }
 }
 
-export async function getAllClients(): Promise<{
-  data: Client[] | null
-  error: any
-}> {
-  const { data, error } = await supabase
+export async function getAllClients(filter?: {
+  status?: 'all' | 'active' | 'inactive'
+}): Promise<{ data: Client[] | null; error: any }> {
+  let query = supabase
     .from('clients')
     .select('*')
     .order('name', { ascending: true })
 
+  if (filter?.status === 'active') {
+    query = query.eq('is_active', true)
+  } else if (filter?.status === 'inactive') {
+    query = query.eq('is_active', false)
+  }
+
+  const { data, error } = await query
   return { data, error }
 }
 
@@ -53,12 +60,30 @@ export async function getClientById(
 }
 
 export async function createClient(
-  clientData: Omit<Client, 'id' | 'created_at' | 'user_id'>,
+  clientData: Omit<Client, 'id' | 'created_at' | 'user_id' | 'is_active'>,
 ): Promise<{ data: Client | null; error: any }> {
   const { data, error } = await supabase
     .from('clients')
-    .insert(clientData)
+    .insert({ ...clientData, is_active: true })
     .select()
     .single()
   return { data, error }
+}
+
+export async function updateClient(
+  clientId: string,
+  updates: Partial<Omit<Client, 'id' | 'created_at' | 'user_id'>>,
+): Promise<{ data: Client | null; error: any }> {
+  const { data, error } = await supabase
+    .from('clients')
+    .update(updates)
+    .eq('id', clientId)
+    .select()
+    .single()
+  return { data, error }
+}
+
+export async function deleteClient(clientId: string): Promise<{ error: any }> {
+  const { error } = await supabase.from('clients').delete().eq('id', clientId)
+  return { error }
 }

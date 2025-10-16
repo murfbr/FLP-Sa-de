@@ -33,6 +33,7 @@ export interface Client {
   email: string
   phone?: string | null
   partnership_id?: string | null
+  is_active: boolean
 }
 
 export interface Appointment {

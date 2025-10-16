@@ -38,6 +38,8 @@ import { Service } from '@/types'
 import { useToast } from '@/hooks/use-toast'
 import { PlusCircle, Edit, Trash2 } from 'lucide-react'
 import { Badge } from '../ui/badge'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 
 export const ServicesManager = () => {
   const [services, setServices] = useState<Service[]>([])
@@ -46,6 +48,7 @@ export const ServicesManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingService, setEditingService] = useState<Service | null>(null)
   const { toast } = useToast()
+  const isMobile = useIsMobile()
 
   const fetchServices = async () => {
     setIsLoading(true)
@@ -97,6 +100,125 @@ export const ServicesManager = () => {
       currency: 'BRL',
     }).format(value)
 
+  const renderMobileView = () => (
+    <div className="space-y-4">
+      {services.map((service) => (
+        <Card key={service.id}>
+          <CardHeader>
+            <CardTitle className="text-base">{service.name}</CardTitle>
+            <Badge variant="outline" className="w-fit">
+              {service.value_type === 'session' ? 'Sessão' : 'Mensal'}
+            </Badge>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            <p>
+              <strong>Duração:</strong> {service.duration_minutes} min
+            </p>
+            <p>
+              <strong>Preço:</strong> {formatCurrency(service.price)}
+            </p>
+            <div className="flex justify-end space-x-2 pt-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  setEditingService(service)
+                  setIsDialogOpen(true)
+                }}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="icon">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Tem certeza que deseja excluir?
+                    </AlertDialogTitle>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleDelete(service.id)}>
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+
+  const renderDesktopView = () => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Nome</TableHead>
+          <TableHead>Tipo</TableHead>
+          <TableHead>Duração</TableHead>
+          <TableHead>Preço</TableHead>
+          <TableHead className="text-right">Ações</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {services.map((service) => (
+          <TableRow key={service.id}>
+            <TableCell className="font-medium">{service.name}</TableCell>
+            <TableCell>
+              <Badge variant="outline">
+                {service.value_type === 'session' ? 'Sessão' : 'Mensal'}
+              </Badge>
+            </TableCell>
+            <TableCell>{service.duration_minutes} min</TableCell>
+            <TableCell>{formatCurrency(service.price)}</TableCell>
+            <TableCell className="text-right space-x-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  setEditingService(service)
+                  setIsDialogOpen(true)
+                }}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="icon">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Tem certeza que deseja excluir?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Isso excluirá
+                      permanentemente o serviço.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleDelete(service.id)}>
+                      Excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  )
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -123,70 +245,10 @@ export const ServicesManager = () => {
       </div>
       {isLoading ? (
         <Skeleton className="h-96 w-full" />
+      ) : isMobile ? (
+        renderMobileView()
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Duração</TableHead>
-              <TableHead>Preço</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {services.map((service) => (
-              <TableRow key={service.id}>
-                <TableCell className="font-medium">{service.name}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">
-                    {service.value_type === 'session' ? 'Sessão' : 'Mensal'}
-                  </Badge>
-                </TableCell>
-                <TableCell>{service.duration_minutes} min</TableCell>
-                <TableCell>{formatCurrency(service.price)}</TableCell>
-                <TableCell className="text-right space-x-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => {
-                      setEditingService(service)
-                      setIsDialogOpen(true)
-                    }}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="icon">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          Tem certeza que deseja excluir?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta ação não pode ser desfeita. Isso excluirá
-                          permanentemente o serviço.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(service.id)}
-                        >
-                          Excluir
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        renderDesktopView()
       )}
     </div>
   )

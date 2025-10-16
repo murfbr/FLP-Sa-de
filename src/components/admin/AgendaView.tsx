@@ -9,6 +9,14 @@ import { Button } from '../ui/button'
 import { AppointmentFormDialog } from './AppointmentFormDialog'
 import { Appointment } from '@/types'
 import { AppointmentDetailDialog } from './AppointmentDetailDialog'
+import { useIsMobile } from '@/hooks/use-mobile'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select'
 
 type ViewMode = 'list' | 'month' | 'week' | 'day'
 
@@ -19,6 +27,7 @@ export const AgendaView = () => {
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const isMobile = useIsMobile()
 
   const handleAppointmentClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment)
@@ -48,32 +57,59 @@ export const AgendaView = () => {
     }
   }
 
+  const renderViewSwitcher = () => {
+    if (isMobile) {
+      return (
+        <Select
+          value={viewMode}
+          onValueChange={(value: ViewMode) => value && setViewMode(value)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Selecionar visualização" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="list">Lista</SelectItem>
+            <SelectItem value="month">Mês</SelectItem>
+            <SelectItem value="week">Semana</SelectItem>
+            <SelectItem value="day">Dia</SelectItem>
+          </SelectContent>
+        </Select>
+      )
+    }
+    return (
+      <ToggleGroup
+        type="single"
+        value={viewMode}
+        onValueChange={(value: ViewMode) => value && setViewMode(value)}
+      >
+        <ToggleGroupItem value="list" aria-label="List view">
+          <List className="h-4 w-4" />
+        </ToggleGroupItem>
+        <ToggleGroupItem value="month" aria-label="Month view">
+          <Calendar className="h-4 w-4" />
+        </ToggleGroupItem>
+        <ToggleGroupItem value="week" aria-label="Week view">
+          <View className="h-4 w-4" />
+        </ToggleGroupItem>
+        <ToggleGroupItem value="day" aria-label="Day view">
+          <Columns className="h-4 w-4" />
+        </ToggleGroupItem>
+      </ToggleGroup>
+    )
+  }
+
   return (
     <>
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <Button onClick={() => setIsFormOpen(true)}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <Button
+            onClick={() => setIsFormOpen(true)}
+            className="w-full sm:w-auto"
+          >
             <PlusCircle className="mr-2 h-4 w-4" />
             Novo Agendamento
           </Button>
-          <ToggleGroup
-            type="single"
-            value={viewMode}
-            onValueChange={(value: ViewMode) => value && setViewMode(value)}
-          >
-            <ToggleGroupItem value="list" aria-label="List view">
-              <List className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="month" aria-label="Month view">
-              <Calendar className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="week" aria-label="Week view">
-              <View className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="day" aria-label="Day view">
-              <Columns className="h-4 w-4" />
-            </ToggleGroupItem>
-          </ToggleGroup>
+          {renderViewSwitcher()}
         </div>
 
         {renderView()}
