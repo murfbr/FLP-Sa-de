@@ -68,7 +68,7 @@ export const AgendaCalendarView = ({
         <Button variant="outline" size="icon" onClick={prevMonth}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <h2 className="text-xl font-semibold capitalize">
+        <h2 className="text-lg md:text-xl font-semibold capitalize text-center">
           {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
         </h2>
         <Button variant="outline" size="icon" onClick={nextMonth}>
@@ -78,54 +78,62 @@ export const AgendaCalendarView = ({
       {isLoading ? (
         <Skeleton className="h-[600px] w-full" />
       ) : (
-        <div className="grid grid-cols-7 gap-px bg-border">
-          {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => (
-            <div key={day} className="text-center font-medium py-2 bg-card">
-              {day}
-            </div>
-          ))}
-          {Array.from({ length: startingDayIndex }).map((_, i) => (
-            <div key={`empty-${i}`} className="bg-muted/50" />
-          ))}
-          {daysInMonth.map((day) => {
-            const dayKey = format(day, 'yyyy-MM-dd')
-            const dayAppointments = appointmentsByDay.get(dayKey) || []
-            return (
+        <div className="overflow-x-auto">
+          <div className="grid grid-cols-7 gap-px bg-border min-w-[600px]">
+            {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
               <div
-                key={day.toString()}
-                className={cn(
-                  'p-2 min-h-[120px] bg-card',
-                  !isSameMonth(day, currentMonth) && 'bg-muted/50',
-                )}
+                key={i}
+                className="text-center font-medium py-2 bg-card text-xs sm:text-sm"
               >
-                <time
-                  dateTime={format(day, 'yyyy-MM-dd')}
+                {day}
+              </div>
+            ))}
+            {Array.from({ length: startingDayIndex }).map((_, i) => (
+              <div key={`empty-${i}`} className="bg-muted/50" />
+            ))}
+            {daysInMonth.map((day) => {
+              const dayKey = format(day, 'yyyy-MM-dd')
+              const dayAppointments = appointmentsByDay.get(dayKey) || []
+              return (
+                <div
+                  key={day.toString()}
                   className={cn(
-                    'block text-sm text-center h-6 w-6 rounded-full leading-6',
-                    isToday(day) && 'bg-primary text-primary-foreground',
+                    'p-1 sm:p-2 min-h-[80px] sm:min-h-[120px] bg-card',
+                    !isSameMonth(day, currentMonth) && 'bg-muted/50',
                   )}
                 >
-                  {format(day, 'd')}
-                </time>
-                <div className="mt-1 space-y-1">
-                  {dayAppointments.slice(0, 2).map((appt) => (
-                    <div
-                      key={appt.id}
-                      className="text-xs p-1 bg-secondary text-secondary-foreground rounded truncate cursor-pointer"
-                      onClick={() => onAppointmentClick(appt)}
-                    >
-                      {appt.clients.name}
-                    </div>
-                  ))}
-                  {dayAppointments.length > 2 && (
-                    <div className="text-xs text-muted-foreground">
-                      + {dayAppointments.length - 2} mais
-                    </div>
+                  <time
+                    dateTime={format(day, 'yyyy-MM-dd')}
+                    className={cn(
+                      'block text-xs sm:text-sm text-center h-6 w-6 rounded-full leading-6 mx-auto',
+                      isToday(day) && 'bg-primary text-primary-foreground',
+                    )}
+                  >
+                    {format(day, 'd')}
+                  </time>
+                  <div className="mt-1 space-y-1 hidden sm:block">
+                    {dayAppointments.slice(0, 2).map((appt) => (
+                      <div
+                        key={appt.id}
+                        className="text-xs p-1 bg-secondary text-secondary-foreground rounded truncate cursor-pointer"
+                        onClick={() => onAppointmentClick(appt)}
+                      >
+                        {appt.clients.name}
+                      </div>
+                    ))}
+                    {dayAppointments.length > 2 && (
+                      <div className="text-xs text-muted-foreground">
+                        + {dayAppointments.length - 2} mais
+                      </div>
+                    )}
+                  </div>
+                  {dayAppointments.length > 0 && (
+                    <div className="sm:hidden w-2 h-2 rounded-full bg-primary mx-auto mt-1"></div>
                   )}
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       )}
     </div>

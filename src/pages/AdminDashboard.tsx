@@ -27,6 +27,7 @@ import { PartnershipsManager } from '@/components/admin/PartnershipsManager'
 import { AdminAvailabilityManager } from '@/components/admin/AdminAvailabilityManager'
 import { Button } from '@/components/ui/button'
 import { PatientFormDialog } from '@/components/admin/PatientFormDialog'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 
 const AdminDashboard = () => {
   const { user } = useAuth()
@@ -54,49 +55,52 @@ const AdminDashboard = () => {
     <>
       <div className="container mx-auto py-8 px-4">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold font-sans">
+          <h1 className="text-3xl md:text-4xl font-bold font-sans">
             Dashboard Administrativo
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-md md:text-lg text-muted-foreground">
             Bem-vindo, {user?.email || 'Administrador'}.
           </p>
         </div>
 
-        <Tabs defaultValue="overview">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-8 mb-6">
-            <TabsTrigger value="overview">
-              <BarChart className="w-4 h-4 mr-2" />
-              Visão Geral
-            </TabsTrigger>
-            <TabsTrigger value="kpi">
-              <LayoutDashboard className="w-4 h-4 mr-2" />
-              Indicadores
-            </TabsTrigger>
-            <TabsTrigger value="agenda">
-              <Calendar className="w-4 h-4 mr-2" />
-              Agenda
-            </TabsTrigger>
-            <TabsTrigger value="availability">
-              <Clock className="w-4 h-4 mr-2" />
-              Disponibilidade
-            </TabsTrigger>
-            <TabsTrigger value="professionals">
-              <Briefcase className="w-4 h-4 mr-2" />
-              Profissionais
-            </TabsTrigger>
-            <TabsTrigger value="patients">
-              <Users className="w-4 h-4 mr-2" />
-              Pacientes
-            </TabsTrigger>
-            <TabsTrigger value="services">
-              <Stethoscope className="w-4 h-4 mr-2" />
-              Serviços
-            </TabsTrigger>
-            <TabsTrigger value="partnerships">
-              <Handshake className="w-4 h-4 mr-2" />
-              Parcerias
-            </TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="overview" className="w-full">
+          <ScrollArea className="w-full whitespace-nowrap">
+            <TabsList className="inline-flex h-auto p-1 mb-6 w-max">
+              <TabsTrigger value="overview">
+                <BarChart className="w-4 h-4 mr-2" />
+                Visão Geral
+              </TabsTrigger>
+              <TabsTrigger value="kpi">
+                <LayoutDashboard className="w-4 h-4 mr-2" />
+                Indicadores
+              </TabsTrigger>
+              <TabsTrigger value="agenda">
+                <Calendar className="w-4 h-4 mr-2" />
+                Agenda
+              </TabsTrigger>
+              <TabsTrigger value="availability">
+                <Clock className="w-4 h-4 mr-2" />
+                Disponibilidade
+              </TabsTrigger>
+              <TabsTrigger value="professionals">
+                <Briefcase className="w-4 h-4 mr-2" />
+                Profissionais
+              </TabsTrigger>
+              <TabsTrigger value="patients">
+                <Users className="w-4 h-4 mr-2" />
+                Pacientes
+              </TabsTrigger>
+              <TabsTrigger value="services">
+                <Stethoscope className="w-4 h-4 mr-2" />
+                Serviços
+              </TabsTrigger>
+              <TabsTrigger value="partnerships">
+                <Handshake className="w-4 h-4 mr-2" />
+                Parcerias
+              </TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
 
           <TabsContent value="overview">
             <div className="grid gap-6 md:grid-cols-3">
@@ -184,7 +188,7 @@ const AdminDashboard = () => {
           <TabsContent value="patients">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <CardTitle>Gerenciar Pacientes</CardTitle>
                   <Button onClick={() => setIsPatientFormOpen(true)}>
                     <PlusCircle className="mr-2 h-4 w-4" />

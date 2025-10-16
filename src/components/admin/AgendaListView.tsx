@@ -21,6 +21,8 @@ import { getAllProfessionals } from '@/services/professionals'
 import { Appointment, Professional } from '@/types'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 
 interface AgendaListViewProps {
   onAppointmentClick: (appointment: Appointment) => void
@@ -31,6 +33,7 @@ export const AgendaListView = ({ onAppointmentClick }: AgendaListViewProps) => {
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [selectedProfessional, setSelectedProfessional] = useState('all')
   const [isLoading, setIsLoading] = useState(true)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,6 +49,88 @@ export const AgendaListView = ({ onAppointmentClick }: AgendaListViewProps) => {
     fetchData()
   }, [selectedProfessional])
 
+  const renderContent = () => {
+    if (isLoading) {
+      return <Skeleton className="h-96 w-full" />
+    }
+    if (appointments.length === 0) {
+      return (
+        <div className="text-center py-16">Nenhum agendamento encontrado.</div>
+      )
+    }
+    if (isMobile) {
+      return (
+        <div className="space-y-4">
+          {appointments.map((appt) => (
+            <Card
+              key={appt.id}
+              onClick={() => onAppointmentClick(appt)}
+              className="cursor-pointer hover:bg-muted/50"
+            >
+              <CardHeader>
+                <CardTitle className="text-base">{appt.clients.name}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {format(
+                    new Date(appt.schedules.start_time),
+                    "dd/MM/yyyy 'às' HH:mm",
+                    { locale: ptBR },
+                  )}
+                </p>
+              </CardHeader>
+              <CardContent className="text-sm space-y-1">
+                <p>
+                  <strong>Serviço:</strong> {appt.services.name}
+                </p>
+                <p>
+                  <strong>Profissional:</strong> {appt.professionals.name}
+                </p>
+                <Badge>{appt.status}</Badge>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )
+    }
+    return (
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Profissional</TableHead>
+              <TableHead>Serviço</TableHead>
+              <TableHead>Data e Hora</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {appointments.map((appt) => (
+              <TableRow
+                key={appt.id}
+                onClick={() => onAppointmentClick(appt)}
+                className="cursor-pointer hover:bg-muted/50"
+              >
+                <TableCell>{appt.clients.name}</TableCell>
+                <TableCell>{appt.professionals.name}</TableCell>
+                <TableCell>{appt.services.name}</TableCell>
+                <TableCell>
+                  {format(
+                    new Date(appt.schedules.start_time),
+                    "dd/MM/yyyy 'às' HH:mm",
+                    { locale: ptBR },
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge>{appt.status}</Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -53,7 +138,7 @@ export const AgendaListView = ({ onAppointmentClick }: AgendaListViewProps) => {
           value={selectedProfessional}
           onValueChange={setSelectedProfessional}
         >
-          <SelectTrigger className="w-[280px]">
+          <SelectTrigger className="w-full sm:w-[280px]">
             <SelectValue placeholder="Filtrar por profissional" />
           </SelectTrigger>
           <SelectContent>
@@ -66,52 +151,7 @@ export const AgendaListView = ({ onAppointmentClick }: AgendaListViewProps) => {
           </SelectContent>
         </Select>
       </div>
-      {isLoading ? (
-        <Skeleton className="h-96 w-full" />
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Profissional</TableHead>
-              <TableHead>Serviço</TableHead>
-              <TableHead>Data e Hora</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {appointments.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  Nenhum agendamento encontrado.
-                </TableCell>
-              </TableRow>
-            ) : (
-              appointments.map((appt) => (
-                <TableRow
-                  key={appt.id}
-                  onClick={() => onAppointmentClick(appt)}
-                  className="cursor-pointer hover:bg-muted/50"
-                >
-                  <TableCell>{appt.clients.name}</TableCell>
-                  <TableCell>{appt.professionals.name}</TableCell>
-                  <TableCell>{appt.services.name}</TableCell>
-                  <TableCell>
-                    {format(
-                      new Date(appt.schedules.start_time),
-                      "dd/MM/yyyy 'às' HH:mm",
-                      { locale: ptBR },
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge>{appt.status}</Badge>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      )}
+      {renderContent()}
     </div>
   )
 }

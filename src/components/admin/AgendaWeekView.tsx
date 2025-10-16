@@ -60,7 +60,7 @@ export const AgendaWeekView = ({ onAppointmentClick }: AgendaWeekViewProps) => {
         <Button variant="outline" size="icon" onClick={prevWeek}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <h2 className="text-xl font-semibold capitalize">
+        <h2 className="text-lg md:text-xl font-semibold capitalize text-center">
           {format(startOfWeek(currentWeek, { locale: ptBR }), 'dd MMM')} -{' '}
           {format(endOfWeek(currentWeek, { locale: ptBR }), 'dd MMM yyyy', {
             locale: ptBR,
@@ -73,47 +73,49 @@ export const AgendaWeekView = ({ onAppointmentClick }: AgendaWeekViewProps) => {
       {isLoading ? (
         <Skeleton className="h-[600px] w-full" />
       ) : (
-        <div className="grid grid-cols-7 gap-px bg-border border-t border-l">
-          {daysInWeek.map((day) => {
-            const dayKey = format(day, 'yyyy-MM-dd')
-            const dayAppointments = appointmentsByDay.get(dayKey) || []
-            return (
-              <div
-                key={day.toString()}
-                className="bg-card border-b border-r min-h-[200px]"
-              >
+        <div className="overflow-x-auto">
+          <div className="grid grid-cols-7 gap-px bg-border border-t border-l min-w-[700px]">
+            {daysInWeek.map((day) => {
+              const dayKey = format(day, 'yyyy-MM-dd')
+              const dayAppointments = appointmentsByDay.get(dayKey) || []
+              return (
                 <div
-                  className={cn(
-                    'p-2 text-center border-b',
-                    isToday(day) && 'bg-primary/10',
-                  )}
+                  key={day.toString()}
+                  className="bg-card border-b border-r min-h-[200px]"
                 >
-                  <p className="text-sm capitalize">
-                    {format(day, 'EEE', { locale: ptBR })}
-                  </p>
-                  <p className="font-bold text-lg">{format(day, 'd')}</p>
+                  <div
+                    className={cn(
+                      'p-2 text-center border-b',
+                      isToday(day) && 'bg-primary/10',
+                    )}
+                  >
+                    <p className="text-sm capitalize">
+                      {format(day, 'EEE', { locale: ptBR })}
+                    </p>
+                    <p className="font-bold text-lg">{format(day, 'd')}</p>
+                  </div>
+                  <div className="p-1 space-y-1">
+                    {dayAppointments
+                      .sort(
+                        (a, b) =>
+                          new Date(a.schedules.start_time).getTime() -
+                          new Date(b.schedules.start_time).getTime(),
+                      )
+                      .map((appt) => (
+                        <div
+                          key={appt.id}
+                          className="text-xs p-1 bg-secondary text-secondary-foreground rounded truncate cursor-pointer"
+                          onClick={() => onAppointmentClick(appt)}
+                        >
+                          {format(new Date(appt.schedules.start_time), 'HH:mm')}{' '}
+                          - {appt.clients.name}
+                        </div>
+                      ))}
+                  </div>
                 </div>
-                <div className="p-1 space-y-1">
-                  {dayAppointments
-                    .sort(
-                      (a, b) =>
-                        new Date(a.schedules.start_time).getTime() -
-                        new Date(b.schedules.start_time).getTime(),
-                    )
-                    .map((appt) => (
-                      <div
-                        key={appt.id}
-                        className="text-xs p-1 bg-secondary text-secondary-foreground rounded truncate cursor-pointer"
-                        onClick={() => onAppointmentClick(appt)}
-                      >
-                        {format(new Date(appt.schedules.start_time), 'HH:mm')} -{' '}
-                        {appt.clients.name}
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
