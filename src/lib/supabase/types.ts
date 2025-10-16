@@ -25,7 +25,7 @@ export type Database = {
           professional_id: string
           schedule_id: string
           service_id: string
-          status: string
+          status: Database['public']['Enums']['appointment_status']
         }
         Insert: {
           client_id: string
@@ -36,7 +36,7 @@ export type Database = {
           professional_id: string
           schedule_id: string
           service_id: string
-          status?: string
+          status?: Database['public']['Enums']['appointment_status']
         }
         Update: {
           client_id?: string
@@ -47,7 +47,7 @@ export type Database = {
           professional_id?: string
           schedule_id?: string
           service_id?: string
-          status?: string
+          status?: Database['public']['Enums']['appointment_status']
         }
         Relationships: [
           {
@@ -565,6 +565,18 @@ export type Database = {
         }
         Returns: string
       }
+      complete_appointment: {
+        Args: { p_appointment_id: string }
+        Returns: undefined
+      }
+      get_annual_comparative: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          month: string
+          total_appointments: number
+          total_revenue: number
+        }[]
+      }
       get_available_dates: {
         Args: {
           p_end_date: string
@@ -576,8 +588,44 @@ export type Database = {
           available_date: string
         }[]
       }
+      get_kpi_metrics: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          cancellation_rate: number
+          cancelled_appointments: number
+          completed_appointments: number
+          prev_cancellation_rate: number
+          prev_cancelled_appointments: number
+          prev_completed_appointments: number
+          prev_total_appointments: number
+          prev_total_revenue: number
+          total_appointments: number
+          total_revenue: number
+        }[]
+      }
+      get_partnership_performance: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          client_count: number
+          partnership_name: string
+          total_revenue: number
+        }[]
+      }
+      get_service_performance: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          count: number
+          service_name: string
+        }[]
+      }
     }
     Enums: {
+      appointment_status:
+        | 'scheduled'
+        | 'confirmed'
+        | 'completed'
+        | 'cancelled'
+        | 'no_show'
       service_value_type: 'session' | 'monthly'
       user_role: 'client' | 'professional' | 'admin'
     }
@@ -707,6 +755,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      appointment_status: [
+        'scheduled',
+        'confirmed',
+        'completed',
+        'cancelled',
+        'no_show',
+      ],
       service_value_type: ['session', 'monthly'],
       user_role: ['client', 'professional', 'admin'],
     },

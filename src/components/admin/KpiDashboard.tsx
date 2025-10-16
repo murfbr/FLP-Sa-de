@@ -36,7 +36,9 @@ import {
   ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
+  type ChartConfig,
 } from '@/components/ui/chart'
+import { cn } from '@/lib/utils'
 
 const formatCurrency = (value: number | null | undefined) => {
   if (value === null || value === undefined) return 'R$ 0,00'
@@ -98,6 +100,35 @@ const KpiCard = ({
     </CardContent>
   </Card>
 )
+
+const serviceChartConfig = {
+  count: {
+    label: 'Sessões',
+    color: 'hsl(var(--primary))',
+  },
+} satisfies ChartConfig
+
+const partnershipChartConfig = {
+  client_count: {
+    label: 'Clientes',
+    color: 'hsl(var(--chart-1))',
+  },
+  total_revenue: {
+    label: 'Faturamento',
+    color: 'hsl(var(--chart-2))',
+  },
+} satisfies ChartConfig
+
+const annualChartConfig = {
+  total_revenue: {
+    label: 'Faturamento',
+    color: 'hsl(var(--chart-1))',
+  },
+  total_appointments: {
+    label: 'Sessões',
+    color: 'hsl(var(--chart-2))',
+  },
+} satisfies ChartConfig
 
 export const KpiDashboard = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -196,7 +227,10 @@ export const KpiDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer className="h-[300px] w-full">
+            <ChartContainer
+              config={serviceChartConfig}
+              className="h-[300px] w-full"
+            >
               <ResponsiveContainer>
                 <RechartsBarChart data={serviceData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
@@ -210,7 +244,7 @@ export const KpiDashboard = () => {
                   <Tooltip content={<ChartTooltipContent />} />
                   <RechartsBar
                     dataKey="count"
-                    fill="hsl(var(--primary))"
+                    fill="var(--color-count)"
                     radius={[0, 4, 4, 0]}
                   />
                 </RechartsBarChart>
@@ -225,7 +259,10 @@ export const KpiDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer className="h-[300px] w-full">
+            <ChartContainer
+              config={partnershipChartConfig}
+              className="h-[300px] w-full"
+            >
               <ResponsiveContainer>
                 <RechartsBarChart data={partnershipData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -243,13 +280,13 @@ export const KpiDashboard = () => {
                   <RechartsBar
                     yAxisId="left"
                     dataKey="client_count"
-                    fill="hsl(var(--chart-1))"
+                    fill="var(--color-client_count)"
                     name="Clientes"
                   />
                   <RechartsBar
                     yAxisId="right"
                     dataKey="total_revenue"
-                    fill="hsl(var(--chart-2))"
+                    fill="var(--color-total_revenue)"
                     name="Faturamento"
                   />
                 </RechartsBarChart>
@@ -263,7 +300,10 @@ export const KpiDashboard = () => {
           <CardTitle>Comparativo Anual (Últimos 12 Meses)</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer className="h-[400px] w-full">
+          <ChartContainer
+            config={annualChartConfig}
+            className="h-[400px] w-full"
+          >
             <ResponsiveContainer>
               <LineChart data={annualData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -274,13 +314,13 @@ export const KpiDashboard = () => {
                 <Line
                   type="monotone"
                   dataKey="total_revenue"
-                  stroke="hsl(var(--chart-1))"
+                  stroke="var(--color-total_revenue)"
                   name="Faturamento"
                 />
                 <Line
                   type="monotone"
                   dataKey="total_appointments"
-                  stroke="hsl(var(--chart-2))"
+                  stroke="var(--color-total_appointments)"
                   name="Sessões"
                 />
               </LineChart>
