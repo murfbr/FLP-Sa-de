@@ -9,16 +9,19 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Edit } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ProfessionalServicesManager } from '@/components/admin/ProfessionalServicesManager'
+import { ProfessionalEditDialog } from '@/components/admin/ProfessionalEditDialog'
 
 const ProfessionalDetail = () => {
   const { id } = useParams<{ id: string }>()
   const [professional, setProfessional] = useState<Professional | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   useEffect(() => {
     const fetchProfessional = async () => {
@@ -64,41 +67,59 @@ const ProfessionalDetail = () => {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Button asChild variant="outline" className="mb-6">
-        <Link to="/">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar ao Dashboard
-        </Link>
-      </Button>
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-6">
-          <Card>
-            <CardHeader className="items-center text-center">
-              <Avatar className="w-24 h-24 mb-4">
-                <AvatarImage
-                  src={professional.avatar_url || ''}
-                  alt={professional.name}
-                />
-                <AvatarFallback className="text-3xl">
-                  {getInitials(professional.name)}
-                </AvatarFallback>
-              </Avatar>
-              <CardTitle className="text-2xl">{professional.name}</CardTitle>
-              <CardDescription>{professional.specialty}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground text-center">
-                {professional.bio || 'Nenhuma biografia disponível.'}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="md:col-span-2">
-          <ProfessionalServicesManager professionalId={professional.id} />
+    <>
+      <div className="container mx-auto py-8 px-4">
+        <Button asChild variant="outline" className="mb-6">
+          <Link to="/">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar ao Dashboard
+          </Link>
+        </Button>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="md:col-span-1 space-y-6">
+            <Card>
+              <CardHeader className="items-center text-center">
+                <Avatar className="w-24 h-24 mb-4">
+                  <AvatarImage
+                    src={professional.avatar_url || ''}
+                    alt={professional.name}
+                  />
+                  <AvatarFallback className="text-3xl">
+                    {getInitials(professional.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <CardTitle className="text-2xl">{professional.name}</CardTitle>
+                <CardDescription>{professional.specialty}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground text-center">
+                  {professional.bio || 'Nenhuma biografia disponível.'}
+                </p>
+              </CardContent>
+              <CardFooter>
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(true)}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Editar Perfil
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+          <div className="md:col-span-2">
+            <ProfessionalServicesManager professionalId={professional.id} />
+          </div>
         </div>
       </div>
-    </div>
+      <ProfessionalEditDialog
+        professional={professional}
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onProfessionalUpdate={setProfessional}
+      />
+    </>
   )
 }
 

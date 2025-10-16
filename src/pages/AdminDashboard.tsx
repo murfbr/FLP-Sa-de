@@ -10,6 +10,7 @@ import {
   BarChart,
   LayoutDashboard,
   Handshake,
+  Clock,
 } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { Professional, Client } from '@/types'
@@ -22,6 +23,7 @@ import { ServicesManager } from '@/components/admin/ServicesManager'
 import { AgendaView } from '@/components/admin/AgendaView'
 import { KpiDashboard } from '@/components/admin/KpiDashboard'
 import { PartnershipsManager } from '@/components/admin/PartnershipsManager'
+import { AdminAvailabilityManager } from '@/components/admin/AdminAvailabilityManager'
 
 const AdminDashboard = () => {
   const { user } = useAuth()
@@ -55,7 +57,7 @@ const AdminDashboard = () => {
       </div>
 
       <Tabs defaultValue="overview">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 mb-6">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-8 mb-6">
           <TabsTrigger value="overview">
             <BarChart className="w-4 h-4 mr-2" />
             Visão Geral
@@ -67,6 +69,10 @@ const AdminDashboard = () => {
           <TabsTrigger value="agenda">
             <Calendar className="w-4 h-4 mr-2" />
             Agenda
+          </TabsTrigger>
+          <TabsTrigger value="availability">
+            <Clock className="w-4 h-4 mr-2" />
+            Disponibilidade
           </TabsTrigger>
           <TabsTrigger value="professionals">
             <Briefcase className="w-4 h-4 mr-2" />
@@ -139,6 +145,17 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <AgendaView />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="availability">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gerenciar Disponibilidade</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AdminAvailabilityManager />
             </CardContent>
           </Card>
         </TabsContent>

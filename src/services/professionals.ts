@@ -47,6 +47,19 @@ export async function getProfessionalById(
   return { data, error }
 }
 
+export async function updateProfessional(
+  id: string,
+  updates: Partial<Omit<Professional, 'id' | 'created_at' | 'user_id'>>,
+): Promise<{ data: Professional | null; error: any }> {
+  const { data, error } = await supabase
+    .from('professionals')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+  return { data, error }
+}
+
 export async function getServicesByProfessional(
   professionalId: string,
 ): Promise<{ data: Service[] | null; error: any }> {
