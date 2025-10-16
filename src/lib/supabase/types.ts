@@ -132,6 +132,7 @@ export type Database = {
           email: string
           id: string
           name: string
+          partnership_id: string | null
           phone: string | null
           user_id: string | null
         }
@@ -140,6 +141,7 @@ export type Database = {
           email: string
           id?: string
           name: string
+          partnership_id?: string | null
           phone?: string | null
           user_id?: string | null
         }
@@ -148,10 +150,19 @@ export type Database = {
           email?: string
           id?: string
           name?: string
+          partnership_id?: string | null
           phone?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'clients_partnership_id_fkey'
+            columns: ['partnership_id']
+            isOneToOne: false
+            referencedRelation: 'partnerships'
+            referencedColumns: ['id']
+          },
+        ]
       }
       financial_records: {
         Row: {
@@ -258,6 +269,66 @@ export type Database = {
             referencedColumns: ['id']
           },
         ]
+      }
+      partnership_discounts: {
+        Row: {
+          created_at: string
+          discount_percentage: number
+          id: string
+          partnership_id: string
+          service_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          discount_percentage: number
+          id?: string
+          partnership_id: string
+          service_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          discount_percentage?: number
+          id?: string
+          partnership_id?: string
+          service_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'partnership_discounts_partnership_id_fkey'
+            columns: ['partnership_id']
+            isOneToOne: false
+            referencedRelation: 'partnerships'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'partnership_discounts_service_id_fkey'
+            columns: ['service_id']
+            isOneToOne: false
+            referencedRelation: 'services'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      partnerships: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       professional_availability_overrides: {
         Row: {
