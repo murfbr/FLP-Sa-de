@@ -92,6 +92,9 @@ export const MonthlyAgendaView = ({
   }, [validAppointments])
 
   const CustomDay = (props: DayProps) => {
+    if (!props.date || !isValid(props.date)) {
+      return <CalendarDayButton {...props} />
+    }
     const dayKey = format(props.date, 'yyyy-MM-dd')
     const count = appointmentsByDay.get(dayKey)
     return (
@@ -123,7 +126,10 @@ export const MonthlyAgendaView = ({
 
   const blockedDays = useMemo(() => {
     return overrides
-      .filter((o) => !o.is_available)
+      .filter((o) => {
+        const overrideDate = parseISO(o.override_date)
+        return !o.is_available && isValid(overrideDate)
+      })
       .map((o) => parseISO(o.override_date))
   }, [overrides])
 
