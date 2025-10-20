@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { addDays, subDays, format } from 'date-fns'
+import { addDays, subDays, format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -29,8 +29,10 @@ export const AgendaDayView = ({ onAppointmentClick }: AgendaDayViewProps) => {
 
   const dayAppointments = appointments.filter(
     (appt) =>
+      appt.schedules?.start_time &&
+      isValid(new Date(appt.schedules.start_time)) &&
       new Date(appt.schedules.start_time).toDateString() ===
-      currentDate.toDateString(),
+        currentDate.toDateString(),
   )
 
   const nextDay = () => setCurrentDate(addDays(currentDate, 1))

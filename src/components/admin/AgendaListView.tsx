@@ -19,7 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getAllAppointments } from '@/services/appointments'
 import { getAllProfessionals } from '@/services/professionals'
 import { Appointment, Professional } from '@/types'
-import { format } from 'date-fns'
+import { format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
@@ -50,10 +50,16 @@ export const AgendaListView = ({ onAppointmentClick }: AgendaListViewProps) => {
   }, [selectedProfessional])
 
   const renderContent = () => {
+    const validAppointments = appointments.filter(
+      (appt) =>
+        appt.schedules?.start_time &&
+        isValid(new Date(appt.schedules.start_time)),
+    )
+
     if (isLoading) {
       return <Skeleton className="h-96 w-full" />
     }
-    if (appointments.length === 0) {
+    if (validAppointments.length === 0) {
       return (
         <div className="text-center py-16">Nenhum agendamento encontrado.</div>
       )
@@ -61,7 +67,7 @@ export const AgendaListView = ({ onAppointmentClick }: AgendaListViewProps) => {
     if (isMobile) {
       return (
         <div className="space-y-4">
-          {appointments.map((appt) => (
+          {validAppointments.map((appt) => (
             <Card
               key={appt.id}
               onClick={() => onAppointmentClick(appt)}
@@ -104,7 +110,7 @@ export const AgendaListView = ({ onAppointmentClick }: AgendaListViewProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {appointments.map((appt) => (
+            {validAppointments.map((appt) => (
               <TableRow
                 key={appt.id}
                 onClick={() => onAppointmentClick(appt)}

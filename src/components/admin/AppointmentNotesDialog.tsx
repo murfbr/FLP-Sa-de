@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -27,9 +27,15 @@ export const AppointmentNotesDialog = ({
   onOpenChange,
   onNoteSave,
 }: AppointmentNotesDialogProps) => {
-  const [notes, setNotes] = useState(appointment?.notes || '')
+  const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
+
+  useEffect(() => {
+    if (appointment) {
+      setNotes(appointment.notes || '')
+    }
+  }, [appointment, isOpen])
 
   const handleSave = async () => {
     if (!appointment) return
@@ -54,7 +60,7 @@ export const AppointmentNotesDialog = ({
           <DialogTitle>Prontuário da Sessão</DialogTitle>
           <DialogDescription>
             Adicione ou edite as anotações para a sessão de{' '}
-            {appointment.clients.name}.
+            {appointment.clients?.name || 'Cliente Desconhecido'}.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -64,7 +70,7 @@ export const AppointmentNotesDialog = ({
             </Label>
             <Textarea
               id="notes"
-              defaultValue={notes}
+              value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="col-span-3 h-32"
               placeholder="Digite as anotações da sessão aqui..."

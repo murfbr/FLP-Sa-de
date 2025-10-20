@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Appointment } from '@/types'
-import { format } from 'date-fns'
+import { format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 interface UpcomingAppointmentsProps {
@@ -19,7 +19,9 @@ export const UpcomingAppointments = ({
   appointments,
 }: UpcomingAppointmentsProps) => {
   const validAppointments = appointments.filter(
-    (appt) => appt.schedules?.start_time,
+    (appt) =>
+      appt.schedules?.start_time &&
+      isValid(new Date(appt.schedules.start_time)),
   )
 
   return (

@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Appointment } from '@/types'
-import { format, addMinutes } from 'date-fns'
+import { format, addMinutes, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   User,
@@ -41,7 +41,13 @@ export const AppointmentDetailDialog = ({
   const { toast } = useToast()
   const [isCompleting, setIsCompleting] = useState(false)
 
-  if (!appointment) return null
+  if (
+    !appointment ||
+    !appointment.schedules?.start_time ||
+    !isValid(new Date(appointment.schedules.start_time))
+  ) {
+    return null
+  }
 
   const handleCompleteAppointment = async () => {
     setIsCompleting(true)

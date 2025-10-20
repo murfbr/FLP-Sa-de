@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Mail, Phone, User, FileText, Edit } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
 import { AppointmentNotesDialog } from '@/components/admin/AppointmentNotesDialog'
@@ -54,6 +54,12 @@ const ProfessionalPatientDetail = () => {
     setSelectedAppointment(appointment)
     setIsNotesDialogOpen(true)
   }
+
+  const validAppointments = appointments.filter(
+    (appt) =>
+      appt.schedules?.start_time &&
+      isValid(new Date(appt.schedules.start_time)),
+  )
 
   if (isLoading) {
     return (
@@ -114,12 +120,12 @@ const ProfessionalPatientDetail = () => {
                 Prontuário e Histórico
               </CardTitle>
               <CardDescription>
-                Total de {appointments.length} agendamentos.
+                Total de {validAppointments.length} agendamentos.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Accordion type="single" collapsible className="w-full">
-                {appointments.map((appt) => (
+                {validAppointments.map((appt) => (
                   <AccordionItem value={appt.id} key={appt.id}>
                     <AccordionTrigger>
                       <div className="flex justify-between w-full pr-4">

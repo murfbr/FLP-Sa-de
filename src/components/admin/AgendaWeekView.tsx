@@ -7,6 +7,7 @@ import {
   endOfWeek,
   eachDayOfInterval,
   isToday,
+  isValid,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -43,11 +44,17 @@ export const AgendaWeekView = ({ onAppointmentClick }: AgendaWeekViewProps) => {
 
   const appointmentsByDay = useMemo(() => {
     const map = new Map<string, Appointment[]>()
-    appointments.forEach((appt) => {
-      const day = format(new Date(appt.schedules.start_time), 'yyyy-MM-dd')
-      if (!map.has(day)) map.set(day, [])
-      map.get(day)?.push(appt)
-    })
+    appointments
+      .filter(
+        (appt) =>
+          appt.schedules?.start_time &&
+          isValid(new Date(appt.schedules.start_time)),
+      )
+      .forEach((appt) => {
+        const day = format(new Date(appt.schedules.start_time), 'yyyy-MM-dd')
+        if (!map.has(day)) map.set(day, [])
+        map.get(day)?.push(appt)
+      })
     return map
   }, [appointments])
 
