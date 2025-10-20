@@ -16,7 +16,14 @@ import {
   removeDayOverrides,
 } from '@/services/availability'
 import { Appointment, AvailabilityOverride } from '@/types'
-import { format, startOfMonth, endOfMonth, isSameDay, parseISO } from 'date-fns'
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  isSameDay,
+  parseISO,
+  isValid,
+} from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Badge } from '../ui/badge'
 import { Switch } from '../ui/switch'
@@ -65,14 +72,24 @@ export const MonthlyAgendaView = ({
     fetchMonthData()
   }, [fetchMonthData])
 
+  const validAppointments = useMemo(
+    () =>
+      appointments.filter(
+        (appt) =>
+          appt.schedules?.start_time &&
+          isValid(new Date(appt.schedules.start_time)),
+      ),
+    [appointments],
+  )
+
   const appointmentsByDay = useMemo(() => {
     const counts = new Map<string, number>()
-    appointments.forEach((appt) => {
+    validAppointments.forEach((appt) => {
       const day = format(new Date(appt.schedules.start_time), 'yyyy-MM-dd')
       counts.set(day, (counts.get(day) || 0) + 1)
     })
     return counts
-  }, [appointments])
+  }, [validAppointments])
 
   const CustomDay = (props: DayProps) => {
     const dayKey = format(props.date, 'yyyy-MM-dd')
@@ -97,12 +114,12 @@ export const MonthlyAgendaView = ({
       (o) => o.override_date === selectedDayStr && !o.is_available,
     )
     return {
-      appointmentsOnSelectedDay: appointments.filter((appt) =>
+      appointmentsOnSelectedDay: validAppointments.filter((appt) =>
         isSameDay(new Date(appt.schedules.start_time), date),
       ),
       isSelectedDayBlocked: !!dayOverride,
     }
-  }, [appointments, overrides, date])
+  }, [validAppointments, overrides, date])
 
   const blockedDays = useMemo(() => {
     return overrides

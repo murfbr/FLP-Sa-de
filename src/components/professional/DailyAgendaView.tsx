@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { format } from 'date-fns'
+import { format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAppointmentsByProfessionalForRange } from '@/services/appointments'
@@ -38,6 +38,12 @@ export const DailyAgendaView = ({
     fetchData()
   }, [professionalId, date])
 
+  const validAppointments = appointments.filter(
+    (appt) =>
+      appt.schedules?.start_time &&
+      isValid(new Date(appt.schedules.start_time)),
+  )
+
   return (
     <Card>
       <CardHeader>
@@ -48,13 +54,13 @@ export const DailyAgendaView = ({
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-[400px] w-full" />
-        ) : appointments.length === 0 ? (
+        ) : validAppointments.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
             Nenhum agendamento para este dia.
           </p>
         ) : (
           <ul className="space-y-3">
-            {appointments
+            {validAppointments
               .sort(
                 (a, b) =>
                   new Date(a.schedules.start_time).getTime() -

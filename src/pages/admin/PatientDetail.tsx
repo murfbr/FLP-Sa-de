@@ -55,6 +55,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { AppointmentNotesDialog } from '@/components/admin/AppointmentNotesDialog'
 
 const PatientDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -65,6 +66,9 @@ const PatientDetail = () => {
   const [partnerships, setPartnerships] = useState<Partnership[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedAppointment, setSelectedAppointment] =
+    useState<Appointment | null>(null)
+  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false)
 
   const fetchPatientData = async () => {
     if (!id) return
@@ -126,6 +130,11 @@ const PatientDetail = () => {
       setPatient({ ...patient, ...data, partnerships: selectedPartnership })
       toast({ title: 'Parceria atualizada com sucesso!' })
     }
+  }
+
+  const handleEditNotes = (appointment: Appointment) => {
+    setSelectedAppointment(appointment)
+    setIsNotesDialogOpen(true)
   }
 
   if (isLoading) {
@@ -285,15 +294,28 @@ const PatientDetail = () => {
                         </span>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="prose prose-sm max-w-none">
-                      <p>
-                        <strong>Status:</strong> <Badge>{appt.status}</Badge>
-                      </p>
-                      <p>
-                        <strong>Anotações da Sessão:</strong>
-                      </p>
-                      <div className="p-2 border rounded-md bg-muted/50">
-                        {appt.notes || 'Nenhuma anotação para esta sessão.'}
+                    <AccordionContent className="prose prose-sm max-w-none dark:prose-invert">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p>
+                            <strong>Status:</strong>{' '}
+                            <Badge>{appt.status}</Badge>
+                          </p>
+                          <p>
+                            <strong>Anotações da Sessão:</strong>
+                          </p>
+                          <div className="p-2 border rounded-md bg-muted/50 min-h-[60px]">
+                            {appt.notes || 'Nenhuma anotação para esta sessão.'}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditNotes(appt)}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar Anotações
+                        </Button>
                       </div>
                     </AccordionContent>
                   </AccordionItem>
@@ -308,6 +330,12 @@ const PatientDetail = () => {
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         onPatientUpdated={setPatient}
+      />
+      <AppointmentNotesDialog
+        appointment={selectedAppointment}
+        isOpen={isNotesDialogOpen}
+        onOpenChange={setIsNotesDialogOpen}
+        onNoteSave={fetchPatientData}
       />
     </>
   )
