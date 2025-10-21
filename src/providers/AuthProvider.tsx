@@ -13,6 +13,7 @@ interface AuthContextType {
   user: User | null
   session: Session | null
   role: UserRole | null
+  professionalId: string | null
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<{ error: any }>
@@ -33,19 +34,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [role, setRole] = useState<UserRole | null>(null)
+  const [professionalId, setProfessionalId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchUserRole = async (user: User | null) => {
+    const fetchUserRoleAndProfile = async (user: User | null) => {
       if (user) {
-        const { data } = await supabase
+        const { data: profileData } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .single()
-        setRole((data?.role as UserRole) ?? 'admin')
+
+        const userRole = (profileData?.role as UserRole) ?? 'admin'
+        setRole(userRole)
+
+        if (userRole === 'professional') {
+          const { data: professionalData } = await supabase
+            .from('professionals')
+            .select('id')
+            .eq('user_id', user.id)
+            .single()
+          setProfessionalId(professionalData?.id ?? null)
+        } else {
+          setProfessionalId(null)
+        }
       } else {
         setRole(null)
+        setProfessionalId(null)
       }
       setLoading(false)
     }
@@ -54,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session)
       const currentUser = session?.user ?? null
       setUser(currentUser)
-      fetchUserRole(currentUser)
+      fetchUserRoleAndProfile(currentUser)
     })
 
     const {
@@ -64,7 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
       setLoading(true)
-      fetchUserRole(currentUser)
+      fetchUserRoleAndProfile(currentUser)
     })
 
     return () => subscription.unsubscribe()
@@ -93,7 +109,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error }
   }
 
-  const value = { user, session, role, signUp, signIn, signOut, loading }
+  const value = {
+    user,
+    session,
+    role,
+    professionalId,
+    signUp,
+    signIn,
+    signOut,
+    loading,
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

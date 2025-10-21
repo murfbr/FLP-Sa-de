@@ -10,7 +10,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { LogOut, Briefcase, LayoutDashboard } from 'lucide-react'
+import { LogOut, Briefcase, LayoutDashboard, Bell } from 'lucide-react'
+import { NotificationBell } from './NotificationBell'
 
 export const UserNav = () => {
   const { user, signOut, role } = useAuth()
@@ -39,47 +40,58 @@ export const UserNav = () => {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-8 w-8">
-            <AvatarImage
-              src={`https://img.usecurling.com/ppl/thumbnail?seed=${user.id}`}
-              alt={user.email ?? 'User'}
-            />
-            <AvatarFallback>{getInitials(user.email ?? '')}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Logado como</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel>Navegar para</DropdownMenuLabel>
-        {role === 'admin' && (
-          <DropdownMenuItem onClick={() => navigate('/')}>
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            <span>Dashboard Admin</span>
+    <div className="flex items-center gap-2">
+      {role === 'professional' && <NotificationBell />}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+            <Avatar className="h-8 w-8">
+              <AvatarImage
+                src={`https://img.usecurling.com/ppl/thumbnail?seed=${user.id}`}
+                alt={user.email ?? 'User'}
+              />
+              <AvatarFallback>{getInitials(user.email ?? '')}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end" forceMount>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium leading-none">Logado como</p>
+              <p className="text-xs leading-none text-muted-foreground">
+                {user.email}
+              </p>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>Navegar para</DropdownMenuLabel>
+          {role === 'admin' && (
+            <DropdownMenuItem onClick={() => navigate('/')}>
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              <span>Dashboard Admin</span>
+            </DropdownMenuItem>
+          )}
+          {(role === 'admin' || role === 'professional') && (
+            <DropdownMenuItem onClick={() => navigate('/profissional')}>
+              <Briefcase className="mr-2 h-4 w-4" />
+              <span>Área do Profissional</span>
+            </DropdownMenuItem>
+          )}
+          {role === 'professional' && (
+            <DropdownMenuItem
+              onClick={() => navigate('/profissional/notifications')}
+            >
+              <Bell className="mr-2 h-4 w-4" />
+              <span>Notificações</span>
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleSignOut}>
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Sair</span>
           </DropdownMenuItem>
-        )}
-        {(role === 'admin' || role === 'professional') && (
-          <DropdownMenuItem onClick={() => navigate('/profissional')}>
-            <Briefcase className="mr-2 h-4 w-4" />
-            <span>Área do Profissional</span>
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut}>
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Sair</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }

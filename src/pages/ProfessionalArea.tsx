@@ -9,32 +9,26 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/providers/AuthProvider'
 import { Agenda } from '@/components/professional/Agenda'
 
-const MOCK_PROFESSIONAL_ID = 'b2b2b2b2-b2b2-b2b2-b2b2-b2b2b2b2b2b2' // Estag. David
-
 const ProfessionalArea = () => {
   const { toast } = useToast()
-  const { user } = useAuth()
-  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const { user, professionalId } = useAuth()
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user) return
+      if (!user || !professionalId) {
+        setIsLoading(false)
+        return
+      }
       setIsLoading(true)
       try {
-        // In a real app, we'd derive professionalId from user.id
-        const professionalId = MOCK_PROFESSIONAL_ID
-
-        const [apptRes, clientRes] = await Promise.all([
-          getAppointmentsByProfessional(professionalId),
+        const [clientRes] = await Promise.all([
           getClientsByProfessional(professionalId),
         ])
 
-        if (apptRes.error) throw new Error('Erro ao buscar agendamentos.')
         if (clientRes.error) throw new Error('Erro ao buscar clientes.')
 
-        setAppointments(apptRes.data || [])
         setClients(clientRes.data || [])
       } catch (error: any) {
         toast({
@@ -47,7 +41,30 @@ const ProfessionalArea = () => {
       }
     }
     fetchData()
-  }, [toast, user])
+  }, [toast, user, professionalId])
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <Skeleton className="h-12 w-1/2 mb-2" />
+        <Skeleton className="h-8 w-1/3 mb-8" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    )
+  }
+
+  if (!professionalId) {
+    return (
+      <div className="container mx-auto py-8 px-4 text-center">
+        <h2 className="text-2xl font-bold">
+          Perfil de Profissional não encontrado
+        </h2>
+        <p className="text-muted-foreground">
+          Seu usuário não está vinculado a um perfil de profissional.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -65,15 +82,11 @@ const ProfessionalArea = () => {
         </TabsList>
 
         <TabsContent value="schedule">
-          <Agenda professionalId={MOCK_PROFESSIONAL_ID} />
+          <Agenda professionalId={professionalId} />
         </TabsContent>
 
         <TabsContent value="clients">
-          {isLoading ? (
-            <Skeleton className="h-64 w-full" />
-          ) : (
-            <ClientsTable clients={clients} />
-          )}
+          <ClientsTable clients={clients} />
         </TabsContent>
       </Tabs>
     </div>
