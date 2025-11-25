@@ -6,7 +6,6 @@ import {
   addWeeks,
   subWeeks,
   format,
-  isSameDay,
   isToday,
   addHours,
   startOfDay,
@@ -14,7 +13,6 @@ import {
   isBefore,
   isAfter,
   isEqual,
-  isValid,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -24,8 +22,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import {
   Appointment,
@@ -84,88 +81,101 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
   const nextWeek = () => setCurrentDate(addWeeks(currentDate, 1))
   const goToToday = () => setCurrentDate(new Date())
 
-  const isSlotAvailable = (day: Date, hour: number) => {
-    const slotStart = addHours(startOfDay(day), hour)
-    const slotEnd = addHours(slotStart, 1)
-    const dayOfWeek = day.getDay()
-    const dateStr = format(day, 'yyyy-MM-dd')
+  // Memoized Maps for faster lookup
+  const appointmentsMap = useMemo(() => {
+    const map = new Map<string, Appointment[]>()
+    appointments.forEach((appt) => {
+      if (!appt.schedules?.start_time) return
+      const start = new Date(appt.schedules.start_time)
+      // Key: yyyy-MM-dd-HH
+      const key = format(start, 'yyyy-MM-dd-HH')
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)?.push(appt)
+    })
+    return map
+  }, [appointments])
 
-    // Check overrides first
-    const dayOverrides = overrides.filter((o) => o.override_date === dateStr)
+  const overridesMap = useMemo(() => {
+    const map = new Map<string, AvailabilityOverride[]>()
+    overrides.forEach((o) => {
+      const key = o.override_date // yyyy-MM-dd
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)?.push(o)
+    })
+    return map
+  }, [overrides])
 
-    // If there are overrides, they dictate availability
-    if (dayOverrides.length > 0) {
-      // Check if any override blocks this slot
-      const isBlocked = dayOverrides.some((o) => {
-        if (o.is_available) return false
-        const oStart = parse(o.start_time, 'HH:mm:ss', day)
-        const oEnd = parse(o.end_time, 'HH:mm:ss', day)
-        // Block if override overlaps with slot
+  const recurringMap = useMemo(() => {
+    const map = new Map<number, RecurringAvailability[]>()
+    recurring.forEach((r) => {
+      if (!map.has(r.day_of_week)) map.set(r.day_of_week, [])
+      map.get(r.day_of_week)?.push(r)
+    })
+    return map
+  }, [recurring])
+
+  const isSlotAvailable = useCallback(
+    (day: Date, hour: number) => {
+      const dateStr = format(day, 'yyyy-MM-dd')
+      const dayOfWeek = day.getDay()
+      const slotStart = addHours(startOfDay(day), hour)
+      const slotEnd = addHours(slotStart, 1)
+
+      const dayOverrides = overridesMap.get(dateStr)
+
+      if (dayOverrides && dayOverrides.length > 0) {
+        // Check blocking overrides
+        const isBlocked = dayOverrides.some((o) => {
+          if (o.is_available) return false
+          const oStart = parse(o.start_time, 'HH:mm:ss', day)
+          const oEnd = parse(o.end_time, 'HH:mm:ss', day)
+          return (
+            (isBefore(oStart, slotEnd) && isAfter(oEnd, slotStart)) ||
+            isEqual(oStart, slotStart)
+          )
+        })
+        if (isBlocked) return false
+
+        // Check enabling overrides
+        const isEnabled = dayOverrides.some((o) => {
+          if (!o.is_available) return false
+          const oStart = parse(o.start_time, 'HH:mm:ss', day)
+          const oEnd = parse(o.end_time, 'HH:mm:ss', day)
+          return (
+            (isBefore(oStart, slotEnd) && isAfter(oEnd, slotStart)) ||
+            isEqual(oStart, slotStart)
+          )
+        })
+        if (isEnabled) return true
+
+        // If positive overrides exist but none cover this slot, assume unavailable
+        const hasPositiveOverride = dayOverrides.some((o) => o.is_available)
+        if (hasPositiveOverride) return false
+      }
+
+      // Check recurring
+      const dayRecurring = recurringMap.get(dayOfWeek)
+      if (!dayRecurring) return false
+
+      return dayRecurring.some((r) => {
+        const rStart = parse(r.start_time, 'HH:mm:ss', day)
+        const rEnd = parse(r.end_time, 'HH:mm:ss', day)
         return (
-          (isBefore(oStart, slotEnd) && isAfter(oEnd, slotStart)) ||
-          isEqual(oStart, slotStart)
+          (isBefore(rStart, slotEnd) && isAfter(rEnd, slotStart)) ||
+          isEqual(rStart, slotStart)
         )
       })
+    },
+    [overridesMap, recurringMap],
+  )
 
-      if (isBlocked) return false
-
-      // Check if any override enables this slot
-      const isEnabled = dayOverrides.some((o) => {
-        if (!o.is_available) return false
-        const oStart = parse(o.start_time, 'HH:mm:ss', day)
-        const oEnd = parse(o.end_time, 'HH:mm:ss', day)
-        // Enable if override covers the slot (or at least overlaps significantly)
-        // For simplicity, we check overlap
-        return (
-          (isBefore(oStart, slotEnd) && isAfter(oEnd, slotStart)) ||
-          isEqual(oStart, slotStart)
-        )
-      })
-
-      if (isEnabled) return true
-
-      // If overrides exist but none explicitly block or enable this specific slot,
-      // we need to decide if "presence of overrides" implies "only these overrides apply"
-      // or "overrides modify recurring".
-      // Based on typical logic: "Overrides take precedence".
-      // Usually if I say "I am available 10-12 on this specific date", it implies "ONLY 10-12".
-      // But if I say "I am NOT available 10-12", it implies "Everything else is normal".
-
-      // Let's stick to: Positive overrides replace recurring. Negative overrides subtract from recurring.
-      const hasPositiveOverride = dayOverrides.some((o) => o.is_available)
-      if (hasPositiveOverride) return false // If positive overrides exist and didn't cover this slot, it's unavailable.
-    }
-
-    // Check recurring
-    const dayRecurring = recurring.filter((r) => r.day_of_week === dayOfWeek)
-    const isRecurringAvailable = dayRecurring.some((r) => {
-      const rStart = parse(r.start_time, 'HH:mm:ss', day)
-      const rEnd = parse(r.end_time, 'HH:mm:ss', day)
-      return (
-        (isBefore(rStart, slotEnd) && isAfter(rEnd, slotStart)) ||
-        isEqual(rStart, slotStart)
-      )
-    })
-
-    // If we had negative overrides but no positive ones, we fall back to recurring
-    // But we already checked for blocking overrides above.
-    return isRecurringAvailable
-  }
-
-  const getAppointmentForSlot = (day: Date, hour: number) => {
-    const slotStart = addHours(startOfDay(day), hour)
-    const slotEnd = addHours(slotStart, 1)
-
-    return appointments.find((appt) => {
-      if (!appt.schedules?.start_time) return false
-      const apptStart = new Date(appt.schedules.start_time)
-      return (
-        isSameDay(apptStart, day) &&
-        (isEqual(apptStart, slotStart) ||
-          (isAfter(apptStart, slotStart) && isBefore(apptStart, slotEnd)))
-      )
-    })
-  }
+  const getAppointmentsForSlot = useCallback(
+    (day: Date, hour: number) => {
+      const key = format(addHours(startOfDay(day), hour), 'yyyy-MM-dd-HH')
+      return appointmentsMap.get(key) || []
+    },
+    [appointmentsMap],
+  )
 
   const handleAppointmentClick = (appt: Appointment) => {
     setSelectedAppointment(appt)
@@ -231,7 +241,7 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
               {/* Body */}
               <div className="grid grid-cols-[60px_repeat(7,1fr)]">
                 {HOURS.map((hour) => (
-                  <>
+                  <div key={hour} className="contents">
                     {/* Time Label */}
                     <div className="p-2 text-xs text-muted-foreground text-right border-r border-b bg-muted/30 h-20">
                       {`${hour.toString().padStart(2, '0')}:00`}
@@ -240,7 +250,7 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
                     {/* Days */}
                     {days.map((day) => {
                       const isAvailable = isSlotAvailable(day, hour)
-                      const appointment = getAppointmentForSlot(day, hour)
+                      const slotAppointments = getAppointmentsForSlot(day, hour)
 
                       return (
                         <div
@@ -251,38 +261,41 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
                             isAvailable && 'bg-background',
                           )}
                         >
-                          {appointment && (
-                            <div
-                              onClick={() =>
-                                handleAppointmentClick(appointment)
-                              }
-                              className={cn(
-                                'absolute inset-1 rounded-md p-1.5 text-xs cursor-pointer hover:opacity-90 shadow-sm overflow-hidden flex flex-col gap-0.5',
-                                appointment.status === 'completed'
-                                  ? 'bg-green-100 text-green-800 border-green-200'
-                                  : appointment.status === 'cancelled'
-                                    ? 'bg-red-100 text-red-800 border-red-200'
-                                    : 'bg-primary/15 text-primary border-primary/20 border',
-                              )}
-                            >
-                              <div className="font-semibold truncate">
-                                {appointment.clients.name}
-                              </div>
-                              <div className="truncate opacity-80">
-                                {appointment.services.name}
-                              </div>
-                              <div className="mt-auto text-[10px] font-mono opacity-70">
-                                {format(
-                                  new Date(appointment.schedules.start_time),
-                                  'HH:mm',
+                          <div className="flex flex-col gap-1 h-full overflow-y-auto">
+                            {slotAppointments.map((appointment) => (
+                              <div
+                                key={appointment.id}
+                                onClick={() =>
+                                  handleAppointmentClick(appointment)
+                                }
+                                className={cn(
+                                  'rounded-md p-1.5 text-xs cursor-pointer hover:opacity-90 shadow-sm overflow-hidden flex flex-col gap-0.5 shrink-0',
+                                  appointment.status === 'completed'
+                                    ? 'bg-green-100 text-green-800 border-green-200'
+                                    : appointment.status === 'cancelled'
+                                      ? 'bg-red-100 text-red-800 border-red-200'
+                                      : 'bg-primary/15 text-primary border-primary/20 border',
                                 )}
+                              >
+                                <div className="font-semibold truncate">
+                                  {appointment.clients.name}
+                                </div>
+                                <div className="truncate opacity-80">
+                                  {appointment.services.name}
+                                </div>
+                                <div className="mt-auto text-[10px] font-mono opacity-70">
+                                  {format(
+                                    new Date(appointment.schedules.start_time),
+                                    'HH:mm',
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            ))}
+                          </div>
                         </div>
                       )
                     })}
-                  </>
+                  </div>
                 ))}
               </div>
             </div>
@@ -296,18 +309,6 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
         onOpenChange={setIsNotesDialogOpen}
         onNoteSave={fetchData}
       />
-
-      <style>{`
-        .diagonal-stripes {
-          background-image: repeating-linear-gradient(
-            45deg,
-            transparent,
-            transparent 10px,
-            rgba(0, 0, 0, 0.03) 10px,
-            rgba(0, 0, 0, 0.03) 20px
-          );
-        }
-      `}</style>
     </div>
   )
 }

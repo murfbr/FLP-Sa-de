@@ -25,9 +25,9 @@ import {
   isValid,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Badge } from '../ui/badge'
-import { Switch } from '../ui/switch'
-import { Label } from '../ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { AppointmentNotesDialog } from '../admin/AppointmentNotesDialog'
 import { DayProps } from 'react-day-picker'
