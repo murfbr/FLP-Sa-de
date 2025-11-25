@@ -609,6 +609,10 @@ export type Database = {
         }
         Returns: string
       }
+      cancel_appointment: {
+        Args: { p_appointment_id: string }
+        Returns: undefined
+      }
       complete_appointment: {
         Args: { p_appointment_id: string }
         Returns: undefined

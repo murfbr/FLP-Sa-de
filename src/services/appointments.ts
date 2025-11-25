@@ -52,6 +52,8 @@ export async function getAppointmentsByProfessionalForRange(
       id,
       status,
       notes,
+      client_id,
+      professional_id,
       clients:clients (id, name, email),
       services:services (id, name, duration_minutes),
       schedules:schedules (id, start_time, end_time)
