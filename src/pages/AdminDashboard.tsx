@@ -27,6 +27,7 @@ import { PartnershipsManager } from '@/components/admin/PartnershipsManager'
 import { AdminAvailabilityManager } from '@/components/admin/AdminAvailabilityManager'
 import { Button } from '@/components/ui/button'
 import { PatientFormDialog } from '@/components/admin/PatientFormDialog'
+import { ProfessionalFormDialog } from '@/components/admin/ProfessionalFormDialog'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import {
   Select,
@@ -44,6 +45,7 @@ const AdminDashboard = () => {
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false)
+  const [isProfessionalFormOpen, setIsProfessionalFormOpen] = useState(false)
   const [clientStatusFilter, setClientStatusFilter] =
     useState<ClientStatusFilter>('active')
 
@@ -184,7 +186,16 @@ const AdminDashboard = () => {
           <TabsContent value="professionals">
             <Card>
               <CardHeader>
-                <CardTitle>Gerenciar Profissionais</CardTitle>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <CardTitle>Gerenciar Profissionais</CardTitle>
+                  <Button
+                    onClick={() => setIsProfessionalFormOpen(true)}
+                    className="w-full sm:w-auto"
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Adicionar Profissional
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
@@ -264,6 +275,11 @@ const AdminDashboard = () => {
         isOpen={isPatientFormOpen}
         onOpenChange={setIsPatientFormOpen}
         onPatientCreated={fetchData}
+      />
+      <ProfessionalFormDialog
+        isOpen={isProfessionalFormOpen}
+        onOpenChange={setIsProfessionalFormOpen}
+        onProfessionalCreated={fetchData}
       />
     </>
   )

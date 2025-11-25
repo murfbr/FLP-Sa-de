@@ -49,12 +49,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userRole = (profileData?.role as UserRole) ?? 'admin'
         setRole(userRole)
 
-        if (userRole === 'professional') {
+        // Check for professional ID if role is professional OR admin (Dual Role Recognition)
+        if (userRole === 'professional' || userRole === 'admin') {
           const { data: professionalData } = await supabase
             .from('professionals')
             .select('id')
             .eq('user_id', user.id)
-            .single()
+            .maybeSingle()
           setProfessionalId(professionalData?.id ?? null)
         } else {
           setProfessionalId(null)

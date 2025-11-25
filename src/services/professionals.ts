@@ -97,3 +97,18 @@ export async function removeServiceFromProfessional(
     .eq('service_id', serviceId)
   return { error }
 }
+
+export async function createProfessionalUser(
+  data: any,
+): Promise<{ data: any; error: any }> {
+  const { data: result, error } = await supabase.functions.invoke(
+    'create-professional',
+    {
+      body: data,
+    },
+  )
+  if (error) return { data: null, error }
+  if (!result.success)
+    return { data: null, error: { message: result.error || 'Unknown error' } }
+  return { data: result.data, error: null }
+}
