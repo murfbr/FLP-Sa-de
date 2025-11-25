@@ -52,25 +52,40 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
     useState<Appointment | null>(null)
   const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false)
 
-  const weekStart = startOfWeek(currentDate, { locale: ptBR })
-  const weekEnd = endOfWeek(currentDate, { locale: ptBR })
-  const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
+  // Memoize date calculations to prevent infinite loops in useEffect
+  const weekStart = useMemo(
+    () => startOfWeek(currentDate, { locale: ptBR }),
+    [currentDate],
+  )
+  const weekEnd = useMemo(
+    () => endOfWeek(currentDate, { locale: ptBR }),
+    [currentDate],
+  )
+  const days = useMemo(
+    () => eachDayOfInterval({ start: weekStart, end: weekEnd }),
+    [weekStart, weekEnd],
+  )
 
   const fetchData = useCallback(async () => {
     setIsLoading(true)
     const startStr = weekStart.toISOString()
     const endStr = weekEnd.toISOString()
 
-    const [apptRes, recurringRes, overridesRes] = await Promise.all([
-      getAppointmentsByProfessionalForRange(professionalId, startStr, endStr),
-      getRecurringAvailability(professionalId),
-      getAvailabilityOverridesForRange(professionalId, weekStart, weekEnd),
-    ])
+    try {
+      const [apptRes, recurringRes, overridesRes] = await Promise.all([
+        getAppointmentsByProfessionalForRange(professionalId, startStr, endStr),
+        getRecurringAvailability(professionalId),
+        getAvailabilityOverridesForRange(professionalId, weekStart, weekEnd),
+      ])
 
-    setAppointments(apptRes.data || [])
-    setRecurring(recurringRes.data || [])
-    setOverrides(overridesRes.data || [])
-    setIsLoading(false)
+      setAppointments(apptRes.data || [])
+      setRecurring(recurringRes.data || [])
+      setOverrides(overridesRes.data || [])
+    } catch (error) {
+      console.error('Error fetching weekly agenda:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }, [professionalId, weekStart, weekEnd])
 
   useEffect(() => {
