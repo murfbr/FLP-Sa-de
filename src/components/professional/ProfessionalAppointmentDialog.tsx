@@ -74,6 +74,16 @@ export const ProfessionalAppointmentDialog = ({
     }
   }, [professionalId])
 
+  // Reset state when dialog opens/closes or appointment changes
+  useEffect(() => {
+    if (!isOpen) {
+      setNewNote('')
+      setIsSavingNote(false)
+      setIsCompleting(false)
+      setIsMarkingNoShow(false)
+    }
+  }, [isOpen, appointment])
+
   if (
     !appointment ||
     !appointment.schedules?.start_time ||
@@ -109,7 +119,43 @@ export const ProfessionalAppointmentDialog = ({
   }
 
   const handleComplete = async () => {
+    // Check if there are existing notes
+    const hasExistingNotes = appointment.notes && appointment.notes.length > 0
+    // Check if there is a new note being typed
+    const hasNewNote = newNote.trim().length > 0
+
+    if (!hasExistingNotes && !hasNewNote) {
+      toast({
+        title: 'Anotação obrigatória',
+        description:
+          'Por favor, adicione uma anotação ao prontuário antes de finalizar o atendimento.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setIsCompleting(true)
+
+    // If there is a new note, save it first
+    if (hasNewNote) {
+      const noteEntry: NoteEntry = {
+        date: new Date().toISOString(),
+        professional_id: professionalId || undefined,
+        professional_name: professionalName || 'Profissional',
+        content: newNote,
+      }
+      const { error: noteError } = await addAppointmentNote(
+        appointment.id,
+        noteEntry,
+      )
+      if (noteError) {
+        toast({ title: 'Erro ao salvar nota', variant: 'destructive' })
+        setIsCompleting(false)
+        return
+      }
+      setNewNote('')
+    }
+
     const { error } = await completeAppointment(appointment.id)
     if (error) {
       toast({
