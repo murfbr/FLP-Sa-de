@@ -21,7 +21,7 @@ export type Database = {
           client_package_id: string | null
           created_at: string
           id: string
-          notes: string | null
+          notes: Json | null
           professional_id: string
           schedule_id: string
           service_id: string
@@ -32,7 +32,7 @@ export type Database = {
           client_package_id?: string | null
           created_at?: string
           id?: string
-          notes?: string | null
+          notes?: Json | null
           professional_id: string
           schedule_id: string
           service_id: string
@@ -43,7 +43,7 @@ export type Database = {
           client_package_id?: string | null
           created_at?: string
           id?: string
-          notes?: string | null
+          notes?: Json | null
           professional_id?: string
           schedule_id?: string
           service_id?: string
@@ -665,6 +665,10 @@ export type Database = {
           count: number
           service_name: string
         }[]
+      }
+      reschedule_appointment: {
+        Args: { p_appointment_id: string; p_new_schedule_id: string }
+        Returns: undefined
       }
     }
     Enums: {

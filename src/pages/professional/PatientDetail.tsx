@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getClientById } from '@/services/clients'
 import { getAppointmentsByClientId } from '@/services/appointments'
-import { Client, Appointment } from '@/types'
+import { Client, Appointment, NoteEntry } from '@/types'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Card,
@@ -18,11 +18,20 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Mail, Phone, User, FileText, Edit } from 'lucide-react'
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  User,
+  FileText,
+  Edit,
+  StickyNote,
+} from 'lucide-react'
 import { format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
 import { ProfessionalAppointmentDialog } from '@/components/professional/ProfessionalAppointmentDialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 const ProfessionalPatientDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -61,6 +70,20 @@ const ProfessionalPatientDetail = () => {
       isValid(new Date(appt.schedules.start_time)),
   )
 
+  const consolidatedNotes = useMemo(() => {
+    const allNotes: (NoteEntry & { appointmentId: string })[] = []
+    appointments.forEach((appt) => {
+      if (appt.notes) {
+        appt.notes.forEach((note) => {
+          allNotes.push({ ...note, appointmentId: appt.id })
+        })
+      }
+    })
+    return allNotes.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    )
+  }, [appointments])
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 px-4 space-y-6">
@@ -93,83 +116,140 @@ const ProfessionalPatientDetail = () => {
           Voltar para a lista
         </Button>
         <div className="grid md:grid-cols-3 gap-6">
-          <Card className="md:col-span-1">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <User className="w-6 h-6" />
-                {patient.name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center gap-3">
-                <Mail className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">{patient.email}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Phone className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">
-                  {patient.phone || 'Não informado'}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <FileText className="w-6 h-6" />
-                Prontuário e Histórico
-              </CardTitle>
-              <CardDescription>
-                Total de {validAppointments.length} agendamentos.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                {validAppointments.map((appt) => (
-                  <AccordionItem value={appt.id} key={appt.id}>
-                    <AccordionTrigger>
-                      <div className="flex justify-between w-full pr-4">
-                        <span>
-                          {appt.services.name} com {appt.professionals.name}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {format(
-                            new Date(appt.schedules.start_time),
-                            'dd/MM/yyyy',
-                            { locale: ptBR },
-                          )}
-                        </span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="prose prose-sm max-w-none dark:prose-invert">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p>
-                            <strong>Status:</strong>{' '}
-                            <Badge>{appt.status}</Badge>
-                          </p>
-                          <p>
-                            <strong>Anotações da Sessão:</strong>
-                          </p>
-                          <div className="p-2 border rounded-md bg-muted/50 min-h-[60px]">
-                            {appt.notes || 'Nenhuma anotação para esta sessão.'}
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditNotes(appt)}
+          <div className="md:col-span-1 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <User className="w-6 h-6" />
+                  {patient.name}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">{patient.email}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Phone className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    {patient.phone || 'Não informado'}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="md:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <StickyNote className="w-6 h-6" />
+                  Anotações da Sessão (Consolidado)
+                </CardTitle>
+                <CardDescription>
+                  Histórico completo de anotações em ordem cronológica.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[300px] w-full rounded-md border p-4 bg-muted/20">
+                  {consolidatedNotes.length > 0 ? (
+                    <div className="space-y-4">
+                      {consolidatedNotes.map((note, index) => (
+                        <div
+                          key={index}
+                          className="bg-background p-4 rounded-lg border shadow-sm"
                         >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Detalhes
-                        </Button>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </CardContent>
-          </Card>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-semibold text-sm text-primary">
+                              {note.professional_name}
+                            </span>
+                            <div className="text-xs text-muted-foreground text-right">
+                              <p>
+                                {format(new Date(note.date), 'dd/MM/yyyy', {
+                                  locale: ptBR,
+                                })}
+                              </p>
+                              <p>
+                                {format(new Date(note.date), 'HH:mm', {
+                                  locale: ptBR,
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-sm whitespace-pre-wrap">
+                            {note.content}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-12">
+                      Nenhuma anotação registrada para este paciente.
+                    </p>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <FileText className="w-6 h-6" />
+                  Histórico de Agendamentos
+                </CardTitle>
+                <CardDescription>
+                  Total de {validAppointments.length} agendamentos.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="single" collapsible className="w-full">
+                  {validAppointments.map((appt) => (
+                    <AccordionItem value={appt.id} key={appt.id}>
+                      <AccordionTrigger>
+                        <div className="flex justify-between w-full pr-4">
+                          <span>
+                            {appt.services.name} com {appt.professionals.name}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {format(
+                              new Date(appt.schedules.start_time),
+                              'dd/MM/yyyy',
+                              { locale: ptBR },
+                            )}
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="prose prose-sm max-w-none dark:prose-invert">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p>
+                              <strong>Status:</strong>{' '}
+                              <Badge>{appt.status}</Badge>
+                            </p>
+                            <p>
+                              <strong>Anotações da Sessão:</strong>
+                            </p>
+                            <div className="p-2 border rounded-md bg-muted/50 min-h-[60px]">
+                              {appt.notes && appt.notes.length > 0
+                                ? appt.notes[appt.notes.length - 1].content
+                                : 'Nenhuma anotação para esta sessão.'}
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditNotes(appt)}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Detalhes
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
       <ProfessionalAppointmentDialog

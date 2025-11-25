@@ -46,6 +46,7 @@ export interface Client {
 
 export interface NoteEntry {
   date: string
+  professional_id?: string
   professional_name: string
   content: string
 }
