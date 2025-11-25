@@ -1,5 +1,5 @@
 {
   "imports": {
-    "../_shared/": "./"
+    "shared/": "../_shared/"
   }
 }
