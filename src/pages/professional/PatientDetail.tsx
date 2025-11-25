@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { getClientById } from '@/services/clients'
 import { getAppointmentsByClientId } from '@/services/appointments'
 import { Client, Appointment } from '@/types'
@@ -22,7 +22,7 @@ import { ArrowLeft, Mail, Phone, User, FileText, Edit } from 'lucide-react'
 import { format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
-import { AppointmentNotesDialog } from '@/components/admin/AppointmentNotesDialog'
+import { ProfessionalAppointmentDialog } from '@/components/professional/ProfessionalAppointmentDialog'
 
 const ProfessionalPatientDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -32,7 +32,7 @@ const ProfessionalPatientDetail = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null)
-  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   const fetchData = async () => {
     if (!id) return
@@ -52,7 +52,7 @@ const ProfessionalPatientDetail = () => {
 
   const handleEditNotes = (appointment: Appointment) => {
     setSelectedAppointment(appointment)
-    setIsNotesDialogOpen(true)
+    setIsDialogOpen(true)
   }
 
   const validAppointments = appointments.filter(
@@ -161,7 +161,7 @@ const ProfessionalPatientDetail = () => {
                           onClick={() => handleEditNotes(appt)}
                         >
                           <Edit className="mr-2 h-4 w-4" />
-                          Editar
+                          Detalhes
                         </Button>
                       </div>
                     </AccordionContent>
@@ -172,11 +172,11 @@ const ProfessionalPatientDetail = () => {
           </Card>
         </div>
       </div>
-      <AppointmentNotesDialog
+      <ProfessionalAppointmentDialog
         appointment={selectedAppointment}
-        isOpen={isNotesDialogOpen}
-        onOpenChange={setIsNotesDialogOpen}
-        onNoteSave={fetchData}
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onUpdate={fetchData}
       />
     </>
   )

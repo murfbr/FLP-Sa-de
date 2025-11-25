@@ -34,7 +34,7 @@ import {
   getRecurringAvailability,
   getAvailabilityOverridesForRange,
 } from '@/services/availability'
-import { AppointmentNotesDialog } from '../admin/AppointmentNotesDialog'
+import { ProfessionalAppointmentDialog } from './ProfessionalAppointmentDialog'
 
 interface WeeklyAgendaViewProps {
   professionalId: string
@@ -50,9 +50,8 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null)
-  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
-  // Memoize date calculations to prevent infinite loops in useEffect
   const weekStart = useMemo(
     () => startOfWeek(currentDate, { locale: ptBR }),
     [currentDate],
@@ -96,13 +95,11 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
   const nextWeek = () => setCurrentDate(addWeeks(currentDate, 1))
   const goToToday = () => setCurrentDate(new Date())
 
-  // Memoized Maps for faster lookup
   const appointmentsMap = useMemo(() => {
     const map = new Map<string, Appointment[]>()
     appointments.forEach((appt) => {
       if (!appt.schedules?.start_time) return
       const start = new Date(appt.schedules.start_time)
-      // Key: yyyy-MM-dd-HH
       const key = format(start, 'yyyy-MM-dd-HH')
       if (!map.has(key)) map.set(key, [])
       map.get(key)?.push(appt)
@@ -113,7 +110,7 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
   const overridesMap = useMemo(() => {
     const map = new Map<string, AvailabilityOverride[]>()
     overrides.forEach((o) => {
-      const key = o.override_date // yyyy-MM-dd
+      const key = o.override_date
       if (!map.has(key)) map.set(key, [])
       map.get(key)?.push(o)
     })
@@ -139,7 +136,6 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
       const dayOverrides = overridesMap.get(dateStr)
 
       if (dayOverrides && dayOverrides.length > 0) {
-        // Check blocking overrides
         const isBlocked = dayOverrides.some((o) => {
           if (o.is_available) return false
           const oStart = parse(o.start_time, 'HH:mm:ss', day)
@@ -151,7 +147,6 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
         })
         if (isBlocked) return false
 
-        // Check enabling overrides
         const isEnabled = dayOverrides.some((o) => {
           if (!o.is_available) return false
           const oStart = parse(o.start_time, 'HH:mm:ss', day)
@@ -163,12 +158,10 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
         })
         if (isEnabled) return true
 
-        // If positive overrides exist but none cover this slot, assume unavailable
         const hasPositiveOverride = dayOverrides.some((o) => o.is_available)
         if (hasPositiveOverride) return false
       }
 
-      // Check recurring
       const dayRecurring = recurringMap.get(dayOfWeek)
       if (!dayRecurring) return false
 
@@ -194,7 +187,7 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
 
   const handleAppointmentClick = (appt: Appointment) => {
     setSelectedAppointment(appt)
-    setIsNotesDialogOpen(true)
+    setIsDialogOpen(true)
   }
 
   return (
@@ -227,7 +220,6 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
             </div>
           ) : (
             <div className="min-w-[800px]">
-              {/* Header */}
               <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b">
                 <div className="p-2 border-r bg-muted/30"></div>
                 {days.map((day) => (
@@ -253,16 +245,13 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
                 ))}
               </div>
 
-              {/* Body */}
               <div className="grid grid-cols-[60px_repeat(7,1fr)]">
                 {HOURS.map((hour) => (
                   <div key={hour} className="contents">
-                    {/* Time Label */}
                     <div className="p-2 text-xs text-muted-foreground text-right border-r border-b bg-muted/30 h-20">
                       {`${hour.toString().padStart(2, '0')}:00`}
                     </div>
 
-                    {/* Days */}
                     {days.map((day) => {
                       const isAvailable = isSlotAvailable(day, hour)
                       const slotAppointments = getAppointmentsForSlot(day, hour)
@@ -289,7 +278,9 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
                                     ? 'bg-green-100 text-green-800 border-green-200'
                                     : appointment.status === 'cancelled'
                                       ? 'bg-red-100 text-red-800 border-red-200'
-                                      : 'bg-primary/15 text-primary border-primary/20 border',
+                                      : appointment.status === 'no_show'
+                                        ? 'bg-orange-100 text-orange-800 border-orange-200'
+                                        : 'bg-primary/15 text-primary border-primary/20 border',
                                 )}
                               >
                                 <div className="font-semibold truncate">
@@ -318,11 +309,11 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
         </CardContent>
       </Card>
 
-      <AppointmentNotesDialog
+      <ProfessionalAppointmentDialog
         appointment={selectedAppointment}
-        isOpen={isNotesDialogOpen}
-        onOpenChange={setIsNotesDialogOpen}
-        onNoteSave={fetchData}
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onUpdate={fetchData}
       />
     </div>
   )

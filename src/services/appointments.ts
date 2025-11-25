@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
 import { Appointment } from '@/types'
-import { format } from 'date-fns'
 
 export async function bookAppointment(
   scheduleId: string,
@@ -182,6 +181,25 @@ export async function completeAppointment(
   appointmentId: string,
 ): Promise<{ error: any }> {
   const { error } = await supabase.rpc('complete_appointment', {
+    p_appointment_id: appointmentId,
+  })
+  return { error }
+}
+
+export async function markAppointmentAsNoShow(
+  appointmentId: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from('appointments')
+    .update({ status: 'no_show' })
+    .eq('id', appointmentId)
+  return { error }
+}
+
+export async function cancelAppointment(
+  appointmentId: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase.rpc('cancel_appointment', {
     p_appointment_id: appointmentId,
   })
   return { error }

@@ -10,11 +10,7 @@ import {
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAppointmentsByProfessionalForRange } from '@/services/appointments'
-import {
-  getAvailabilityOverrides,
-  blockDay,
-  removeDayOverrides,
-} from '@/services/availability'
+import { getAvailabilityOverrides } from '@/services/availability'
 import { Appointment, AvailabilityOverride } from '@/types'
 import {
   format,
@@ -24,12 +20,8 @@ import {
   parseISO,
   isValid,
 } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { useToast } from '@/hooks/use-toast'
-import { AppointmentNotesDialog } from '../admin/AppointmentNotesDialog'
+import { ProfessionalAppointmentDialog } from './ProfessionalAppointmentDialog'
 import { DayProps } from 'react-day-picker'
 
 interface MonthlyAgendaViewProps {
@@ -41,7 +33,6 @@ export const MonthlyAgendaView = ({
   professionalId,
   onDateSelect,
 }: MonthlyAgendaViewProps) => {
-  const { toast } = useToast()
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -49,7 +40,7 @@ export const MonthlyAgendaView = ({
   const [isLoading, setIsLoading] = useState(true)
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null)
-  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   const fetchMonthData = useCallback(async () => {
     setIsLoading(true)
@@ -133,27 +124,9 @@ export const MonthlyAgendaView = ({
       .map((o) => parseISO(o.override_date))
   }, [overrides])
 
-  const handleAvailabilityToggle = async (isAvailable: boolean) => {
-    if (!date) return
-    const promise = isAvailable
-      ? removeDayOverrides(professionalId, date)
-      : blockDay(professionalId, date)
-
-    const { error } = await promise
-    if (error) {
-      toast({
-        title: 'Erro ao atualizar disponibilidade',
-        variant: 'destructive',
-      })
-    } else {
-      toast({ title: 'Disponibilidade atualizada com sucesso!' })
-      fetchMonthData()
-    }
-  }
-
   const handleAppointmentClick = (appt: Appointment) => {
     setSelectedAppointment(appt)
-    setIsNotesDialogOpen(true)
+    setIsDialogOpen(true)
   }
 
   return (
@@ -220,27 +193,20 @@ export const MonthlyAgendaView = ({
               </p>
             )}
           </CardContent>
-          {date && (
+          {date && isSelectedDayBlocked && (
             <CardFooter className="border-t pt-4">
-              <div className="flex items-center space-x-2 w-full justify-between">
-                <Label htmlFor="availability-toggle" className="font-semibold">
-                  {isSelectedDayBlocked ? 'Dia Indisponível' : 'Dia Disponível'}
-                </Label>
-                <Switch
-                  id="availability-toggle"
-                  checked={!isSelectedDayBlocked}
-                  onCheckedChange={handleAvailabilityToggle}
-                />
-              </div>
+              <p className="text-sm text-destructive font-medium">
+                Este dia está marcado como indisponível.
+              </p>
             </CardFooter>
           )}
         </Card>
       </div>
-      <AppointmentNotesDialog
+      <ProfessionalAppointmentDialog
         appointment={selectedAppointment}
-        isOpen={isNotesDialogOpen}
-        onOpenChange={setIsNotesDialogOpen}
-        onNoteSave={fetchMonthData}
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onUpdate={fetchMonthData}
       />
     </>
   )

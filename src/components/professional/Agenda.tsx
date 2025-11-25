@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AvailabilitySettings } from './AvailabilitySettings'
+import { ReadOnlyAvailabilitySettings } from './ReadOnlyAvailabilitySettings'
 import { MonthlyAgendaView } from './MonthlyAgendaView'
 import { WeeklyAgendaView } from './WeeklyAgendaView'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -51,7 +51,7 @@ export const Agenda = ({ professionalId }: AgendaProps) => {
             />
           </TabsContent>
           <TabsContent value="settings" className="pt-4">
-            <AvailabilitySettings professionalId={professionalId} />
+            <ReadOnlyAvailabilitySettings professionalId={professionalId} />
           </TabsContent>
         </Tabs>
       </CardContent>

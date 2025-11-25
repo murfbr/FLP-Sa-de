@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Edit } from 'lucide-react'
-import { AppointmentNotesDialog } from '../admin/AppointmentNotesDialog'
+import { ProfessionalAppointmentDialog } from './ProfessionalAppointmentDialog'
 
 interface DailyAgendaViewProps {
   professionalId: string
@@ -23,7 +23,7 @@ export const DailyAgendaView = ({
   const [isLoading, setIsLoading] = useState(true)
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null)
-  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   const fetchData = async () => {
     setIsLoading(true)
@@ -45,9 +45,9 @@ export const DailyAgendaView = ({
     fetchData()
   }, [professionalId, date])
 
-  const handleEditNotes = (appointment: Appointment) => {
+  const handleAppointmentClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment)
-    setIsNotesDialogOpen(true)
+    setIsDialogOpen(true)
   }
 
   const validAppointments = appointments.filter(
@@ -86,7 +86,8 @@ export const DailyAgendaView = ({
                 .map((appt) => (
                   <li
                     key={appt.id}
-                    className="p-4 border rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/50 transition-colors"
+                    className="p-4 border rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => handleAppointmentClick(appt)}
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -106,13 +107,9 @@ export const DailyAgendaView = ({
                         </p>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditNotes(appt)}
-                    >
+                    <Button variant="ghost" size="sm">
                       <Edit className="h-4 w-4 mr-2" />
-                      Anotações
+                      Detalhes
                     </Button>
                   </li>
                 ))}
@@ -121,11 +118,11 @@ export const DailyAgendaView = ({
         </CardContent>
       </Card>
 
-      <AppointmentNotesDialog
+      <ProfessionalAppointmentDialog
         appointment={selectedAppointment}
-        isOpen={isNotesDialogOpen}
-        onOpenChange={setIsNotesDialogOpen}
-        onNoteSave={fetchData}
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onUpdate={fetchData}
       />
     </>
   )
