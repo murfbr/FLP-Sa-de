@@ -22,7 +22,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Schedule, Client, Service } from '@/types'
 import { getFilteredAvailableSchedules } from '@/services/schedules'
 import { getAvailableDatesForProfessional } from '@/services/availability'
-import { bookAppointment, cancelAppointment } from '@/services/appointments'
+import { rescheduleAppointment } from '@/services/appointments'
 import { AvailableSlots } from '@/components/AvailableSlots'
 
 interface RescheduleDialogProps {
@@ -89,30 +89,15 @@ export const RescheduleDialog = ({
     if (!selectedScheduleId || !date) return
     setIsSubmitting(true)
 
-    // 1. Cancel old appointment
-    const { error: cancelError } = await cancelAppointment(oldAppointmentId)
-    if (cancelError) {
-      toast({
-        title: 'Erro ao cancelar agendamento anterior',
-        description: cancelError.message,
-        variant: 'destructive',
-      })
-      setIsSubmitting(false)
-      return
-    }
-
-    // 2. Book new appointment
-    const { error: bookError } = await bookAppointment(
+    const { error } = await rescheduleAppointment(
+      oldAppointmentId,
       selectedScheduleId,
-      client.id,
-      service.id,
     )
 
-    if (bookError) {
+    if (error) {
       toast({
-        title: 'Erro ao criar novo agendamento',
-        description:
-          'O agendamento anterior foi cancelado, mas houve um erro ao criar o novo. Por favor, tente agendar manualmente.',
+        title: 'Erro ao remarcar agendamento',
+        description: error.message,
         variant: 'destructive',
       })
     } else {

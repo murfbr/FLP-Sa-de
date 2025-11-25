@@ -44,6 +44,12 @@ export interface Client {
   partnerships?: Partnership | null
 }
 
+export interface NoteEntry {
+  date: string
+  professional_name: string
+  content: string
+}
+
 export interface Appointment {
   id: string
   client_id: string
@@ -51,7 +57,7 @@ export interface Appointment {
   service_id: string
   schedule_id: string
   status: string
-  notes: string | null
+  notes: NoteEntry[] | null
   created_at: string
   clients: Client
   professionals: Professional

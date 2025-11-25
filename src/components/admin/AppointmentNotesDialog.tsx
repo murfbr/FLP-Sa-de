@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -10,9 +10,14 @@ import {
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
-import { updateAppointmentNotes } from '@/services/appointments'
-import { Appointment } from '@/types'
+import { addAppointmentNote } from '@/services/appointments'
+import { Appointment, NoteEntry } from '@/types'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { Loader2, Send } from 'lucide-react'
+import { useAuth } from '@/providers/AuthProvider'
 
 interface AppointmentNotesDialogProps {
   appointment: Appointment | null
@@ -27,26 +32,29 @@ export const AppointmentNotesDialog = ({
   onOpenChange,
   onNoteSave,
 }: AppointmentNotesDialogProps) => {
-  const [notes, setNotes] = useState('')
+  const [newNote, setNewNote] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
-
-  useEffect(() => {
-    if (appointment) {
-      setNotes(appointment.notes || '')
-    }
-  }, [appointment, isOpen])
+  const { user } = useAuth()
 
   const handleSave = async () => {
-    if (!appointment) return
+    if (!appointment || !newNote.trim()) return
     setIsSubmitting(true)
-    const { error } = await updateAppointmentNotes(appointment.id, notes)
+
+    const noteEntry: NoteEntry = {
+      date: new Date().toISOString(),
+      professional_name: user?.email || 'Administrador', // Admins might not have a professional profile
+      content: newNote,
+    }
+
+    const { error } = await addAppointmentNote(appointment.id, noteEntry)
     if (error) {
-      toast({ title: 'Erro ao salvar anotações', variant: 'destructive' })
+      toast({ title: 'Erro ao salvar anotação', variant: 'destructive' })
     } else {
-      toast({ title: 'Anotações salvas com sucesso!' })
+      toast({ title: 'Anotação adicionada com sucesso!' })
+      setNewNote('')
       onNoteSave()
-      onOpenChange(false)
+      // We don't close the dialog immediately to allow adding more notes or viewing the result
     }
     setIsSubmitting(false)
   }
@@ -55,31 +63,79 @@ export const AppointmentNotesDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Prontuário da Sessão</DialogTitle>
           <DialogDescription>
-            Adicione ou edite as anotações para a sessão de{' '}
+            Histórico de anotações para a sessão de{' '}
             {appointment.clients?.name || 'Cliente Desconhecido'}.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="notes" className="text-right">
-              Anotações
-            </Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="col-span-3 h-32"
-              placeholder="Digite as anotações da sessão aqui..."
-            />
+
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Histórico</Label>
+            <ScrollArea className="h-[250px] w-full rounded-md border p-4 bg-muted/20">
+              {appointment.notes && appointment.notes.length > 0 ? (
+                <div className="space-y-4">
+                  {appointment.notes.map((note, index) => (
+                    <div
+                      key={index}
+                      className="bg-background p-3 rounded-lg border shadow-sm"
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-semibold text-xs text-primary">
+                          {note.professional_name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(note.date), "dd/MM/yy 'às' HH:mm", {
+                            locale: ptBR,
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap">
+                        {note.content}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-12">
+                  Nenhuma anotação registrada para esta sessão.
+                </p>
+              )}
+            </ScrollArea>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="new-note">Nova Anotação</Label>
+            <div className="flex gap-2">
+              <Textarea
+                id="new-note"
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                className="min-h-[80px]"
+                placeholder="Digite uma nova anotação..."
+              />
+              <Button
+                size="icon"
+                className="h-auto self-end"
+                onClick={handleSave}
+                disabled={isSubmitting || !newNote.trim()}
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
+
         <DialogFooter>
-          <Button type="submit" onClick={handleSave} disabled={isSubmitting}>
-            {isSubmitting ? 'Salvando...' : 'Salvar Anotações'}
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Fechar
           </Button>
         </DialogFooter>
       </DialogContent>

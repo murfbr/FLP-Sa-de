@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import { Appointment } from '@/types'
+import { Appointment, NoteEntry } from '@/types'
 
 export async function bookAppointment(
   scheduleId: string,
@@ -168,14 +168,27 @@ export async function getFutureAppointmentsCount(): Promise<{
   return { data: count, error }
 }
 
-export async function updateAppointmentNotes(
+export async function addAppointmentNote(
   appointmentId: string,
-  notes: string,
+  note: NoteEntry,
 ): Promise<{ error: any }> {
+  // First fetch existing notes
+  const { data: currentData, error: fetchError } = await supabase
+    .from('appointments')
+    .select('notes')
+    .eq('id', appointmentId)
+    .single()
+
+  if (fetchError) return { error: fetchError }
+
+  const currentNotes: NoteEntry[] = (currentData.notes as any) || []
+  const updatedNotes = [...currentNotes, note]
+
   const { error } = await supabase
     .from('appointments')
-    .update({ notes })
+    .update({ notes: updatedNotes as any })
     .eq('id', appointmentId)
+
   return { error }
 }
 
@@ -203,6 +216,17 @@ export async function cancelAppointment(
 ): Promise<{ error: any }> {
   const { error } = await supabase.rpc('cancel_appointment', {
     p_appointment_id: appointmentId,
+  })
+  return { error }
+}
+
+export async function rescheduleAppointment(
+  appointmentId: string,
+  newScheduleId: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase.rpc('reschedule_appointment', {
+    p_appointment_id: appointmentId,
+    p_new_schedule_id: newScheduleId,
   })
   return { error }
 }

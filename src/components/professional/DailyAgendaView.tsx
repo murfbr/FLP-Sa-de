@@ -101,10 +101,13 @@ export const DailyAgendaView = ({
                         {format(new Date(appt.schedules.start_time), 'HH:mm')} -{' '}
                         {format(new Date(appt.schedules.end_time), 'HH:mm')}
                       </p>
-                      {appt.notes && (
-                        <p className="text-xs text-muted-foreground mt-2 bg-muted p-2 rounded">
-                          📝 {appt.notes}
-                        </p>
+                      {appt.notes && appt.notes.length > 0 && (
+                        <div className="text-xs text-muted-foreground mt-2 bg-muted p-2 rounded">
+                          <p className="font-semibold mb-1">Última anotação:</p>
+                          <p className="line-clamp-2">
+                            {appt.notes[appt.notes.length - 1].content}
+                          </p>
+                        </div>
                       )}
                     </div>
                     <Button variant="ghost" size="sm">

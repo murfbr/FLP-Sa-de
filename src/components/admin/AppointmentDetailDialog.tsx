@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Appointment } from '@/types'
 import { format, addMinutes, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -130,11 +131,38 @@ export const AppointmentDetailDialog = ({
             label="Status"
             value={<Badge>{appointment.status}</Badge>}
           />
-          <div className="prose prose-sm max-w-none dark:prose-invert">
-            <p className="text-sm text-muted-foreground">Anotações:</p>
-            <div className="p-3 border rounded-md bg-muted/50 min-h-[80px]">
-              {appointment.notes || 'Nenhuma anotação para esta sessão.'}
-            </div>
+          <div>
+            <p className="text-sm text-muted-foreground mb-2">Anotações:</p>
+            <ScrollArea className="h-[150px] w-full rounded-md border p-4 bg-muted/20">
+              {appointment.notes && appointment.notes.length > 0 ? (
+                <div className="space-y-4">
+                  {appointment.notes.map((note, index) => (
+                    <div
+                      key={index}
+                      className="bg-background p-3 rounded-lg border shadow-sm"
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-semibold text-xs text-primary">
+                          {note.professional_name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(note.date), "dd/MM/yy 'às' HH:mm", {
+                            locale: ptBR,
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap">
+                        {note.content}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Nenhuma anotação registrada.
+                </p>
+              )}
+            </ScrollArea>
           </div>
         </div>
         <DialogFooter>
