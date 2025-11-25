@@ -683,6 +683,9 @@ export type Database = {
         | 'schedule_changed'
         | 'admin_override'
         | 'new_service'
+        | 'new_appointment'
+        | 'rescheduled_appointment'
+        | 'cancelled_appointment'
       service_value_type: 'session' | 'monthly'
       user_role: 'client' | 'professional' | 'admin'
     }
@@ -824,6 +827,9 @@ export const Constants = {
         'schedule_changed',
         'admin_override',
         'new_service',
+        'new_appointment',
+        'rescheduled_appointment',
+        'cancelled_appointment',
       ],
       service_value_type: ['session', 'monthly'],
       user_role: ['client', 'professional', 'admin'],

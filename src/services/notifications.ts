@@ -14,6 +14,21 @@ export async function getNotifications(professionalId: string) {
   return { data, error }
 }
 
+export async function getRecentUnreadNotifications(
+  professionalId: string,
+  limit = 3,
+) {
+  const { data, error } = await supabase
+    .from('professional_notifications')
+    .select('*')
+    .eq('professional_id', professionalId)
+    .eq('is_read', false)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  return { data, error }
+}
+
 export async function getUnreadNotificationCount(professionalId: string) {
   const { count, error } = await supabase
     .from('professional_notifications')

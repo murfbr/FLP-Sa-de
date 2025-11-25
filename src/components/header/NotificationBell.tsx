@@ -1,27 +1,49 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/providers/AuthProvider'
-import { getUnreadNotificationCount } from '@/services/notifications'
+import {
+  getUnreadNotificationCount,
+  getRecentUnreadNotifications,
+  markNotificationAsRead,
+  Notification,
+} from '@/services/notifications'
 import { supabase } from '@/lib/supabase/client'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { formatDistanceToNow } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 export const NotificationBell = () => {
   const { professionalId, user } = useAuth()
   const [unreadCount, setUnreadCount] = useState(0)
+  const [recentNotifications, setRecentNotifications] = useState<
+    Notification[]
+  >([])
+  const [isOpen, setIsOpen] = useState(false)
+  const navigate = useNavigate()
+
+  const fetchData = async () => {
+    if (!professionalId) return
+    const [countRes, recentRes] = await Promise.all([
+      getUnreadNotificationCount(professionalId),
+      getRecentUnreadNotifications(professionalId),
+    ])
+    setUnreadCount(countRes.count || 0)
+    setRecentNotifications(recentRes.data || [])
+  }
 
   useEffect(() => {
+    fetchData()
+
     if (!professionalId) return
 
-    const fetchCount = async () => {
-      const { count } = await getUnreadNotificationCount(professionalId)
-      setUnreadCount(count || 0)
-    }
-
-    fetchCount()
-
     const channel = supabase
-      .channel('professional-notifications-count')
+      .channel('professional-notifications-bell')
       .on(
         'postgres_changes',
         {
@@ -31,7 +53,7 @@ export const NotificationBell = () => {
           filter: `professional_id=eq.${professionalId}`,
         },
         () => {
-          fetchCount()
+          fetchData()
         },
       )
       .subscribe()
@@ -41,16 +63,81 @@ export const NotificationBell = () => {
     }
   }, [professionalId, user])
 
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read
+    await markNotificationAsRead(notification.id)
+
+    // Update local state optimistically or re-fetch
+    fetchData()
+
+    // Navigate if link exists
+    if (notification.link) {
+      setIsOpen(false)
+      navigate(notification.link)
+    }
+  }
+
+  const handleViewAll = () => {
+    setIsOpen(false)
+    navigate('/profissional/notifications')
+  }
+
   return (
-    <Button variant="ghost" size="icon" className="relative" asChild>
-      <Link to="/profissional/notifications">
-        <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
-      </Link>
-    </Button>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <span className="absolute top-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-0" align="end">
+        <div className="p-4 border-b">
+          <h4 className="font-semibold leading-none">Notificações</h4>
+          <p className="text-xs text-muted-foreground mt-1">
+            Você tem {unreadCount} notificações não lidas.
+          </p>
+        </div>
+        <div className="max-h-[300px] overflow-y-auto">
+          {recentNotifications.length === 0 ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              Nenhuma notificação nova.
+            </div>
+          ) : (
+            <div className="divide-y">
+              {recentNotifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className="p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => handleNotificationClick(notification)}
+                >
+                  <p className="text-sm font-medium leading-snug">
+                    {notification.message}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatDistanceToNow(new Date(notification.created_at), {
+                      addSuffix: true,
+                      locale: ptBR,
+                    })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="p-2 border-t bg-muted/20">
+          <Button
+            variant="ghost"
+            className="w-full text-xs h-8"
+            onClick={handleViewAll}
+          >
+            Ver todas as notificações
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }
