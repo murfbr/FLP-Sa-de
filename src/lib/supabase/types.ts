@@ -374,6 +374,47 @@ export type Database = {
           },
         ]
       }
+      professional_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          message: string
+          professional_id: string
+          related_entity_id: string | null
+          type: Database['public']['Enums']['notification_type']
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message: string
+          professional_id: string
+          related_entity_id?: string | null
+          type: Database['public']['Enums']['notification_type']
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string
+          professional_id?: string
+          related_entity_id?: string | null
+          type?: Database['public']['Enums']['notification_type']
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'professional_notifications_professional_id_fkey'
+            columns: ['professional_id']
+            isOneToOne: false
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       professional_recurring_availability: {
         Row: {
           created_at: string
@@ -573,7 +614,7 @@ export type Database = {
         Returns: undefined
       }
       get_annual_comparative: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           month: string
           total_appointments: number
@@ -629,6 +670,11 @@ export type Database = {
         | 'completed'
         | 'cancelled'
         | 'no_show'
+      notification_type:
+        | 'missing_notes'
+        | 'schedule_changed'
+        | 'admin_override'
+        | 'new_service'
       service_value_type: 'session' | 'monthly'
       user_role: 'client' | 'professional' | 'admin'
     }
@@ -764,6 +810,12 @@ export const Constants = {
         'completed',
         'cancelled',
         'no_show',
+      ],
+      notification_type: [
+        'missing_notes',
+        'schedule_changed',
+        'admin_override',
+        'new_service',
       ],
       service_value_type: ['session', 'monthly'],
       user_role: ['client', 'professional', 'admin'],

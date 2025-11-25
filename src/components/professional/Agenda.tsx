@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AvailabilitySettings } from './AvailabilitySettings'
 import { MonthlyAgendaView } from './MonthlyAgendaView'
+import { WeeklyAgendaView } from './WeeklyAgendaView'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DailyAgendaView } from './DailyAgendaView'
 
@@ -10,7 +11,7 @@ interface AgendaProps {
 }
 
 export const Agenda = ({ professionalId }: AgendaProps) => {
-  const [currentView, setCurrentView] = useState('monthly')
+  const [currentView, setCurrentView] = useState('weekly')
   const [selectedDate, setSelectedDate] = useState(new Date())
 
   const handleDateSelect = (date: Date) => {
@@ -41,9 +42,7 @@ export const Agenda = ({ professionalId }: AgendaProps) => {
             />
           </TabsContent>
           <TabsContent value="weekly" className="pt-4">
-            <p className="text-center text-muted-foreground">
-              Visualização semanal em desenvolvimento.
-            </p>
+            <WeeklyAgendaView professionalId={professionalId} />
           </TabsContent>
           <TabsContent value="monthly" className="pt-4">
             <MonthlyAgendaView

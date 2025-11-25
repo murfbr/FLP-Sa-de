@@ -5,7 +5,9 @@
     "file": "src/App.tsx",
     "format": "jsx"
   },
-  "config": {},
+  "config": {
+    "showBadge": false
+  },
   "preventAI": [
     "**/*.{png,jpg,jpeg,gif,svg,ico,webp}",
     "**/*.d.ts",

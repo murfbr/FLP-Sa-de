@@ -35,6 +35,24 @@ export async function getAvailabilityOverrides(
   return { data, error }
 }
 
+export async function getAvailabilityOverridesForRange(
+  professionalId: string,
+  startDate: Date,
+  endDate: Date,
+): Promise<{ data: AvailabilityOverride[] | null; error: any }> {
+  const startStr = format(startDate, 'yyyy-MM-dd')
+  const endStr = format(endDate, 'yyyy-MM-dd')
+
+  const { data, error } = await supabase
+    .from('professional_availability_overrides')
+    .select('*')
+    .eq('professional_id', professionalId)
+    .gte('override_date', startStr)
+    .lte('override_date', endStr)
+
+  return { data, error }
+}
+
 export async function setRecurringAvailability(
   professionalId: string,
   availabilities: Omit<
