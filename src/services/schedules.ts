@@ -2,24 +2,26 @@ import { supabase } from '@/lib/supabase/client'
 import { Schedule } from '@/types'
 import { format } from 'date-fns'
 
-// This function remains for simple cases but is now superseded by the filtered one.
+// Updated to use the new RPC that handles capacity checks
 export async function getAvailableSchedules(
   professionalId: string,
+  serviceId: string,
   date: Date,
 ): Promise<{ data: Schedule[] | null; error: any }> {
   const startDate = format(date, "yyyy-MM-dd'T'00:00:00")
   const endDate = format(date, "yyyy-MM-dd'T'23:59:59")
 
-  const { data, error } = await supabase
-    .from('schedules')
-    .select('*')
-    .eq('professional_id', professionalId)
-    .eq('is_booked', false)
-    .gte('start_time', startDate)
-    .lte('start_time', endDate)
-    .order('start_time', { ascending: true })
+  const { data, error } = await supabase.rpc(
+    'get_available_slots_for_service',
+    {
+      p_professional_id: professionalId,
+      p_service_id: serviceId,
+      p_start_date: startDate,
+      p_end_date: endDate,
+    },
+  )
 
-  return { data, error }
+  return { data: data as Schedule[] | null, error }
 }
 
 // New function to handle service-specific availability.
@@ -33,9 +35,9 @@ export async function getFilteredAvailableSchedules(
   const dayOfWeek = date.getDay()
   const overrideDate = format(date, 'yyyy-MM-dd')
 
-  // 1. Fetch all unbooked schedules for the day
+  // 1. Fetch all available schedules for the day using the new RPC
   const { data: schedules, error: schedulesError } =
-    await getAvailableSchedules(professionalId, date)
+    await getAvailableSchedules(professionalId, serviceId, date)
   if (schedulesError) return { data: null, error: schedulesError }
   if (!schedules || schedules.length === 0) return { data: [], error: null }
 

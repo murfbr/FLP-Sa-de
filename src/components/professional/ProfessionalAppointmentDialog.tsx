@@ -27,6 +27,7 @@ import {
   addAppointmentNote,
   markAppointmentAsNoShow,
   completeAppointment,
+  getAppointmentsByScheduleId,
 } from '@/services/appointments'
 import { Appointment, NoteEntry } from '@/types'
 import { format, addMinutes, isValid } from 'date-fns'
@@ -41,9 +42,11 @@ import {
   XCircle,
   Loader2,
   Send,
+  Users,
 } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { getProfessionalById } from '@/services/professionals'
+import { Separator } from '@/components/ui/separator'
 
 interface ProfessionalAppointmentDialogProps {
   appointment: Appointment | null
@@ -65,6 +68,8 @@ export const ProfessionalAppointmentDialog = ({
   const [isCompleting, setIsCompleting] = useState(false)
   const [isMarkingNoShow, setIsMarkingNoShow] = useState(false)
   const [professionalName, setProfessionalName] = useState('')
+  const [groupAppointments, setGroupAppointments] = useState<Appointment[]>([])
+  const [isLoadingGroup, setIsLoadingGroup] = useState(false)
 
   useEffect(() => {
     if (professionalId) {
@@ -81,6 +86,14 @@ export const ProfessionalAppointmentDialog = ({
       setIsSavingNote(false)
       setIsCompleting(false)
       setIsMarkingNoShow(false)
+      setGroupAppointments([])
+    } else if (appointment) {
+      // Fetch other appointments for the same schedule (group session)
+      setIsLoadingGroup(true)
+      getAppointmentsByScheduleId(appointment.schedule_id).then(({ data }) => {
+        setGroupAppointments(data || [])
+        setIsLoadingGroup(false)
+      })
     }
   }, [isOpen, appointment])
 
@@ -189,6 +202,10 @@ export const ProfessionalAppointmentDialog = ({
   }
 
   const canEdit = ['scheduled', 'confirmed'].includes(appointment.status)
+  const maxAttendees = appointment.services.max_attendees || 1
+  const currentAttendees = groupAppointments.filter(
+    (a) => a.status !== 'cancelled',
+  ).length
 
   const DetailItem = ({
     icon: Icon,
@@ -246,7 +263,46 @@ export const ProfessionalAppointmentDialog = ({
               label="Status"
               value={<Badge>{appointment.status}</Badge>}
             />
+            {maxAttendees > 1 && (
+              <DetailItem
+                icon={Users}
+                label="Ocupação"
+                value={`${currentAttendees}/${maxAttendees} agendados`}
+              />
+            )}
           </div>
+
+          {/* Group Session Details */}
+          {maxAttendees > 1 &&
+            !isLoadingGroup &&
+            groupAppointments.length > 0 && (
+              <div className="space-y-2">
+                <Label>Participantes da Sessão</Label>
+                <div className="bg-muted/20 rounded-md p-3 border">
+                  <ul className="space-y-1">
+                    {groupAppointments.map((appt) => (
+                      <li
+                        key={appt.id}
+                        className="text-sm flex justify-between items-center"
+                      >
+                        <span
+                          className={
+                            appt.id === appointment.id ? 'font-bold' : ''
+                          }
+                        >
+                          {appt.clients.name}
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                          {appt.status}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+          <Separator />
 
           {/* Notes Section */}
           <div className="space-y-3">
@@ -336,8 +392,7 @@ export const ProfessionalAppointmentDialog = ({
                       <AlertDialogTitle>Registrar Falta</AlertDialogTitle>
                       <AlertDialogDescription>
                         Tem certeza que deseja marcar este agendamento como "Não
-                        Compareceu"? O horário não ficará disponível para outros
-                        agendamentos automaticamente.
+                        Compareceu"?
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

@@ -25,6 +25,11 @@ const serviceSchema = z.object({
     .positive('A duração deve ser um número positivo.'),
   price: z.coerce.number().positive('O preço deve ser um número positivo.'),
   value_type: z.enum(['session', 'monthly']),
+  max_attendees: z.coerce
+    .number()
+    .int()
+    .positive('O número máximo de participantes deve ser pelo menos 1.')
+    .default(1),
 })
 
 type ServiceFormValues = z.infer<typeof serviceSchema>
@@ -48,6 +53,7 @@ export const ServiceForm = ({
       duration_minutes: defaultValues?.duration_minutes || 60,
       price: defaultValues?.price || 0,
       value_type: defaultValues?.value_type || 'session',
+      max_attendees: defaultValues?.max_attendees || 1,
     },
   })
 
@@ -142,6 +148,19 @@ export const ServiceForm = ({
             )}
           />
         </div>
+        <FormField
+          control={form.control}
+          name="max_attendees"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Max. Participantes</FormLabel>
+              <FormControl>
+                <Input type="number" min="1" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <Button type="submit" disabled={isSubmitting} className="w-full">
           {isSubmitting ? 'Salvando...' : 'Salvar Serviço'}
         </Button>

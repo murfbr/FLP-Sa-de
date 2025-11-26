@@ -7,6 +7,7 @@ export interface Service {
   duration_minutes: number
   price: number
   value_type: 'session' | 'monthly'
+  max_attendees: number
 }
 
 export interface Professional {
@@ -23,7 +24,7 @@ export interface Schedule {
   professional_id: string
   start_time: string
   end_time: string
-  is_booked: boolean
+  // is_booked removed as it is no longer relevant for multi-client support
 }
 
 export interface Partnership {

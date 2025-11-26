@@ -36,7 +36,7 @@ import {
 } from '@/services/services'
 import { Service } from '@/types'
 import { useToast } from '@/hooks/use-toast'
-import { PlusCircle, Edit, Trash2 } from 'lucide-react'
+import { PlusCircle, Edit, Trash2, Users } from 'lucide-react'
 import { Badge } from '../ui/badge'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
@@ -117,6 +117,10 @@ export const ServicesManager = () => {
             <p>
               <strong>Preço:</strong> {formatCurrency(service.price)}
             </p>
+            <p className="flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              <strong>Max. Participantes:</strong> {service.max_attendees}
+            </p>
             <div className="flex justify-end space-x-2 pt-2">
               <Button
                 variant="outline"
@@ -163,6 +167,7 @@ export const ServicesManager = () => {
           <TableHead>Tipo</TableHead>
           <TableHead>Duração</TableHead>
           <TableHead>Preço</TableHead>
+          <TableHead>Max. Part.</TableHead>
           <TableHead className="text-right">Ações</TableHead>
         </TableRow>
       </TableHeader>
@@ -177,6 +182,7 @@ export const ServicesManager = () => {
             </TableCell>
             <TableCell>{service.duration_minutes} min</TableCell>
             <TableCell>{formatCurrency(service.price)}</TableCell>
+            <TableCell>{service.max_attendees}</TableCell>
             <TableCell className="text-right space-x-2">
               <Button
                 variant="outline"

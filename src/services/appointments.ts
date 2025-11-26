@@ -30,7 +30,7 @@ export async function getAppointmentsByProfessional(
       status,
       created_at,
       clients (id, name, email),
-      services (id, name, duration_minutes),
+      services (id, name, duration_minutes, max_attendees),
       schedules (start_time, end_time)
     `,
     )
@@ -54,8 +54,9 @@ export async function getAppointmentsByProfessionalForRange(
       notes,
       client_id,
       professional_id,
+      schedule_id,
       clients:clients (id, name, email),
-      services:services (id, name, duration_minutes),
+      services:services (id, name, duration_minutes, max_attendees),
       schedules:schedules (id, start_time, end_time)
     `,
     )
@@ -78,7 +79,7 @@ export async function getAllAppointments(
       notes,
       clients (id, name, email),
       professionals (id, name),
-      services (id, name, duration_minutes),
+      services (id, name, duration_minutes, max_attendees),
       schedules (start_time, end_time)
     `,
     )
@@ -107,7 +108,7 @@ export async function getUpcomingAppointments(): Promise<{
       notes,
       clients (id, name),
       professionals (id, name),
-      services (id, name, duration_minutes),
+      services (id, name, duration_minutes, max_attendees),
       schedules (start_time)
     `,
     )
@@ -130,7 +131,7 @@ export async function getAppointmentsByClientId(
       notes,
       created_at,
       professionals (id, name),
-      services (id, name, duration_minutes),
+      services (id, name, duration_minutes, max_attendees),
       schedules (start_time, end_time)
     `,
     )
@@ -229,4 +230,27 @@ export async function rescheduleAppointment(
     p_new_schedule_id: newScheduleId,
   })
   return { error }
+}
+
+export async function getAppointmentsByScheduleId(
+  scheduleId: string,
+): Promise<{ data: Appointment[] | null; error: any }> {
+  const { data, error } = await supabase
+    .from('appointments')
+    .select(
+      `
+      id,
+      status,
+      notes,
+      client_id,
+      professional_id,
+      schedule_id,
+      clients:clients (id, name, email),
+      services:services (id, name, duration_minutes, max_attendees),
+      schedules:schedules (id, start_time, end_time)
+    `,
+    )
+    .eq('schedule_id', scheduleId)
+
+  return { data: data as Appointment[] | null, error }
 }
