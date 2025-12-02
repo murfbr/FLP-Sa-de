@@ -126,6 +126,54 @@ export type Database = {
           },
         ]
       }
+      client_subscriptions: {
+        Row: {
+          client_id: string
+          created_at: string
+          end_date: string | null
+          id: string
+          service_id: string
+          start_date: string
+          status: Database['public']['Enums']['subscription_status']
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          service_id: string
+          start_date: string
+          status?: Database['public']['Enums']['subscription_status']
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          service_id?: string
+          start_date?: string
+          status?: Database['public']['Enums']['subscription_status']
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'client_subscriptions_client_id_fkey'
+            columns: ['client_id']
+            isOneToOne: false
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'client_subscriptions_service_id_fkey'
+            columns: ['service_id']
+            isOneToOne: false
+            referencedRelation: 'services'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       clients: {
         Row: {
           created_at: string
@@ -610,6 +658,7 @@ export type Database = {
       book_appointment: {
         Args: {
           p_client_id: string
+          p_client_package_id?: string
           p_schedule_id: string
           p_service_id: string
         }
@@ -714,6 +763,7 @@ export type Database = {
         | 'rescheduled_appointment'
         | 'cancelled_appointment'
       service_value_type: 'session' | 'monthly'
+      subscription_status: 'active' | 'paused' | 'cancelled' | 'expired'
       user_role: 'client' | 'professional' | 'admin'
     }
     CompositeTypes: {
@@ -859,6 +909,7 @@ export const Constants = {
         'cancelled_appointment',
       ],
       service_value_type: ['session', 'monthly'],
+      subscription_status: ['active', 'paused', 'cancelled', 'expired'],
       user_role: ['client', 'professional', 'admin'],
     },
   },

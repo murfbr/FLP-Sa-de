@@ -100,9 +100,23 @@ export async function getClientPackages(
     .select('*, packages(*)')
     .eq('client_id', clientId)
     .gt('sessions_remaining', 0)
-    .order('purchase_date', { ascending: false })
+    .order('purchase_date', { ascending: true }) // Ascending to prioritize oldest packages
 
   return { data: data as ClientPackageWithDetails[] | null, error }
+}
+
+export async function assignPackageToClient(
+  clientId: string,
+  packageId: string,
+  sessions: number,
+): Promise<{ error: any }> {
+  const { error } = await supabase.from('client_packages').insert({
+    client_id: clientId,
+    package_id: packageId,
+    sessions_remaining: sessions,
+    purchase_date: new Date().toISOString(),
+  })
+  return { error }
 }
 
 // Subscription Methods

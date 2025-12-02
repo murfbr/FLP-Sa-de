@@ -73,9 +73,10 @@ export interface Package {
   id: string
   name: string
   description: string | null
-  service_id: string
+  service_id: string | null
   session_count: number
   price: number
+  services?: Service | null
 }
 
 export interface ClientPackage {

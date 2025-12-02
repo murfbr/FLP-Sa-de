@@ -12,6 +12,7 @@ import {
   Handshake,
   Clock,
   PlusCircle,
+  Package,
 } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { Professional, Client } from '@/types'
@@ -36,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { PackagesManager } from '@/components/admin/PackagesManager'
 
 type ClientStatusFilter = 'all' | 'active' | 'inactive'
 
@@ -106,6 +108,10 @@ const AdminDashboard = () => {
               <TabsTrigger value="services">
                 <Stethoscope className="w-4 h-4 mr-2" />
                 Serviços
+              </TabsTrigger>
+              <TabsTrigger value="packages">
+                <Package className="w-4 h-4 mr-2" />
+                Pacotes
               </TabsTrigger>
               <TabsTrigger value="partnerships">
                 <Handshake className="w-4 h-4 mr-2" />
@@ -255,6 +261,17 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <ServicesManager />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="packages">
+            <Card>
+              <CardHeader>
+                <CardTitle>Gerenciar Pacotes de Serviços</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PackagesManager />
               </CardContent>
             </Card>
           </TabsContent>

@@ -67,7 +67,7 @@ const appointmentSchema = z.object({
   serviceId: z.string().uuid('Selecione um serviço.'),
   date: z.date({ required_error: 'Selecione uma data.' }),
   scheduleId: z.string().uuid('Selecione um horário.'),
-  usePackage: z.boolean().default(false),
+  usePackage: z.boolean().default(true), // Changed to default true
   packageId: z.string().optional(),
 })
 
@@ -109,7 +109,7 @@ export const AppointmentFormDialog = ({
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
-      usePackage: false,
+      usePackage: true, // Default to true
     },
   })
 
@@ -167,10 +167,10 @@ export const AppointmentFormDialog = ({
         const matchingPackages =
           data?.filter((pkg) => pkg.packages.service_id === serviceId) || []
         setAvailablePackages(matchingPackages)
-        // Auto-select first package if available
+        // Auto-select first package if available (sorted by date ascending in service)
         if (matchingPackages.length > 0) {
           form.setValue('packageId', matchingPackages[0].id)
-          // Automatically check 'usePackage' if user prefers? keeping it manual for clarity
+          form.setValue('usePackage', true) // Ensure it is checked
         }
       } else if (selectedService?.value_type === 'monthly') {
         // Check for subscription
@@ -435,7 +435,12 @@ export const AppointmentFormDialog = ({
                                   {availablePackages.map((pkg) => (
                                     <SelectItem key={pkg.id} value={pkg.id}>
                                       {pkg.packages.name} (
-                                      {pkg.sessions_remaining} restantes)
+                                      {pkg.sessions_remaining} restantes) -{' '}
+                                      {format(
+                                        new Date(pkg.purchase_date),
+                                        'dd/MM/yyyy',
+                                        { locale: ptBR },
+                                      )}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
