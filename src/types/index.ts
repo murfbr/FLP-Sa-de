@@ -24,7 +24,6 @@ export interface Schedule {
   professional_id: string
   start_time: string
   end_time: string
-  // is_booked removed as it is no longer relevant for multi-client support
 }
 
 export interface Partnership {
@@ -38,11 +37,13 @@ export interface Client {
   id: string
   user_id?: string | null
   name: string
-  email: string
+  email: string // Now stores CPF as per requirement
   phone?: string | null
   partnership_id?: string | null
   is_active: boolean
   partnerships?: Partnership | null
+  profile_picture_url?: string | null
+  general_assessment?: Record<string, any> | null
 }
 
 export interface NoteEntry {
@@ -82,6 +83,10 @@ export interface ClientPackage {
   package_id: string
   purchase_date: string
   sessions_remaining: number
+}
+
+export interface ClientPackageWithDetails extends ClientPackage {
+  packages: Package
 }
 
 export interface FinancialRecord {

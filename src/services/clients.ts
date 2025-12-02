@@ -1,10 +1,9 @@
 import { supabase } from '@/lib/supabase/client'
-import { Client } from '@/types'
+import { Client, ClientPackageWithDetails } from '@/types'
 
 export async function getClientsByProfessional(
   professionalId: string,
 ): Promise<{ data: Client[] | null; error: any }> {
-  // This query assumes a client is associated with a professional if they have an appointment.
   const { data: appointments, error } = await supabase
     .from('appointments')
     .select('client_id')
@@ -24,7 +23,7 @@ export async function getClientsByProfessional(
     .from('clients')
     .select('*, partnerships(*)')
     .in('id', clientIds)
-    .eq('is_active', true) // Professionals should only see active clients
+    .eq('is_active', true)
 
   return { data: clients, error: clientError }
 }
@@ -72,7 +71,7 @@ export async function createClient(
 
 export async function updateClient(
   clientId: string,
-  updates: Partial<Omit<Client, 'id' | 'created_at' | 'user_id'>>,
+  updates: Partial<Client>,
 ): Promise<{ data: Client | null; error: any }> {
   const { data, error } = await supabase
     .from('clients')
@@ -86,4 +85,17 @@ export async function updateClient(
 export async function deleteClient(clientId: string): Promise<{ error: any }> {
   const { error } = await supabase.from('clients').delete().eq('id', clientId)
   return { error }
+}
+
+export async function getClientPackages(
+  clientId: string,
+): Promise<{ data: ClientPackageWithDetails[] | null; error: any }> {
+  const { data, error } = await supabase
+    .from('client_packages')
+    .select('*, packages(*)')
+    .eq('client_id', clientId)
+    .gt('sessions_remaining', 0)
+    .order('purchase_date', { ascending: false })
+
+  return { data: data as ClientPackageWithDetails[] | null, error }
 }

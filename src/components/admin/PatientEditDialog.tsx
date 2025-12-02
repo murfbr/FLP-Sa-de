@@ -23,10 +23,16 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { Client } from '@/types'
 import { updateClient } from '@/services/clients'
+import { cleanCPF, formatCPF, validateCPF } from '@/lib/utils'
+import { uploadFile, getPublicUrl } from '@/services/storage'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Camera } from 'lucide-react'
 
 const patientSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
-  email: z.string().email('Por favor, insira um email válido.'),
+  email: z.string().refine((val) => validateCPF(val), {
+    message: 'CPF inválido. Deve conter 11 dígitos numéricos.',
+  }),
   phone: z.string().optional(),
 })
 
@@ -47,6 +53,8 @@ export const PatientEditDialog = ({
 }: PatientEditDialogProps) => {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   const form = useForm<PatientFormValues>({
     resolver: zodResolver(patientSchema),
@@ -56,17 +64,56 @@ export const PatientEditDialog = ({
     if (patient) {
       form.reset({
         name: patient.name,
-        email: patient.email,
+        email: formatCPF(patient.email),
         phone: patient.phone || '',
       })
+      setPreviewUrl(patient.profile_picture_url || null)
+      setAvatarFile(null)
     }
   }, [patient, form, isOpen])
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setAvatarFile(file)
+      const url = URL.createObjectURL(file)
+      setPreviewUrl(url)
+    }
+  }
 
   const onSubmit = async (values: PatientFormValues) => {
     if (!patient) return
     setIsSubmitting(true)
 
-    const { data, error } = await updateClient(patient.id, values)
+    let profile_picture_url = patient.profile_picture_url
+
+    if (avatarFile) {
+      const filePath = `patients/${patient.id}/${Date.now()}-${avatarFile.name}`
+      const { error: uploadError } = await uploadFile(
+        'avatars', // Using existing 'avatars' bucket or 'patients' if exists, assuming 'avatars' is general purpose
+        filePath,
+        avatarFile,
+      )
+
+      if (uploadError) {
+        toast({
+          title: 'Erro no upload da foto',
+          description: uploadError.message,
+          variant: 'destructive',
+        })
+        setIsSubmitting(false)
+        return
+      }
+      profile_picture_url = getPublicUrl('avatars', filePath)
+    }
+
+    const cpfClean = cleanCPF(values.email)
+
+    const { data, error } = await updateClient(patient.id, {
+      ...values,
+      email: cpfClean,
+      profile_picture_url,
+    })
 
     if (error) {
       toast({
@@ -96,47 +143,85 @@ export const PatientEditDialog = ({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 py-4"
+            className="space-y-6 py-4"
           >
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome Completo</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Telefone (Opcional)</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <Avatar className="w-24 h-24">
+                  <AvatarImage src={previewUrl || ''} objectFit="cover" />
+                  <AvatarFallback className="text-2xl">
+                    {patient.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <label
+                  htmlFor="picture-upload"
+                  className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-2 rounded-full cursor-pointer hover:bg-primary/90 transition-colors"
+                >
+                  <Camera className="w-4 h-4" />
+                  <input
+                    id="picture-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Clique no ícone da câmera para alterar a foto.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome Completo</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CPF</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        onChange={(e) => {
+                          const formatted = formatCPF(e.target.value)
+                          if (formatted.length <= 14) {
+                            field.onChange(formatted)
+                          }
+                        }}
+                        maxLength={14}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefone (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <DialogFooter>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}

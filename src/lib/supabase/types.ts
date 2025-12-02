@@ -74,7 +74,7 @@ export type Database = {
           {
             foreignKeyName: 'appointments_schedule_id_fkey'
             columns: ['schedule_id']
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: 'schedules'
             referencedColumns: ['id']
           },
@@ -536,7 +536,6 @@ export type Database = {
           created_at: string
           end_time: string
           id: string
-          is_booked: boolean
           professional_id: string
           start_time: string
         }
@@ -544,7 +543,6 @@ export type Database = {
           created_at?: string
           end_time: string
           id?: string
-          is_booked?: boolean
           professional_id: string
           start_time: string
         }
@@ -552,7 +550,6 @@ export type Database = {
           created_at?: string
           end_time?: string
           id?: string
-          is_booked?: boolean
           professional_id?: string
           start_time?: string
         }
@@ -572,6 +569,7 @@ export type Database = {
           description: string | null
           duration_minutes: number
           id: string
+          max_attendees: number
           name: string
           price: number
           value_type: Database['public']['Enums']['service_value_type']
@@ -581,6 +579,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number
           id?: string
+          max_attendees?: number
           name: string
           price: number
           value_type?: Database['public']['Enums']['service_value_type']
@@ -590,6 +589,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number
           id?: string
+          max_attendees?: number
           name?: string
           price?: number
           value_type?: Database['public']['Enums']['service_value_type']
@@ -635,6 +635,27 @@ export type Database = {
         Returns: {
           available_date: string
         }[]
+      }
+      get_available_slots_for_service: {
+        Args: {
+          p_end_date: string
+          p_professional_id: string
+          p_service_id: string
+          p_start_date: string
+        }
+        Returns: {
+          created_at: string
+          end_time: string
+          id: string
+          professional_id: string
+          start_time: string
+        }[]
+        SetofOptions: {
+          from: '*'
+          to: 'schedules'
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_kpi_metrics: {
         Args: { end_date: string; start_date: string }

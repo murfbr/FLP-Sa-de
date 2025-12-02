@@ -32,10 +32,13 @@ import { Partnership } from '@/types'
 import { createClient } from '@/services/clients'
 import { getAllPartnerships } from '@/services/partnerships'
 import { Skeleton } from '../ui/skeleton'
+import { cleanCPF, formatCPF, validateCPF } from '@/lib/utils'
 
 const patientSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
-  email: z.string().email('Por favor, insira um email válido.'),
+  email: z.string().refine((val) => validateCPF(val), {
+    message: 'CPF inválido. Deve conter 11 dígitos numéricos.',
+  }),
   phone: z.string().optional(),
   partnership_id: z.string().uuid().nullable().optional(),
 })
@@ -80,8 +83,11 @@ export const PatientFormDialog = ({
 
   const onSubmit = async (values: PatientFormValues) => {
     setIsSubmitting(true)
+    // Save cleaned CPF into email field
+    const cpfClean = cleanCPF(values.email)
     const { error } = await createClient({
       ...values,
+      email: cpfClean,
       partnership_id: values.partnership_id || null,
     })
 
@@ -89,7 +95,7 @@ export const PatientFormDialog = ({
       toast({
         title: 'Erro ao criar paciente',
         description: error.message.includes('duplicate key')
-          ? 'Um paciente com este email já existe.'
+          ? 'Um paciente com este CPF já existe.'
           : error.message,
         variant: 'destructive',
       })
@@ -137,12 +143,18 @@ export const PatientFormDialog = ({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>CPF</FormLabel>
                   <FormControl>
                     <Input
-                      type="email"
-                      placeholder="email@example.com"
+                      placeholder="000.000.000-00"
                       {...field}
+                      onChange={(e) => {
+                        const formatted = formatCPF(e.target.value)
+                        if (formatted.length <= 14) {
+                          field.onChange(formatted)
+                        }
+                      }}
+                      maxLength={14}
                     />
                   </FormControl>
                   <FormMessage />

@@ -34,9 +34,8 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
   ArrowLeft,
-  Mail,
+  CreditCard,
   Phone,
-  User,
   FileText,
   Edit,
   Trash2,
@@ -58,6 +57,10 @@ import {
 } from '@/components/ui/select'
 import { AppointmentDetailDialog } from '@/components/admin/AppointmentDetailDialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { formatCPF } from '@/lib/utils'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { GeneralAssessmentForm } from '@/components/admin/GeneralAssessmentForm'
+import { ClientPackagesList } from '@/components/admin/ClientPackagesList'
 
 const PatientDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -159,6 +162,15 @@ const PatientDetail = () => {
     )
   }, [appointments])
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase()
+  }
+
   if (isLoading) {
     return (
       <div className="container mx-auto py-8 px-4 space-y-6">
@@ -194,22 +206,31 @@ const PatientDetail = () => {
         <div className="grid md:grid-cols-3 gap-6">
           <div className="md:col-span-1 space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <User className="w-6 h-6" />
-                  {patient.name}
-                </CardTitle>
+              <CardHeader className="items-center text-center">
+                <Avatar className="w-24 h-24 mb-4">
+                  <AvatarImage
+                    src={patient.profile_picture_url || ''}
+                    alt={patient.name}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="text-2xl">
+                    {getInitials(patient.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <CardTitle>{patient.name}</CardTitle>
                 <Badge
                   variant={patient.is_active ? 'default' : 'destructive'}
-                  className="w-fit"
+                  className="w-fit mt-2"
                 >
                   {patient.is_active ? 'Ativo' : 'Inativo'}
                 </Badge>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm">{patient.email}</span>
+                  <CreditCard className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    CPF: {formatCPF(patient.email)}
+                  </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="w-4 h-4 text-muted-foreground" />
@@ -287,8 +308,12 @@ const PatientDetail = () => {
                 </AlertDialog>
               </CardFooter>
             </Card>
+
+            <ClientPackagesList clientId={patient.id} />
           </div>
           <div className="md:col-span-2 space-y-6">
+            <GeneralAssessmentForm client={patient} />
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-3">
