@@ -130,31 +130,37 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          general_assessment: Json | null
           id: string
           is_active: boolean
           name: string
           partnership_id: string | null
           phone: string | null
+          profile_picture_url: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string
           email: string
+          general_assessment?: Json | null
           id?: string
           is_active?: boolean
           name: string
           partnership_id?: string | null
           phone?: string | null
+          profile_picture_url?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string
           email?: string
+          general_assessment?: Json | null
           id?: string
           is_active?: boolean
           name?: string
           partnership_id?: string | null
           phone?: string | null
+          profile_picture_url?: string | null
           user_id?: string | null
         }
         Relationships: [

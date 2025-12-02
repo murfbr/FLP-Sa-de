@@ -12,6 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Service } from '@/types'
@@ -116,6 +117,10 @@ export const ServiceForm = ({
                   </FormItem>
                 </RadioGroup>
               </FormControl>
+              <FormDescription>
+                Serviços "Por Sessão" podem ser vendidos individualmente ou em
+                pacotes. Serviços "Mensal" requerem assinatura ativa do cliente.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

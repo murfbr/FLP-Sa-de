@@ -1,5 +1,10 @@
 import { supabase } from '@/lib/supabase/client'
-import { Client, ClientPackageWithDetails } from '@/types'
+import {
+  Client,
+  ClientPackageWithDetails,
+  ClientSubscription,
+  SubscriptionStatus,
+} from '@/types'
 
 export async function getClientsByProfessional(
   professionalId: string,
@@ -98,4 +103,54 @@ export async function getClientPackages(
     .order('purchase_date', { ascending: false })
 
   return { data: data as ClientPackageWithDetails[] | null, error }
+}
+
+// Subscription Methods
+
+export async function getClientSubscriptions(
+  clientId: string,
+): Promise<{ data: ClientSubscription[] | null; error: any }> {
+  const { data, error } = await supabase
+    .from('client_subscriptions')
+    .select('*, services(*)')
+    .eq('client_id', clientId)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+
+  return { data: data as ClientSubscription[] | null, error }
+}
+
+export async function createClientSubscription(
+  subscriptionData: Omit<
+    ClientSubscription,
+    'id' | 'created_at' | 'updated_at' | 'services'
+  >,
+): Promise<{ data: ClientSubscription | null; error: any }> {
+  const { data, error } = await supabase
+    .from('client_subscriptions')
+    .insert(subscriptionData)
+    .select()
+    .single()
+  return { data, error }
+}
+
+export async function updateClientSubscription(
+  subscriptionId: string,
+  updates: Partial<ClientSubscription>,
+): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from('client_subscriptions')
+    .update(updates)
+    .eq('id', subscriptionId)
+  return { error }
+}
+
+export async function cancelClientSubscription(
+  subscriptionId: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from('client_subscriptions')
+    .update({ status: 'cancelled' })
+    .eq('id', subscriptionId)
+  return { error }
 }

@@ -61,6 +61,7 @@ import { formatCPF } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { GeneralAssessmentForm } from '@/components/admin/GeneralAssessmentForm'
 import { ClientPackagesList } from '@/components/admin/ClientPackagesList'
+import { ClientSubscriptionsList } from '@/components/admin/ClientSubscriptionsList'
 
 const PatientDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -309,7 +310,11 @@ const PatientDetail = () => {
               </CardFooter>
             </Card>
 
-            <ClientPackagesList clientId={patient.id} />
+            {/* Service Entitlements: Packages and Subscriptions */}
+            <div className="space-y-4">
+              <ClientSubscriptionsList clientId={patient.id} />
+              <ClientPackagesList clientId={patient.id} />
+            </div>
           </div>
           <div className="md:col-span-2 space-y-6">
             <GeneralAssessmentForm client={patient} />

@@ -18,6 +18,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form'
 import {
   Select,
@@ -32,13 +33,23 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, CheckCircle, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
-import { Client, Professional, Service, Schedule } from '@/types'
-import { getAllClients } from '@/services/clients'
+import {
+  Client,
+  Professional,
+  Service,
+  Schedule,
+  ClientPackageWithDetails,
+} from '@/types'
+import {
+  getAllClients,
+  getClientPackages,
+  getClientSubscriptions,
+} from '@/services/clients'
 import {
   getAllProfessionals,
   getServicesByProfessional,
@@ -47,6 +58,8 @@ import { getFilteredAvailableSchedules } from '@/services/schedules'
 import { getAvailableDatesForProfessional } from '@/services/availability'
 import { bookAppointment } from '@/services/appointments'
 import { AvailableSlots } from '../AvailableSlots'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 const appointmentSchema = z.object({
   clientId: z.string().uuid('Selecione um cliente.'),
@@ -54,6 +67,8 @@ const appointmentSchema = z.object({
   serviceId: z.string().uuid('Selecione um serviço.'),
   date: z.date({ required_error: 'Selecione uma data.' }),
   scheduleId: z.string().uuid('Selecione um horário.'),
+  usePackage: z.boolean().default(false),
+  packageId: z.string().optional(),
 })
 
 type AppointmentFormValues = z.infer<typeof appointmentSchema>
@@ -84,14 +99,27 @@ export const AppointmentFormDialog = ({
     dates: false,
   })
 
+  // New states for package/subscription logic
+  const [availablePackages, setAvailablePackages] = useState<
+    ClientPackageWithDetails[]
+  >([])
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false)
+  const [checkingEntitlements, setCheckingEntitlements] = useState(false)
+
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
+    defaultValues: {
+      usePackage: false,
+    },
   })
 
+  const clientId = form.watch('clientId')
   const professionalId = form.watch('professionalId')
   const serviceId = form.watch('serviceId')
   const date = form.watch('date')
+  const usePackage = form.watch('usePackage')
 
+  // Fetch initial data
   useEffect(() => {
     Promise.all([
       getAllClients({ status: 'active' }),
@@ -107,6 +135,7 @@ export const AppointmentFormDialog = ({
     })
   }, [])
 
+  // Fetch services when professional changes
   useEffect(() => {
     if (professionalId) {
       setIsLoading((prev) => ({ ...prev, services: true }))
@@ -120,6 +149,43 @@ export const AppointmentFormDialog = ({
     }
   }, [professionalId, form])
 
+  // Check entitlements (Packages or Subscriptions) when client and service are selected
+  useEffect(() => {
+    const checkEntitlements = async () => {
+      if (!clientId || !serviceId) {
+        setAvailablePackages([])
+        setHasActiveSubscription(false)
+        return
+      }
+
+      setCheckingEntitlements(true)
+      const selectedService = services.find((s) => s.id === serviceId)
+
+      if (selectedService?.value_type === 'session') {
+        // Check for packages
+        const { data } = await getClientPackages(clientId)
+        const matchingPackages =
+          data?.filter((pkg) => pkg.packages.service_id === serviceId) || []
+        setAvailablePackages(matchingPackages)
+        // Auto-select first package if available
+        if (matchingPackages.length > 0) {
+          form.setValue('packageId', matchingPackages[0].id)
+          // Automatically check 'usePackage' if user prefers? keeping it manual for clarity
+        }
+      } else if (selectedService?.value_type === 'monthly') {
+        // Check for subscription
+        const { data } = await getClientSubscriptions(clientId)
+        const hasSub = data?.some((sub) => sub.service_id === serviceId)
+        setHasActiveSubscription(!!hasSub)
+      }
+
+      setCheckingEntitlements(false)
+    }
+
+    checkEntitlements()
+  }, [clientId, serviceId, services, form])
+
+  // Fetch available dates
   useEffect(() => {
     if (professionalId && serviceId) {
       setIsLoading((prev) => ({ ...prev, dates: true }))
@@ -135,6 +201,7 @@ export const AppointmentFormDialog = ({
     }
   }, [professionalId, serviceId, currentMonth])
 
+  // Fetch schedules
   useEffect(() => {
     if (professionalId && serviceId && date) {
       setIsLoading((prev) => ({ ...prev, schedules: true }))
@@ -150,12 +217,32 @@ export const AppointmentFormDialog = ({
     }
   }, [professionalId, serviceId, date, form])
 
+  const selectedService = services.find((s) => s.id === serviceId)
+
   const onSubmit = async (values: AppointmentFormValues) => {
+    // Validate monthly subscription
+    if (selectedService?.value_type === 'monthly' && !hasActiveSubscription) {
+      toast({
+        title: 'Agendamento Bloqueado',
+        description:
+          'O cliente não possui uma assinatura ativa para este serviço.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const packageIdToUse =
+      values.usePackage && availablePackages.length > 0
+        ? values.packageId
+        : undefined
+
     const { error } = await bookAppointment(
       values.scheduleId,
       values.clientId,
       values.serviceId,
+      packageIdToUse,
     )
+
     if (error) {
       toast({
         title: 'Erro ao agendar',
@@ -254,7 +341,7 @@ export const AppointmentFormDialog = ({
                     <SelectContent>
                       {services.map((s) => (
                         <SelectItem key={s.id} value={s.id}>
-                          {s.name}
+                          {s.name} {s.value_type === 'monthly' && '(Mensal)'}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -263,6 +350,106 @@ export const AppointmentFormDialog = ({
                 </FormItem>
               )}
             />
+
+            {/* Entitlements Logic UI */}
+            {!checkingEntitlements &&
+              clientId &&
+              serviceId &&
+              selectedService && (
+                <div className="p-4 bg-muted/30 rounded-lg border">
+                  {selectedService.value_type === 'monthly' ? (
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">
+                        Status da Assinatura
+                      </h4>
+                      {hasActiveSubscription ? (
+                        <div className="flex items-center text-green-600 gap-2 text-sm">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Assinatura Ativa Confirmada</span>
+                        </div>
+                      ) : (
+                        <Alert variant="destructive" className="py-2">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertTitle className="text-sm font-semibold">
+                            Assinatura Necessária
+                          </AlertTitle>
+                          <AlertDescription className="text-xs">
+                            O cliente não possui uma assinatura ativa para este
+                            serviço. Ative-a no perfil do cliente antes de
+                            agendar.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
+                  ) : (
+                    // Session based
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium">
+                        Opções de Pagamento
+                      </h4>
+                      {availablePackages.length > 0 ? (
+                        <FormField
+                          control={form.control}
+                          name="usePackage"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3 bg-background">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Usar Pacote de Sessões</FormLabel>
+                                <FormDescription>
+                                  {availablePackages.length} pacote(s)
+                                  disponível para este serviço.
+                                </FormDescription>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                      ) : (
+                        <div className="text-sm text-muted-foreground">
+                          Nenhum pacote disponível. Será cobrado como avulso.
+                        </div>
+                      )}
+
+                      {usePackage && availablePackages.length > 0 && (
+                        <FormField
+                          control={form.control}
+                          name="packageId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Selecione o Pacote</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione o pacote" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {availablePackages.map((pkg) => (
+                                    <SelectItem key={pkg.id} value={pkg.id}>
+                                      {pkg.packages.name} (
+                                      {pkg.sessions_remaining} restantes)
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
             <FormField
               control={form.control}
               name="date"
@@ -332,7 +519,15 @@ export const AppointmentFormDialog = ({
               )}
             />
             <DialogFooter>
-              <Button type="submit">Agendar</Button>
+              <Button
+                type="submit"
+                disabled={
+                  selectedService?.value_type === 'monthly' &&
+                  !hasActiveSubscription
+                }
+              >
+                Agendar
+              </Button>
             </DialogFooter>
           </form>
         </Form>

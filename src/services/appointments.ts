@@ -5,11 +5,13 @@ export async function bookAppointment(
   scheduleId: string,
   clientId: string,
   serviceId: string,
+  clientPackageId?: string,
 ): Promise<{ data: { appointment_id: string } | null; error: any }> {
   const { data, error } = await supabase.rpc('book_appointment', {
     p_schedule_id: scheduleId,
     p_client_id: clientId,
     p_service_id: serviceId,
+    p_client_package_id: clientPackageId || null,
   })
 
   if (error) {
@@ -173,7 +175,6 @@ export async function addAppointmentNote(
   appointmentId: string,
   note: NoteEntry,
 ): Promise<{ error: any }> {
-  // First fetch existing notes
   const { data: currentData, error: fetchError } = await supabase
     .from('appointments')
     .select('notes')

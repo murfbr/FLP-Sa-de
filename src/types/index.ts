@@ -1,4 +1,5 @@
 export type UserRole = 'client' | 'professional' | 'admin'
+export type SubscriptionStatus = 'active' | 'paused' | 'cancelled' | 'expired'
 
 export interface Service {
   id: string
@@ -87,6 +88,18 @@ export interface ClientPackage {
 
 export interface ClientPackageWithDetails extends ClientPackage {
   packages: Package
+}
+
+export interface ClientSubscription {
+  id: string
+  client_id: string
+  service_id: string
+  start_date: string
+  end_date: string | null
+  status: SubscriptionStatus
+  created_at: string
+  updated_at: string
+  services?: Service
 }
 
 export interface FinancialRecord {
