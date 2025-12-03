@@ -103,10 +103,6 @@ const AdminDashboard = () => {
                 <Stethoscope className="w-4 h-4 mr-2" />
                 Serviços
               </TabsTrigger>
-              <TabsTrigger value="packages">
-                <Package className="w-4 h-4 mr-2" />
-                Pacotes
-              </TabsTrigger>
               <TabsTrigger value="partnerships">
                 <Handshake className="w-4 h-4 mr-2" />
                 Parcerias
@@ -238,25 +234,40 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="services">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gerenciar Serviços</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ServicesManager />
-              </CardContent>
-            </Card>
-          </TabsContent>
+            <Tabs defaultValue="single-services" className="w-full">
+              <TabsList className="mb-4 w-full sm:w-auto grid grid-cols-2 sm:inline-flex">
+                <TabsTrigger value="single-services">
+                  <Stethoscope className="w-4 h-4 mr-2" />
+                  Serviços Avulsos
+                </TabsTrigger>
+                <TabsTrigger value="packages">
+                  <Package className="w-4 h-4 mr-2" />
+                  Pacotes
+                </TabsTrigger>
+              </TabsList>
 
-          <TabsContent value="packages">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gerenciar Pacotes de Serviços</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <PackagesManager />
-              </CardContent>
-            </Card>
+              <TabsContent value="single-services" className="mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Gerenciar Serviços Avulsos</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ServicesManager />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="packages" className="mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Gerenciar Pacotes de Serviços</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <PackagesManager />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="partnerships">
