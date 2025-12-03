@@ -16,6 +16,9 @@ import { ArrowLeft, Edit } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ProfessionalServicesManager } from '@/components/admin/ProfessionalServicesManager'
 import { ProfessionalEditDialog } from '@/components/admin/ProfessionalEditDialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AvailabilitySettings } from '@/components/professional/AvailabilitySettings'
+import { AvailabilityOverridesManager } from '@/components/admin/AvailabilityOverridesManager'
 
 const ProfessionalDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -109,7 +112,21 @@ const ProfessionalDetail = () => {
             </Card>
           </div>
           <div className="md:col-span-2">
-            <ProfessionalServicesManager professionalId={professional.id} />
+            <Tabs defaultValue="services" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="services">Serviços</TabsTrigger>
+                <TabsTrigger value="availability">Disponibilidade</TabsTrigger>
+              </TabsList>
+              <TabsContent value="services">
+                <ProfessionalServicesManager professionalId={professional.id} />
+              </TabsContent>
+              <TabsContent value="availability" className="space-y-6">
+                <AvailabilitySettings professionalId={professional.id} />
+                <AvailabilityOverridesManager
+                  professionalId={professional.id}
+                />
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
