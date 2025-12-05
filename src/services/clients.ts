@@ -1,10 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import {
-  Client,
-  ClientPackageWithDetails,
-  ClientSubscription,
-  SubscriptionStatus,
-} from '@/types'
+import { Client, ClientPackageWithDetails, ClientSubscription } from '@/types'
 
 export async function getClientsByProfessional(
   professionalId: string,
@@ -167,4 +162,20 @@ export async function cancelClientSubscription(
     .update({ status: 'cancelled' })
     .eq('id', subscriptionId)
   return { error }
+}
+
+export async function exportClientData(
+  clientId: string,
+  exportType: 'session_notes' | 'general_assessment',
+  format: 'pdf' | 'docx',
+): Promise<{ data: { content: string; filename: string } | null; error: any }> {
+  const { data, error } = await supabase.functions.invoke(
+    'export-client-data',
+    {
+      body: { clientId, exportType, format },
+    },
+  )
+
+  if (error) return { data: null, error }
+  return { data, error: null }
 }

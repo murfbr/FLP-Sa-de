@@ -1,6 +1,11 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { getClientById, updateClient, deleteClient } from '@/services/clients'
+import {
+  getClientById,
+  updateClient,
+  deleteClient,
+  exportClientData,
+} from '@/services/clients'
 import { getAppointmentsByClientId } from '@/services/appointments'
 import { Client, Appointment, Partnership, NoteEntry } from '@/types'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -41,6 +46,8 @@ import {
   Trash2,
   Handshake,
   StickyNote,
+  Download,
+  Loader2,
 } from 'lucide-react'
 import { format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -55,6 +62,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { AppointmentDetailDialog } from '@/components/admin/AppointmentDetailDialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { formatCPF } from '@/lib/utils'
@@ -75,6 +88,7 @@ const PatientDetail = () => {
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null)
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
+  const [isExportingNotes, setIsExportingNotes] = useState(false)
 
   const fetchPatientData = async () => {
     if (!id) return
@@ -141,6 +155,33 @@ const PatientDetail = () => {
   const handleAppointmentClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment)
     setIsDetailDialogOpen(true)
+  }
+
+  const handleExportSessionNotes = async (format: 'pdf' | 'docx') => {
+    if (!patient) return
+    setIsExportingNotes(true)
+    const { data, error } = await exportClientData(
+      patient.id,
+      'session_notes',
+      format,
+    )
+
+    if (error) {
+      toast({
+        title: 'Erro ao exportar anotações',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } else if (data) {
+      const link = document.createElement('a')
+      link.href = `data:application/${format === 'pdf' ? 'pdf' : 'vnd.openxmlformats-officedocument.wordprocessingml.document'};base64,${data.content}`
+      link.download = data.filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast({ title: 'Download iniciado!' })
+    }
+    setIsExportingNotes(false)
   }
 
   const validAppointments = appointments.filter(
@@ -320,16 +361,46 @@ const PatientDetail = () => {
             <GeneralAssessmentForm client={patient} />
 
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <StickyNote className="w-6 h-6" />
-                  Anotações da Sessão (Consolidado)
-                </CardTitle>
-                <CardDescription>
-                  Histórico completo de anotações em ordem cronológica.
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="flex flex-col space-y-1.5">
+                  <CardTitle className="flex items-center gap-3">
+                    <StickyNote className="w-6 h-6" />
+                    Anotações da Sessão (Consolidado)
+                  </CardTitle>
+                  <CardDescription>
+                    Histórico completo de anotações em ordem cronológica.
+                  </CardDescription>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isExportingNotes}
+                    >
+                      {isExportingNotes ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <Download className="w-4 h-4 mr-2" />
+                      )}
+                      Exportar
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem
+                      onClick={() => handleExportSessionNotes('pdf')}
+                    >
+                      Exportar como PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleExportSessionNotes('docx')}
+                    >
+                      Exportar como DOCX
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <ScrollArea className="h-[300px] w-full rounded-md border p-4 bg-muted/20">
                   {consolidatedNotes.length > 0 ? (
                     <div className="space-y-4">
