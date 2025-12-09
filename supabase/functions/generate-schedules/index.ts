@@ -11,6 +11,7 @@ import {
   isBefore,
   startOfMonth,
   max,
+  addDays,
 } from 'https://esm.sh/date-fns@3.6.0'
 
 // --- Type Definitions ---
@@ -39,7 +40,7 @@ interface Schedule {
 }
 
 // --- Constants ---
-const MONTHS_TO_GENERATE = 12 // User story requires 1 year
+const MONTHS_TO_GENERATE = 12
 const SLOT_DURATION_MINUTES = 30
 
 serve(async (req: Request) => {
@@ -47,11 +48,21 @@ serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  const logs: string[] = []
+  const log = (msg: string) => {
+    console.log(msg)
+    logs.push(msg)
+  }
+
   try {
     const supabaseAdmin = createSupabaseAdminClient()
     const today = startOfDay(new Date())
-    // Ensure we cover at least 1 year from today
+    // Ensure we cover 12 months from today
     const targetEndDate = add(today, { months: MONTHS_TO_GENERATE })
+
+    log(
+      `Starting schedule generation from ${format(today, 'yyyy-MM-dd')} to ${format(targetEndDate, 'yyyy-MM-dd')}`,
+    )
 
     // 1. Fetch all professionals
     const { data: professionals, error: professionalsError } =
@@ -59,13 +70,11 @@ serve(async (req: Request) => {
 
     if (professionalsError) throw professionalsError
 
-    const logs: string[] = []
-
     // 2. Process each professional
     for (const professional of professionals as Professional[]) {
-      logs.push(`Processing professional: ${professional.name}`)
+      log(`Processing professional: ${professional.name} (${professional.id})`)
 
-      // Fetch availability rules ONCE for the whole period to avoid repeated DB calls
+      // Fetch availability rules
       const [recurringRes, overridesRes] = await Promise.all([
         supabaseAdmin
           .from('professional_recurring_availability')
@@ -92,103 +101,190 @@ serve(async (req: Request) => {
         overridesMap.get(dateKey)!.push(override)
       })
 
-      // Iterate Month by Month to manage batch size
-      let currentMonthStart = startOfMonth(today)
+      log(
+        `Found ${recurringAvailability.length} recurring rules and ${overrides.length} overrides.`,
+      )
 
-      while (isBefore(currentMonthStart, targetEndDate)) {
-        const currentMonthEnd = endOfMonth(currentMonthStart)
+      // --- CALCULATE EXPECTED SLOTS ---
+      const expectedSlots = new Set<string>() // Set of ISO start times
+      const expectedSlotsList: Schedule[] = []
 
-        const newSchedules: Schedule[] = []
-        const daysToProcess = eachDayOfInterval({
-          start: max([today, currentMonthStart]), // Don't generate for past days in the current month
-          end: currentMonthEnd,
-        })
+      const daysToProcess = eachDayOfInterval({
+        start: today,
+        end: targetEndDate,
+      })
 
-        for (const day of daysToProcess) {
-          const dateStr = format(day, 'yyyy-MM-dd')
-          const dayOfWeek = day.getDay()
-          const dayOverrides = overridesMap.get(dateStr) || []
-          const negativeOverrides = dayOverrides.filter((o) => !o.is_available)
-          const positiveOverrides = dayOverrides.filter((o) => o.is_available)
+      for (const day of daysToProcess) {
+        const dateStr = format(day, 'yyyy-MM-dd')
+        const dayOfWeek = day.getDay()
+        const dayOverrides = overridesMap.get(dateStr) || []
 
-          const potentialSlots: Date[] = []
+        // Strategy:
+        // 1. If positive overrides exist, ONLY use them (they completely replace recurring for that day/time range logic is complex,
+        //    but typically overrides are specific. Simplest interpretation: Positive overrides ADD to availability,
+        //    or replace day?
+        //    Requirement: "Overrides (specific date... availability status)".
+        //    Common logic: If there are Positive Overrides, use ONLY them for that day? Or merge?
+        //    Let's assume: If there is ANY override for a day, we look at the overrides.
+        //    Actually, "Negative" overrides block recurring. "Positive" overrides add availability.
+        //    Let's stick to the previous logic: Recurring + Positive Overrides - Negative Overrides.
 
-          // Helper to add slots from a range
-          const addSlotsFromRange = (start: Date, end: Date) => {
-            let s = start
-            while (isBefore(s, end)) {
-              const e = add(s, { minutes: SLOT_DURATION_MINUTES })
-              if (!isBefore(end, e)) {
-                // Check blocking
-                const isBlocked = negativeOverrides.some((o) => {
-                  const oStart = parse(o.start_time, 'HH:mm:ss', day)
-                  const oEnd = parse(o.end_time, 'HH:mm:ss', day)
-                  // Check if slot overlaps with blocking override
-                  return isBefore(s, oEnd) && isBefore(oStart, e)
-                })
+        const negativeOverrides = dayOverrides.filter((o) => !o.is_available)
+        const positiveOverrides = dayOverrides.filter((o) => o.is_available)
 
-                if (!isBlocked) {
-                  potentialSlots.push(s)
-                }
+        const potentialSlots: Date[] = []
+
+        const addSlotsFromRange = (start: Date, end: Date) => {
+          let s = start
+          while (isBefore(s, end)) {
+            const e = add(s, { minutes: SLOT_DURATION_MINUTES })
+            if (!isBefore(end, e)) {
+              // Check blocking
+              const isBlocked = negativeOverrides.some((o) => {
+                const oStart = parse(o.start_time, 'HH:mm:ss', day)
+                const oEnd = parse(o.end_time, 'HH:mm:ss', day)
+                // Check if slot overlaps with blocking override
+                return isBefore(s, oEnd) && isBefore(oStart, e)
+              })
+
+              if (!isBlocked) {
+                potentialSlots.push(s)
               }
-              s = e
             }
+            s = e
           }
+        }
 
-          // From Recurring
-          recurringAvailability
-            .filter((r) => r.day_of_week === dayOfWeek)
-            .forEach((r) => {
-              addSlotsFromRange(
-                parse(r.start_time, 'HH:mm:ss', day),
-                parse(r.end_time, 'HH:mm:ss', day),
-              )
-            })
-
-          // From Positive Overrides
-          positiveOverrides.forEach((o) => {
+        // Add from Recurring
+        recurringAvailability
+          .filter((r) => r.day_of_week === dayOfWeek)
+          .forEach((r) => {
             addSlotsFromRange(
-              parse(o.start_time, 'HH:mm:ss', day),
-              parse(o.end_time, 'HH:mm:ss', day),
+              parse(r.start_time, 'HH:mm:ss', day),
+              parse(r.end_time, 'HH:mm:ss', day),
             )
           })
 
-          // Deduplicate and push
-          const uniqueSlots = new Set(
-            potentialSlots.map((d) => d.toISOString()),
+        // Add from Positive Overrides
+        positiveOverrides.forEach((o) => {
+          addSlotsFromRange(
+            parse(o.start_time, 'HH:mm:ss', day),
+            parse(o.end_time, 'HH:mm:ss', day),
           )
-          uniqueSlots.forEach((timeIso) => {
-            const start = new Date(timeIso)
-            const end = add(start, { minutes: SLOT_DURATION_MINUTES })
-            newSchedules.push({
-              professional_id: professional.id,
-              start_time: timeIso,
-              end_time: end.toISOString(),
-            })
+        })
+
+        // Add to expected list
+        potentialSlots.forEach((s) => {
+          expectedSlots.add(s.toISOString())
+          expectedSlotsList.push({
+            professional_id: professional.id,
+            start_time: s.toISOString(),
+            end_time: add(s, { minutes: SLOT_DURATION_MINUTES }).toISOString(),
           })
+        })
+      }
+
+      log(
+        `Calculated ${expectedSlots.size} expected slots for ${professional.name}.`,
+      )
+
+      // --- SYNC WITH DB ---
+      // We need to remove slots that are in DB but NOT in expectedSlots, UNLESS they are booked.
+
+      // 1. Fetch existing slots for this professional in the range
+      // We process in chunks to avoid memory limits if massive, but for 1 pro 1 year (~8k slots) it fits in memory.
+      const { data: existingSlots, error: fetchError } = await supabaseAdmin
+        .from('schedules')
+        .select('id, start_time')
+        .eq('professional_id', professional.id)
+        .gte('start_time', today.toISOString())
+        .lt('start_time', targetEndDate.toISOString())
+
+      if (fetchError) throw fetchError
+
+      const existingSlotMap = new Map<string, string>() // ISO -> ID
+      existingSlots.forEach((s: any) => existingSlotMap.set(s.start_time, s.id))
+
+      // 2. Identify Deletions
+      const toDeleteIds: string[] = []
+      for (const [startTime, id] of existingSlotMap.entries()) {
+        if (!expectedSlots.has(startTime)) {
+          toDeleteIds.push(id)
+        }
+      }
+
+      // 3. Safe Delete - Check if booked
+      if (toDeleteIds.length > 0) {
+        log(
+          `Identified ${toDeleteIds.length} slots to potentially delete (obsolete). Checking for appointments...`,
+        )
+
+        // Fetch booked schedule IDs from the deletion list
+        // Supabase `in` filter has a limit, so batch if necessary.
+        // For simplicity, we assume < 1000 items or handle batching.
+        const BATCH_SIZE = 1000
+        const bookedScheduleIds = new Set<string>()
+
+        for (let i = 0; i < toDeleteIds.length; i += BATCH_SIZE) {
+          const batch = toDeleteIds.slice(i, i + BATCH_SIZE)
+          const { data: booked, error: bookedError } = await supabaseAdmin
+            .from('appointments')
+            .select('schedule_id')
+            .in('schedule_id', batch)
+            .neq('status', 'cancelled') // If cancelled, we can delete the schedule? Maybe safer to keep history?
+          // Requirement says "accurately consistent". If booked, it exists.
+
+          if (bookedError) throw bookedError
+          booked?.forEach((b: any) => bookedScheduleIds.add(b.schedule_id))
         }
 
-        if (newSchedules.length > 0) {
-          const { error: upsertError } = await supabaseAdmin
-            .from('schedules')
-            .upsert(newSchedules, {
-              onConflict: 'professional_id, start_time',
-            })
+        const safeToDelete = toDeleteIds.filter(
+          (id) => !bookedScheduleIds.has(id),
+        )
 
-          if (upsertError) throw upsertError
-          logs.push(
-            `Generated/Upserted ${newSchedules.length} slots for ${professional.name} in ${format(currentMonthStart, 'MMM yyyy')}`,
+        if (safeToDelete.length > 0) {
+          for (let i = 0; i < safeToDelete.length; i += BATCH_SIZE) {
+            const batch = safeToDelete.slice(i, i + BATCH_SIZE)
+            const { error: delError } = await supabaseAdmin
+              .from('schedules')
+              .delete()
+              .in('id', batch)
+            if (delError) throw delError
+          }
+          log(
+            `Deleted ${safeToDelete.length} obsolete unbooked slots. Kept ${toDeleteIds.length - safeToDelete.length} booked slots.`,
           )
         }
+      }
 
-        currentMonthStart = add(currentMonthStart, { months: 1 })
+      // 4. Identify Insertions
+      const toInsert: Schedule[] = []
+      expectedSlotsList.forEach((slot) => {
+        if (!existingSlotMap.has(slot.start_time)) {
+          toInsert.push(slot)
+        }
+      })
+
+      if (toInsert.length > 0) {
+        // Batch insert
+        const BATCH_SIZE = 1000
+        for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+          const batch = toInsert.slice(i, i + BATCH_SIZE)
+          const { error: insertError } = await supabaseAdmin
+            .from('schedules')
+            .insert(batch)
+          if (insertError) throw insertError
+        }
+        log(`Inserted ${toInsert.length} new slots.`)
+      } else {
+        log('No new slots to insert.')
       }
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Schedule generation completed successfully.',
+        message: 'Schedule generation completed successfully with full sync.',
         logs,
       }),
       {
@@ -199,7 +295,7 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error('Error in schedule generation function:', error)
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error.message, logs }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,

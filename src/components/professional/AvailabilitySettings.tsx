@@ -14,13 +14,20 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Trash2, PlusCircle, ChevronsUpDown, Check } from 'lucide-react'
+import {
+  Trash2,
+  PlusCircle,
+  ChevronsUpDown,
+  Check,
+  Loader2,
+} from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   getRecurringAvailability,
   setRecurringAvailability,
 } from '@/services/availability'
 import { getServicesByProfessional } from '@/services/professionals'
+import { generateSchedules } from '@/services/system'
 import { Skeleton } from '../ui/skeleton'
 import { Service } from '@/types'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
@@ -71,11 +78,12 @@ export const AvailabilitySettings = ({
 }: AvailabilitySettingsProps) => {
   const { toast } = useToast()
   const [services, setServices] = useState<Service[]>([])
+  const [isProcessing, setIsProcessing] = useState(false)
   const {
     control,
     handleSubmit,
     reset,
-    formState: { isSubmitting, isLoading },
+    formState: { isLoading },
   } = useForm<AvailabilityFormValues>({
     resolver: zodResolver(availabilitySchema),
     defaultValues: {
@@ -117,6 +125,7 @@ export const AvailabilitySettings = ({
   }, [professionalId, reset])
 
   const onSubmit = async (data: AvailabilityFormValues) => {
+    setIsProcessing(true)
     const availabilities = data.days
       .filter((day) => day.enabled)
       .flatMap((day) =>
@@ -139,11 +148,30 @@ export const AvailabilitySettings = ({
         description: 'Não foi possível atualizar sua disponibilidade.',
         variant: 'destructive',
       })
+      setIsProcessing(false)
     } else {
+      // Trigger schedule generation to update calendar immediately
       toast({
-        title: 'Sucesso!',
-        description: 'Sua disponibilidade foi atualizada.',
+        title: 'Disponibilidade salva',
+        description: 'Atualizando a agenda...',
       })
+
+      const { error: genError } = await generateSchedules()
+
+      if (genError) {
+        toast({
+          title: 'Aviso',
+          description:
+            'Disponibilidade salva, mas houve um erro ao atualizar a agenda visual. As alterações podem demorar a aparecer.',
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'Agenda Atualizada',
+          description: 'Seus novos horários já estão refletidos no calendário.',
+        })
+      }
+      setIsProcessing(false)
     }
   }
 
@@ -328,8 +356,9 @@ export const AvailabilitySettings = ({
           ))}
         </CardContent>
         <CardFooter>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Salvando...' : 'Salvar Disponibilidade'}
+          <Button type="submit" disabled={isProcessing}>
+            {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isProcessing ? 'Processando...' : 'Salvar Disponibilidade'}
           </Button>
         </CardFooter>
       </form>

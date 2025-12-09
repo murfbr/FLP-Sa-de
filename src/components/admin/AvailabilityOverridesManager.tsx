@@ -6,7 +6,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -19,6 +18,7 @@ import { format, parseISO } from 'date-fns'
 import { Switch } from '../ui/switch'
 import { Label } from '../ui/label'
 import { useToast } from '@/hooks/use-toast'
+import { generateSchedules } from '@/services/system'
 
 interface AvailabilityOverridesManagerProps {
   professionalId: string
@@ -32,6 +32,7 @@ export const AvailabilityOverridesManager = ({
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [overrides, setOverrides] = useState<AvailabilityOverride[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isProcessing, setIsProcessing] = useState(false)
 
   const fetchOverrides = useCallback(async () => {
     setIsLoading(true)
@@ -64,6 +65,7 @@ export const AvailabilityOverridesManager = ({
 
   const handleAvailabilityToggle = async (isAvailable: boolean) => {
     if (!date) return
+    setIsProcessing(true)
     const promise = isAvailable
       ? removeDayOverrides(professionalId, date)
       : blockDay(professionalId, date)
@@ -74,9 +76,14 @@ export const AvailabilityOverridesManager = ({
         title: 'Erro ao atualizar disponibilidade',
         variant: 'destructive',
       })
+      setIsProcessing(false)
     } else {
-      toast({ title: 'Disponibilidade atualizada com sucesso!' })
+      // Trigger schedule generation
+      await generateSchedules()
+
+      toast({ title: 'Disponibilidade atualizada e agenda recalculada!' })
       fetchOverrides()
+      setIsProcessing(false)
     }
   }
 
@@ -124,12 +131,18 @@ export const AvailabilityOverridesManager = ({
                   id="availability-toggle"
                   checked={!isSelectedDayBlocked}
                   onCheckedChange={handleAvailabilityToggle}
+                  disabled={isProcessing}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
                 Ative para remover o bloqueio ou desative para bloquear o dia
                 inteiro para agendamentos.
               </p>
+              {isProcessing && (
+                <p className="text-xs text-center text-muted-foreground animate-pulse">
+                  Atualizando agenda...
+                </p>
+              )}
             </div>
           ) : (
             <p className="text-center text-muted-foreground">
