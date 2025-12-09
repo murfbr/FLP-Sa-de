@@ -156,7 +156,8 @@ export const AvailabilitySettings = ({
         description: 'Atualizando a agenda...',
       })
 
-      const { error: genError } = await generateSchedules()
+      // Pass professionalId to optimize generation
+      const { error: genError } = await generateSchedules(professionalId)
 
       if (genError) {
         toast({
