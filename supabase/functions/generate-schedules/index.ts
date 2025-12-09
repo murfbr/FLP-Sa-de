@@ -34,7 +34,6 @@ interface Schedule {
   professional_id: string
   start_time: string // ISO string
   end_time: string // ISO string
-  is_booked: boolean
 }
 
 // --- Constants ---
@@ -122,7 +121,7 @@ serve(async (req: Request) => {
         overridesMap.get(dateKey)!.push(override)
       })
 
-      const newSchedules: Omit<Schedule, 'is_booked'>[] = []
+      const newSchedules: Schedule[] = []
       const daysToProcess = eachDayOfInterval({
         start: startDate,
         end: generationEndDate,
@@ -177,6 +176,7 @@ serve(async (req: Request) => {
                 professional_id: professional.id,
                 start_time: currentTime.toISOString(),
                 end_time: slotEnd.toISOString(),
+                // Removed is_booked property
               })
             }
             currentTime = slotEnd
@@ -186,13 +186,10 @@ serve(async (req: Request) => {
 
       // 7. Batch upsert new schedules
       if (newSchedules.length > 0) {
-        const schedulesToInsert = newSchedules.map((s) => ({
-          ...s,
-          is_booked: false,
-        }))
+        // Upsert schedules without is_booked
         const { error: upsertError } = await supabaseAdmin
           .from('schedules')
-          .upsert(schedulesToInsert, {
+          .upsert(newSchedules, {
             onConflict: 'professional_id, start_time',
           })
 

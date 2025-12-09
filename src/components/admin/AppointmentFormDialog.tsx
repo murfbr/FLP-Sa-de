@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/popover'
 import { CalendarIcon, CheckCircle, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
+import { format, addMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -67,7 +67,7 @@ const appointmentSchema = z.object({
   serviceId: z.string().uuid('Selecione um serviço.'),
   date: z.date({ required_error: 'Selecione uma data.' }),
   scheduleId: z.string().uuid('Selecione um horário.'),
-  usePackage: z.boolean().default(true), // Changed to default true
+  usePackage: z.boolean().default(true),
   packageId: z.string().optional(),
 })
 
@@ -109,7 +109,7 @@ export const AppointmentFormDialog = ({
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
-      usePackage: true, // Default to true
+      usePackage: true,
     },
   })
 
@@ -170,7 +170,7 @@ export const AppointmentFormDialog = ({
         // Auto-select first package if available (sorted by date ascending in service)
         if (matchingPackages.length > 0) {
           form.setValue('packageId', matchingPackages[0].id)
-          form.setValue('usePackage', true) // Ensure it is checked
+          form.setValue('usePackage', true)
         }
       } else if (selectedService?.value_type === 'monthly') {
         // Check for subscription
@@ -185,7 +185,7 @@ export const AppointmentFormDialog = ({
     checkEntitlements()
   }, [clientId, serviceId, services, form])
 
-  // Fetch available dates
+  // Fetch available dates when dependencies change or month changes
   useEffect(() => {
     if (professionalId && serviceId) {
       setIsLoading((prev) => ({ ...prev, dates: true }))
