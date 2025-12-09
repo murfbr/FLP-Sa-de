@@ -9,6 +9,14 @@ import { DayButton, DayPicker, getDefaultClassNames } from 'react-day-picker'
 
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 function Calendar({
   className,
@@ -65,14 +73,19 @@ function Calendar({
           defaultClassNames.month_caption,
         ),
         dropdowns: cn(
-          'flex h-[--cell-size] w-full items-center justify-center gap-1.5 text-sm font-medium',
+          'flex h-[--cell-size] w-full items-center justify-center gap-1.5 text-sm font-medium z-10',
           defaultClassNames.dropdowns,
         ),
         dropdown_root: cn(
           'has-focus:border-ring border-input shadow-xs has-focus:ring-ring/50 has-focus:ring-[3px] relative rounded-md border',
           defaultClassNames.dropdown_root,
         ),
-        dropdown: cn('absolute inset-0 opacity-0', defaultClassNames.dropdown),
+        dropdown: cn(
+          'absolute inset-0 opacity-0',
+          captionLayout === 'dropdown-buttons' &&
+            'opacity-100 relative inset-auto', // Override for custom dropdown
+          defaultClassNames.dropdown,
+        ),
         caption_label: cn(
           'select-none font-medium',
           captionLayout === 'label'
@@ -159,6 +172,50 @@ function Calendar({
                 {children}
               </div>
             </td>
+          )
+        },
+        Dropdown: ({
+          value,
+          onChange,
+          children,
+          style,
+          className,
+          ...props
+        }) => {
+          const options = React.Children.toArray(
+            children,
+          ) as React.ReactElement<React.HTMLProps<HTMLOptionElement>>[]
+          const selected = options.find((child) => child.props.value === value)
+          const handleChange = (value: string) => {
+            const changeEvent = {
+              target: { value },
+            } as React.ChangeEvent<HTMLSelectElement>
+            onChange?.(changeEvent)
+          }
+          return (
+            <Select
+              value={value?.toString()}
+              onValueChange={(value) => {
+                handleChange(value)
+              }}
+            >
+              <SelectTrigger className="h-[28px] px-2 py-1 bg-transparent focus:ring-0 focus:ring-offset-0 font-medium border-input shadow-sm w-fit gap-1">
+                <SelectValue>{selected?.props?.children}</SelectValue>
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <ScrollArea className="h-80">
+                  {options.map((option, id: number) => (
+                    <SelectItem
+                      key={`${option.props.value}-${id}`}
+                      value={option.props.value?.toString() ?? ''}
+                      disabled={option.props.disabled}
+                    >
+                      {option.props.children}
+                    </SelectItem>
+                  ))}
+                </ScrollArea>
+              </SelectContent>
+            </Select>
           )
         },
         ...components,

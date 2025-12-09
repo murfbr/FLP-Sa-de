@@ -71,6 +71,8 @@ export const PatientFormDialog = ({
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const currentYear = new Date().getFullYear()
+
   const form = useForm<PatientFormValues>({
     resolver: zodResolver(patientSchema),
     defaultValues: {
@@ -209,8 +211,8 @@ export const PatientFormDialog = ({
                         }
                         initialFocus
                         captionLayout="dropdown-buttons"
-                        fromYear={1900}
-                        toYear={new Date().getFullYear()}
+                        fromYear={currentYear - 110}
+                        toYear={currentYear}
                         locale={ptBR}
                       />
                     </PopoverContent>
