@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAllAppointments } from '@/services/appointments'
 import { Appointment } from '@/types'
-import { cn } from '@/lib/utils'
+import { cn, formatInTimeZone } from '@/lib/utils'
 
 interface AgendaWeekViewProps {
   onAppointmentClick: (appointment: Appointment) => void
@@ -51,7 +51,8 @@ export const AgendaWeekView = ({ onAppointmentClick }: AgendaWeekViewProps) => {
           isValid(new Date(appt.schedules.start_time)),
       )
       .forEach((appt) => {
-        const day = format(new Date(appt.schedules.start_time), 'yyyy-MM-dd')
+        // Group by Brazil date
+        const day = formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd')
         if (!map.has(day)) map.set(day, [])
         map.get(day)?.push(appt)
       })
@@ -114,7 +115,7 @@ export const AgendaWeekView = ({ onAppointmentClick }: AgendaWeekViewProps) => {
                           className="text-xs p-1 bg-secondary text-secondary-foreground rounded truncate cursor-pointer"
                           onClick={() => onAppointmentClick(appt)}
                         >
-                          {format(new Date(appt.schedules.start_time), 'HH:mm')}{' '}
+                          {formatInTimeZone(appt.schedules.start_time, 'HH:mm')}{' '}
                           - {appt.clients.name}
                         </div>
                       ))}

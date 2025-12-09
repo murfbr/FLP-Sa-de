@@ -1,7 +1,7 @@
 import { Schedule } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { format } from 'date-fns'
+import { formatInTimeZone } from '@/lib/utils'
 
 interface AvailableSlotsProps {
   schedules: Schedule[] | null
@@ -41,7 +41,7 @@ export const AvailableSlots = ({
           variant="outline"
           onClick={() => onSlotSelect(schedule)}
         >
-          {format(new Date(schedule.start_time), 'HH:mm')}
+          {formatInTimeZone(schedule.start_time, 'HH:mm')}
         </Button>
       ))}
     </div>

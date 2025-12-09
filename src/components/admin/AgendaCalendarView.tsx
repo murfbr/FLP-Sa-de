@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAllAppointments } from '@/services/appointments'
 import { Appointment } from '@/types'
-import { cn } from '@/lib/utils'
+import { cn, formatInTimeZone } from '@/lib/utils'
 
 interface AgendaCalendarViewProps {
   onAppointmentClick: (appointment: Appointment) => void
@@ -57,7 +57,8 @@ export const AgendaCalendarView = ({
           isValid(new Date(appt.schedules.start_time)),
       )
       .forEach((appt) => {
-        const day = format(new Date(appt.schedules.start_time), 'yyyy-MM-dd')
+        // Group using Brazil timezone date
+        const day = formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd')
         if (!map.has(day)) {
           map.set(day, [])
         }

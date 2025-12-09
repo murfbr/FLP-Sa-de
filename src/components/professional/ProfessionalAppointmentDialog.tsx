@@ -30,7 +30,7 @@ import {
   getAppointmentsByScheduleId,
 } from '@/services/appointments'
 import { Appointment, NoteEntry } from '@/types'
-import { format, addMinutes, isValid } from 'date-fns'
+import { format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   User,
@@ -47,6 +47,7 @@ import {
 import { useAuth } from '@/providers/AuthProvider'
 import { getProfessionalById } from '@/services/professionals'
 import { Separator } from '@/components/ui/separator'
+import { formatInTimeZone } from '@/lib/utils'
 
 interface ProfessionalAppointmentDialogProps {
   appointment: Appointment | null
@@ -105,9 +106,9 @@ export const ProfessionalAppointmentDialog = ({
     return null
   }
 
-  const startTime = new Date(appointment.schedules.start_time)
+  const startTime = appointment.schedules.start_time
+  const endTime = appointment.schedules.end_time
   const duration = appointment.services.duration_minutes || 30
-  const endTime = addMinutes(startTime, duration)
 
   const handleAddNote = async () => {
     if (!newNote.trim()) return
@@ -251,12 +252,14 @@ export const ProfessionalAppointmentDialog = ({
             <DetailItem
               icon={Calendar}
               label="Data"
-              value={format(startTime, "dd 'de' MMMM", { locale: ptBR })}
+              value={format(new Date(startTime), "dd 'de' MMMM", {
+                locale: ptBR,
+              })}
             />
             <DetailItem
               icon={Clock}
               label="Horário"
-              value={`${format(startTime, 'HH:mm')} - ${format(endTime, 'HH:mm')}`}
+              value={`${formatInTimeZone(startTime, 'HH:mm')} - ${formatInTimeZone(endTime, 'HH:mm')}`}
             />
             <DetailItem
               icon={FileText}

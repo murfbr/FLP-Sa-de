@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getAllAppointments } from '@/services/appointments'
 import { Appointment } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { formatInTimeZone } from '@/lib/utils'
 
 interface AgendaDayViewProps {
   onAppointmentClick: (appointment: Appointment) => void
@@ -84,7 +85,7 @@ export const AgendaDayView = ({ onAppointmentClick }: AgendaDayViewProps) => {
                         </p>
                       </div>
                       <p className="font-mono text-sm">
-                        {format(new Date(appt.schedules.start_time), 'HH:mm')}
+                        {formatInTimeZone(appt.schedules.start_time, 'HH:mm')}
                       </p>
                     </li>
                   ))}

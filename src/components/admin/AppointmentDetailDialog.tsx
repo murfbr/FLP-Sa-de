@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Appointment, NoteEntry } from '@/types'
-import { format, addMinutes, isValid } from 'date-fns'
+import { format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   User,
@@ -47,6 +47,7 @@ import { RescheduleDialog } from './RescheduleDialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/providers/AuthProvider'
+import { formatInTimeZone } from '@/lib/utils'
 
 interface AppointmentDetailDialogProps {
   appointment: Appointment | null
@@ -138,9 +139,9 @@ export const AppointmentDetailDialog = ({
     setIsSavingNote(false)
   }
 
-  const startTime = new Date(appointment.schedules.start_time)
+  const startTime = appointment.schedules.start_time
+  const endTime = appointment.schedules.end_time
   const duration = appointment.services.duration_minutes || 30
-  const endTime = addMinutes(startTime, duration)
   const canEdit = ['scheduled', 'confirmed'].includes(appointment.status)
 
   const DetailItem = ({
@@ -191,14 +192,18 @@ export const AppointmentDetailDialog = ({
               <DetailItem
                 icon={Calendar}
                 label="Data"
-                value={format(startTime, "EEEE, dd 'de' MMMM 'de' yyyy", {
-                  locale: ptBR,
-                })}
+                value={format(
+                  new Date(startTime),
+                  "EEEE, dd 'de' MMMM 'de' yyyy",
+                  {
+                    locale: ptBR,
+                  },
+                )}
               />
               <DetailItem
                 icon={Clock}
                 label="Horário"
-                value={`${format(startTime, 'HH:mm')} - ${format(endTime, 'HH:mm')} (${duration} min)`}
+                value={`${formatInTimeZone(startTime, 'HH:mm')} - ${formatInTimeZone(endTime, 'HH:mm')} (${duration} min)`}
               />
               <DetailItem
                 icon={FileText}

@@ -23,6 +23,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { ProfessionalAppointmentDialog } from './ProfessionalAppointmentDialog'
 import { DayProps } from 'react-day-picker'
+import { formatInTimeZone } from '@/lib/utils'
 
 interface MonthlyAgendaViewProps {
   professionalId: string
@@ -76,7 +77,8 @@ export const MonthlyAgendaView = ({
   const appointmentsByDay = useMemo(() => {
     const counts = new Map<string, number>()
     validAppointments.forEach((appt) => {
-      const day = format(new Date(appt.schedules.start_time), 'yyyy-MM-dd')
+      // Use formatInTimeZone for grouping to ensure correct day assignment
+      const day = formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd')
       counts.set(day, (counts.get(day) || 0) + 1)
     })
     return counts
@@ -108,9 +110,14 @@ export const MonthlyAgendaView = ({
       (o) => o.override_date === selectedDayStr && !o.is_available,
     )
     return {
-      appointmentsOnSelectedDay: validAppointments.filter((appt) =>
-        isSameDay(new Date(appt.schedules.start_time), date),
-      ),
+      appointmentsOnSelectedDay: validAppointments.filter((appt) => {
+        // Check if appointment is in the selected day (Brazil time)
+        const apptDay = formatInTimeZone(
+          appt.schedules.start_time,
+          'yyyy-MM-dd',
+        )
+        return apptDay === selectedDayStr
+      }),
       isSelectedDayBlocked: !!dayOverride,
     }
   }, [validAppointments, overrides, date])
@@ -183,7 +190,7 @@ export const MonthlyAgendaView = ({
                     </p>
                   </div>
                   <Badge variant="secondary">
-                    {format(new Date(appt.schedules.start_time), 'HH:mm')}
+                    {formatInTimeZone(appt.schedules.start_time, 'HH:mm')}
                   </Badge>
                 </div>
               ))

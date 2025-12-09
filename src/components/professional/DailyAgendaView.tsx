@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Edit } from 'lucide-react'
 import { ProfessionalAppointmentDialog } from './ProfessionalAppointmentDialog'
+import { formatInTimeZone } from '@/lib/utils'
 
 interface DailyAgendaViewProps {
   professionalId: string
@@ -98,8 +99,8 @@ export const DailyAgendaView = ({
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {appt.services.name} •{' '}
-                        {format(new Date(appt.schedules.start_time), 'HH:mm')} -{' '}
-                        {format(new Date(appt.schedules.end_time), 'HH:mm')}
+                        {formatInTimeZone(appt.schedules.start_time, 'HH:mm')} -{' '}
+                        {formatInTimeZone(appt.schedules.end_time, 'HH:mm')}
                       </p>
                       {appt.notes && appt.notes.length > 0 && (
                         <div className="text-xs text-muted-foreground mt-2 bg-muted p-2 rounded">

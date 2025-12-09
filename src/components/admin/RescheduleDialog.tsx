@@ -15,7 +15,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { CalendarIcon, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatInTimeZone } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
@@ -108,6 +108,8 @@ export const RescheduleDialog = ({
     setIsSubmitting(false)
   }
 
+  const selectedSchedule = schedules.find((s) => s.id === selectedScheduleId)
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -167,16 +169,10 @@ export const RescheduleDialog = ({
                 isLoading={isLoadingSchedules}
                 onSlotSelect={(schedule) => setSelectedScheduleId(schedule.id)}
               />
-              {selectedScheduleId && (
+              {selectedSchedule && (
                 <p className="text-sm text-muted-foreground mt-2">
                   Horário selecionado:{' '}
-                  {format(
-                    new Date(
-                      schedules.find((s) => s.id === selectedScheduleId)
-                        ?.start_time || '',
-                    ),
-                    'HH:mm',
-                  )}
+                  {formatInTimeZone(selectedSchedule.start_time, 'HH:mm')}
                 </p>
               )}
             </div>

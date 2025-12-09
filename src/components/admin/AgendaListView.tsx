@@ -19,10 +19,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getAllAppointments } from '@/services/appointments'
 import { getAllProfessionals } from '@/services/professionals'
 import { Appointment, Professional } from '@/types'
-import { format, isValid } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { isValid } from 'date-fns'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
+import { formatInTimeZone } from '@/lib/utils'
 
 interface AgendaListViewProps {
   onAppointmentClick: (appointment: Appointment) => void
@@ -76,10 +76,9 @@ export const AgendaListView = ({ onAppointmentClick }: AgendaListViewProps) => {
               <CardHeader>
                 <CardTitle className="text-base">{appt.clients.name}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {format(
-                    new Date(appt.schedules.start_time),
+                  {formatInTimeZone(
+                    appt.schedules.start_time,
                     "dd/MM/yyyy 'às' HH:mm",
-                    { locale: ptBR },
                   )}
                 </p>
               </CardHeader>
@@ -120,10 +119,9 @@ export const AgendaListView = ({ onAppointmentClick }: AgendaListViewProps) => {
                 <TableCell>{appt.professionals.name}</TableCell>
                 <TableCell>{appt.services.name}</TableCell>
                 <TableCell>
-                  {format(
-                    new Date(appt.schedules.start_time),
+                  {formatInTimeZone(
+                    appt.schedules.start_time,
                     "dd/MM/yyyy 'às' HH:mm",
-                    { locale: ptBR },
                   )}
                 </TableCell>
                 <TableCell>

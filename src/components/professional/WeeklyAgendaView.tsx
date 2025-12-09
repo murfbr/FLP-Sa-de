@@ -23,7 +23,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { cn, formatInTimeZone } from '@/lib/utils'
 import {
   Appointment,
   RecurringAvailability,
@@ -99,8 +99,9 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
     const map = new Map<string, Appointment[]>()
     appointments.forEach((appt) => {
       if (!appt.schedules?.start_time) return
-      const start = new Date(appt.schedules.start_time)
-      const key = format(start, 'yyyy-MM-dd-HH')
+      // Use formatInTimeZone to generate the key in Brazil time
+      // The format should be yyyy-MM-dd-HH
+      const key = formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd-HH')
       if (!map.has(key)) map.set(key, [])
       map.get(key)?.push(appt)
     })
@@ -128,8 +129,15 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
 
   const isSlotAvailable = useCallback(
     (day: Date, hour: number) => {
+      // NOTE: Here day/hour are local to browser loop.
+      // But availability rules (overrides/recurring) are defined in "Wall Clock" Brazil time.
+      // If we assume the Grid is displaying "Brazil Time Slots", we just compare numbers.
+
       const dateStr = format(day, 'yyyy-MM-dd')
       const dayOfWeek = day.getDay()
+
+      // We construct start/end as "dummy" dates just to compare hours/minutes
+      // Since availability logic is pure time comparison on a specific date.
       const slotStart = addHours(startOfDay(day), hour)
       const slotEnd = addHours(slotStart, 1)
 
@@ -179,7 +187,9 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
 
   const getAppointmentsForSlot = useCallback(
     (day: Date, hour: number) => {
-      const key = format(addHours(startOfDay(day), hour), 'yyyy-MM-dd-HH')
+      // Construct key as 'yyyy-MM-dd-HH' using the loop variables
+      // Since the grid represents Brazil time, we can just formatting the loop date
+      const key = `${format(day, 'yyyy-MM-dd')}-${hour.toString().padStart(2, '0')}`
       return appointmentsMap.get(key) || []
     },
     [appointmentsMap],
@@ -290,8 +300,8 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
                                   {appointment.services.name}
                                 </div>
                                 <div className="mt-auto text-[10px] font-mono opacity-70">
-                                  {format(
-                                    new Date(appointment.schedules.start_time),
+                                  {formatInTimeZone(
+                                    appointment.schedules.start_time,
                                     'HH:mm',
                                   )}
                                 </div>

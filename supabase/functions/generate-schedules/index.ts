@@ -5,11 +5,11 @@ import {
   add,
   eachDayOfInterval,
   format,
-  parse,
   startOfDay,
   isBefore,
   addMinutes,
 } from 'https://esm.sh/date-fns@3.6.0'
+import { fromZonedTime, toZonedTime } from 'https://esm.sh/date-fns-tz@3.1.3'
 
 // --- Type Definitions ---
 interface Professional {
@@ -39,9 +39,9 @@ interface Schedule {
 // --- Constants ---
 const MONTHS_TO_GENERATE = 12
 const SLOT_DURATION_MINUTES = 30
-// Batch sizes adjusted to avoid URL length limits and timeouts
 const BATCH_SIZE_SELECT = 50
 const BATCH_SIZE_INSERT = 100
+const TIMEZONE = 'America/Sao_Paulo'
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -60,17 +60,21 @@ serve(async (req: Request) => {
       const body = await req.json()
       professionalId = body.professional_id
     } catch (e) {
-      // Body might be empty if triggered via cron or no params
       log('No body provided or invalid JSON, processing all professionals.')
     }
 
     const supabaseAdmin = createSupabaseAdminClient()
-    const today = startOfDay(new Date())
+
+    // Calculate "today" in Brazil Timezone to ensure correct start date
+    const nowUtc = new Date()
+    const nowBrazil = toZonedTime(nowUtc, TIMEZONE)
+    const todayBrazil = startOfDay(nowBrazil)
+
     // Ensure we cover 12 months from today
-    const targetEndDate = add(today, { months: MONTHS_TO_GENERATE })
+    const targetEndDateBrazil = add(todayBrazil, { months: MONTHS_TO_GENERATE })
 
     log(
-      `Starting schedule generation from ${format(today, 'yyyy-MM-dd')} to ${format(targetEndDate, 'yyyy-MM-dd')}`,
+      `Starting schedule generation from ${format(todayBrazil, 'yyyy-MM-dd')} to ${format(targetEndDateBrazil, 'yyyy-MM-dd')} (Brazil Time)`,
     )
 
     // 1. Fetch professionals
@@ -103,8 +107,8 @@ serve(async (req: Request) => {
             .from('professional_availability_overrides')
             .select('override_date, start_time, end_time, is_available')
             .eq('professional_id', professional.id)
-            .gte('override_date', format(today, 'yyyy-MM-dd'))
-            .lte('override_date', format(targetEndDate, 'yyyy-MM-dd')),
+            .gte('override_date', format(todayBrazil, 'yyyy-MM-dd'))
+            .lte('override_date', format(targetEndDateBrazil, 'yyyy-MM-dd')),
         ])
 
         if (recurringRes.error) {
@@ -133,8 +137,8 @@ serve(async (req: Request) => {
         const expectedSlotsList: Schedule[] = []
 
         const daysToProcess = eachDayOfInterval({
-          start: today,
-          end: targetEndDate,
+          start: todayBrazil,
+          end: targetEndDateBrazil,
         })
 
         for (const day of daysToProcess) {
@@ -145,27 +149,41 @@ serve(async (req: Request) => {
           const negativeOverrides = dayOverrides.filter((o) => !o.is_available)
           const positiveOverrides = dayOverrides.filter((o) => o.is_available)
 
-          const addSlotsFromRange = (start: Date, end: Date) => {
-            let s = start
+          // Helper to create UTC date from Brazil date + Time string
+          const createUtcDate = (timeStr: string) => {
+            const dateTimeStr = `${dateStr} ${timeStr}`
+            return fromZonedTime(dateTimeStr, TIMEZONE)
+          }
+
+          const addSlotsFromRange = (
+            startTimeStr: string,
+            endTimeStr: string,
+          ) => {
+            let s = createUtcDate(startTimeStr)
+            const end = createUtcDate(endTimeStr)
+
             while (isBefore(s, end)) {
               const e = addMinutes(s, SLOT_DURATION_MINUTES)
               if (!isBefore(end, e)) {
                 // Ensure slot fits completely in range
                 // Check blocking
                 const isBlocked = negativeOverrides.some((o) => {
-                  const oStart = parse(o.start_time, 'HH:mm:ss', day)
-                  const oEnd = parse(o.end_time, 'HH:mm:ss', day)
+                  const oStart = createUtcDate(o.start_time)
+                  const oEnd = createUtcDate(o.end_time)
                   // Check if slot overlaps with blocking override
                   return isBefore(s, oEnd) && isBefore(oStart, e)
                 })
 
                 if (!isBlocked) {
+                  const startIso = s.toISOString()
+                  const endIso = e.toISOString()
+
                   // Ensure we don't have duplicates
-                  expectedSlots.add(s.toISOString())
+                  expectedSlots.add(startIso)
                   expectedSlotsList.push({
                     professional_id: professional.id,
-                    start_time: s.toISOString(),
-                    end_time: e.toISOString(),
+                    start_time: startIso,
+                    end_time: endIso,
                   })
                 }
               }
@@ -177,18 +195,12 @@ serve(async (req: Request) => {
           recurringAvailability
             .filter((r) => r.day_of_week === dayOfWeek)
             .forEach((r) => {
-              addSlotsFromRange(
-                parse(r.start_time, 'HH:mm:ss', day),
-                parse(r.end_time, 'HH:mm:ss', day),
-              )
+              addSlotsFromRange(r.start_time, r.end_time)
             })
 
           // Add from Positive Overrides
           positiveOverrides.forEach((o) => {
-            addSlotsFromRange(
-              parse(o.start_time, 'HH:mm:ss', day),
-              parse(o.end_time, 'HH:mm:ss', day),
-            )
+            addSlotsFromRange(o.start_time, o.end_time)
           })
         }
 
@@ -204,12 +216,24 @@ serve(async (req: Request) => {
 
         // --- SYNC WITH DB ---
         // Fetch existing slots
+        // Note: we fetch based on the UTC range covered by our Brazil date range
+        // Start of todayBrazil in UTC
+        const utcStartRange = fromZonedTime(
+          format(todayBrazil, 'yyyy-MM-dd') + ' 00:00:00',
+          TIMEZONE,
+        )
+        // End of targetEndDateBrazil in UTC
+        const utcEndRange = fromZonedTime(
+          format(targetEndDateBrazil, 'yyyy-MM-dd') + ' 23:59:59',
+          TIMEZONE,
+        )
+
         const { data: existingSlots, error: fetchError } = await supabaseAdmin
           .from('schedules')
           .select('id, start_time')
           .eq('professional_id', professional.id)
-          .gte('start_time', today.toISOString())
-          .lt('start_time', targetEndDate.toISOString())
+          .gte('start_time', utcStartRange.toISOString())
+          .lt('start_time', utcEndRange.toISOString())
 
         if (fetchError) throw fetchError
 
@@ -278,8 +302,7 @@ serve(async (req: Request) => {
         if (toInsert.length > 0) {
           for (let i = 0; i < toInsert.length; i += BATCH_SIZE_INSERT) {
             const batch = toInsert.slice(i, i + BATCH_SIZE_INSERT)
-            // Use upsert with ignoreDuplicates to avoid 'duplicate key value violates unique constraint'
-            // The unique constraint is on (professional_id, start_time)
+            // Use upsert with ignoreDuplicates
             const { error: insertError } = await supabaseAdmin
               .from('schedules')
               .upsert(batch, {
@@ -300,7 +323,6 @@ serve(async (req: Request) => {
         log(
           `Error processing professional ${professional.name}: ${err.message}`,
         )
-        // Continue to next professional
       }
     }
 
