@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
 import {
   Users,
   Calendar,
@@ -12,6 +13,7 @@ import {
   Handshake,
   PlusCircle,
   Package,
+  Search,
 } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { Professional, Client } from '@/types'
@@ -37,6 +39,7 @@ import {
 } from '@/components/ui/select'
 import { PackagesManager } from '@/components/admin/PackagesManager'
 import { BirthdaysList } from '@/components/admin/BirthdaysList'
+import { ClientOnboardingDialog } from '@/components/admin/ClientOnboardingDialog'
 
 type ClientStatusFilter = 'all' | 'active' | 'inactive'
 
@@ -49,6 +52,11 @@ const AdminDashboard = () => {
   const [isProfessionalFormOpen, setIsProfessionalFormOpen] = useState(false)
   const [clientStatusFilter, setClientStatusFilter] =
     useState<ClientStatusFilter>('active')
+  const [clientSearch, setClientSearch] = useState('')
+  const [isOnboardingDialogOpen, setIsOnboardingDialogOpen] = useState(false)
+  const [newlyCreatedClient, setNewlyCreatedClient] = useState<Client | null>(
+    null,
+  )
 
   const fetchData = async () => {
     setIsLoading(true)
@@ -64,6 +72,21 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchData()
   }, [clientStatusFilter])
+
+  const handlePatientCreated = (client: Client) => {
+    fetchData()
+    setNewlyCreatedClient(client)
+    setIsOnboardingDialogOpen(true)
+  }
+
+  const filteredClients = clients.filter((client) => {
+    const search = clientSearch.toLowerCase()
+    return (
+      client.name.toLowerCase().includes(search) ||
+      client.email.toLowerCase().includes(search) || // email stores CPF or actual email depending on logic, search both
+      (client.phone && client.phone.toLowerCase().includes(search))
+    )
+  })
 
   return (
     <>
@@ -197,9 +220,19 @@ const AdminDashboard = () => {
           <TabsContent value="patients">
             <Card>
               <CardHeader>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                   <CardTitle>Gerenciar Pacientes</CardTitle>
-                  <div className="flex gap-2 w-full sm:w-auto">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+                    <div className="relative w-full sm:w-[300px]">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="search"
+                        placeholder="Buscar por nome, email ou telefone..."
+                        className="pl-9 w-full"
+                        value={clientSearch}
+                        onChange={(e) => setClientSearch(e.target.value)}
+                      />
+                    </div>
                     <Select
                       value={clientStatusFilter}
                       onValueChange={(v) =>
@@ -229,7 +262,7 @@ const AdminDashboard = () => {
                 {isLoading ? (
                   <Skeleton className="h-64 w-full" />
                 ) : (
-                  <PatientsList patients={clients} />
+                  <PatientsList patients={filteredClients} />
                 )}
               </CardContent>
             </Card>
@@ -287,12 +320,17 @@ const AdminDashboard = () => {
       <PatientFormDialog
         isOpen={isPatientFormOpen}
         onOpenChange={setIsPatientFormOpen}
-        onPatientCreated={fetchData}
+        onPatientCreated={handlePatientCreated}
       />
       <ProfessionalFormDialog
         isOpen={isProfessionalFormOpen}
         onOpenChange={setIsProfessionalFormOpen}
         onProfessionalCreated={fetchData}
+      />
+      <ClientOnboardingDialog
+        client={newlyCreatedClient}
+        isOpen={isOnboardingDialogOpen}
+        onOpenChange={setIsOnboardingDialogOpen}
       />
     </>
   )

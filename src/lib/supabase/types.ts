@@ -176,6 +176,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          birth_date: string | null
           created_at: string
           email: string
           general_assessment: Json | null
@@ -188,6 +189,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          birth_date?: string | null
           created_at?: string
           email: string
           general_assessment?: Json | null
@@ -200,6 +202,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          birth_date?: string | null
           created_at?: string
           email?: string
           general_assessment?: Json | null
@@ -703,6 +706,16 @@ export type Database = {
           id: string
           professional_id: string
           start_time: string
+        }[]
+      }
+      get_clients_with_birthday_this_week: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: {
+          birth_date: string
+          email: string
+          id: string
+          name: string
+          phone: string
         }[]
       }
       get_kpi_metrics: {

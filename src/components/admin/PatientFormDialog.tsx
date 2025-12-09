@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { Partnership } from '@/types'
+import { Partnership, Client } from '@/types'
 import { createClient } from '@/services/clients'
 import { getAllPartnerships } from '@/services/partnerships'
 import { Skeleton } from '../ui/skeleton'
@@ -58,7 +58,7 @@ type PatientFormValues = z.infer<typeof patientSchema>
 interface PatientFormDialogProps {
   isOpen: boolean
   onOpenChange: (isOpen: boolean) => void
-  onPatientCreated: () => void
+  onPatientCreated: (client: Client) => void
 }
 
 export const PatientFormDialog = ({
@@ -95,7 +95,7 @@ export const PatientFormDialog = ({
   const onSubmit = async (values: PatientFormValues) => {
     setIsSubmitting(true)
     const cpfClean = cleanCPF(values.email)
-    const { error } = await createClient({
+    const { data, error } = await createClient({
       ...values,
       email: cpfClean,
       partnership_id: values.partnership_id || null,
@@ -112,9 +112,9 @@ export const PatientFormDialog = ({
           : error.message,
         variant: 'destructive',
       })
-    } else {
+    } else if (data) {
       toast({ title: 'Paciente criado com sucesso!' })
-      onPatientCreated()
+      onPatientCreated(data)
       onOpenChange(false)
       form.reset()
     }
