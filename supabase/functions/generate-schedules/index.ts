@@ -39,6 +39,9 @@ interface Schedule {
 // --- Constants ---
 const MONTHS_TO_GENERATE = 12
 const SLOT_DURATION_MINUTES = 30
+// Batch sizes adjusted to avoid URL length limits and timeouts
+const BATCH_SIZE_SELECT = 50
+const BATCH_SIZE_INSERT = 100
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -158,9 +161,6 @@ serve(async (req: Request) => {
 
                 if (!isBlocked) {
                   // Ensure we don't have duplicates
-                  // And ensure we don't add slots that overlap with other positive overrides
-                  // (simplification: we just add, duplicates handled by Set/DB)
-                  // But we should check if this slot is already added (e.g. from recurring)
                   expectedSlots.add(s.toISOString())
                   expectedSlotsList.push({
                     professional_id: professional.id,
@@ -172,20 +172,6 @@ serve(async (req: Request) => {
               s = e
             }
           }
-
-          // Logic:
-          // If there are positive overrides, they usually ADD to or REPLACE recurring.
-          // Standard interpretation: Overrides are exceptions.
-          // If there is a positive override, it might mean "Work THIS time instead of regular".
-          // OR "Work THIS time IN ADDITION".
-          // However, the negative overrides are "Do NOT work this time".
-          // Common Requirement: If positive overrides exist for a day, they typically REPLACE recurring for that day.
-          // Let's check `get_available_slots_for_service` logic in SQL migration.
-          // The SQL says: (Covered by Positive Override) OR (Covered by Recurring AND NOT Negative Override).
-          // This implies they are additive but specific overrides take precedence.
-          // Let's assume ADDITIVE for now as per previous logic, but safeguard duplicates.
-          // Actually, if a day has "Available" override, it often means "This is my schedule for today".
-          // But let's stick to the previous code's logic which was additive.
 
           // Add from Recurring
           recurringAvailability
@@ -253,9 +239,8 @@ serve(async (req: Request) => {
           log(`Found ${toDeleteIds.length} slots to potentially delete.`)
 
           // Batch process deletions
-          const BATCH_SIZE = 500
-          for (let i = 0; i < toDeleteIds.length; i += BATCH_SIZE) {
-            const batchIds = toDeleteIds.slice(i, i + BATCH_SIZE)
+          for (let i = 0; i < toDeleteIds.length; i += BATCH_SIZE_SELECT) {
+            const batchIds = toDeleteIds.slice(i, i + BATCH_SIZE_SELECT)
 
             // Check which ones are booked
             const { data: booked, error: bookedError } = await supabaseAdmin
@@ -291,17 +276,21 @@ serve(async (req: Request) => {
 
         // Process Insertions
         if (toInsert.length > 0) {
-          const BATCH_SIZE = 500
-          for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
-            const batch = toInsert.slice(i, i + BATCH_SIZE)
+          for (let i = 0; i < toInsert.length; i += BATCH_SIZE_INSERT) {
+            const batch = toInsert.slice(i, i + BATCH_SIZE_INSERT)
+            // Use upsert with ignoreDuplicates to avoid 'duplicate key value violates unique constraint'
+            // The unique constraint is on (professional_id, start_time)
             const { error: insertError } = await supabaseAdmin
               .from('schedules')
-              .insert(batch)
+              .upsert(batch, {
+                onConflict: 'professional_id, start_time',
+                ignoreDuplicates: true,
+              })
 
             if (insertError) {
               log(`Error inserting slots: ${insertError.message}`)
             } else {
-              log(`Inserted ${batch.length} new slots in batch.`)
+              log(`Inserted/Upserted ${batch.length} slots in batch.`)
             }
           }
         }

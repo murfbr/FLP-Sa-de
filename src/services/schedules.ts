@@ -14,6 +14,8 @@ export async function getFilteredAvailableSchedules(
   serviceId: string,
   date: Date,
 ): Promise<{ data: Schedule[] | null; error: any }> {
+  // Use explicit ISO format strings to match the RPC expectation (TEXT)
+  // This avoids potential localization or type casting issues on the server
   const startDate = format(date, "yyyy-MM-dd'T'00:00:00")
   const endDate = format(date, "yyyy-MM-dd'T'23:59:59")
 
