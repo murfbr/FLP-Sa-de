@@ -7,8 +7,10 @@ import {
   format,
   parse,
   startOfDay,
-  max,
+  endOfMonth,
   isBefore,
+  startOfMonth,
+  max,
 } from 'https://esm.sh/date-fns@3.6.0'
 
 // --- Type Definitions ---
@@ -37,7 +39,7 @@ interface Schedule {
 }
 
 // --- Constants ---
-const LOOK_AHEAD_MONTHS = 18
+const MONTHS_TO_GENERATE = 12 // User story requires 1 year
 const SLOT_DURATION_MINUTES = 30
 
 serve(async (req: Request) => {
@@ -48,11 +50,8 @@ serve(async (req: Request) => {
   try {
     const supabaseAdmin = createSupabaseAdminClient()
     const today = startOfDay(new Date())
-    const lookAheadEndDate = add(today, { months: LOOK_AHEAD_MONTHS })
-    const finalEndDate = max([
-      lookAheadEndDate,
-      new Date('2026-12-31T23:59:59Z'),
-    ])
+    // Ensure we cover at least 1 year from today
+    const targetEndDate = add(today, { months: MONTHS_TO_GENERATE })
 
     // 1. Fetch all professionals
     const { data: professionals, error: professionalsError } =
@@ -64,37 +63,9 @@ serve(async (req: Request) => {
 
     // 2. Process each professional
     for (const professional of professionals as Professional[]) {
-      // 3. Determine date range for generation
-      const { data: lastSchedule, error: lastScheduleError } =
-        await supabaseAdmin
-          .from('schedules')
-          .select('start_time')
-          .eq('professional_id', professional.id)
-          .order('start_time', { ascending: false })
-          .limit(1)
-          .single()
+      logs.push(`Processing professional: ${professional.name}`)
 
-      if (lastScheduleError && lastScheduleError.code !== 'PGRST116') {
-        throw lastScheduleError
-      }
-
-      const startDate = lastSchedule
-        ? startOfDay(new Date(lastSchedule.start_time))
-        : today
-
-      if (!isBefore(startDate, finalEndDate)) {
-        logs.push(
-          `Professional ${professional.name} (${professional.id}) is already scheduled up to date. Skipping.`,
-        )
-        continue
-      }
-
-      const processingEndDate = add(startDate, { months: 1 }) // Process one month at a time to avoid timeouts
-      const generationEndDate = isBefore(processingEndDate, finalEndDate)
-        ? processingEndDate
-        : finalEndDate
-
-      // 4. Fetch availability rules for the professional
+      // Fetch availability rules ONCE for the whole period to avoid repeated DB calls
       const [recurringRes, overridesRes] = await Promise.all([
         supabaseAdmin
           .from('professional_recurring_availability')
@@ -104,8 +75,8 @@ serve(async (req: Request) => {
           .from('professional_availability_overrides')
           .select('override_date, start_time, end_time, is_available')
           .eq('professional_id', professional.id)
-          .gte('override_date', format(startDate, 'yyyy-MM-dd'))
-          .lte('override_date', format(generationEndDate, 'yyyy-MM-dd')),
+          .gte('override_date', format(today, 'yyyy-MM-dd'))
+          .lte('override_date', format(targetEndDate, 'yyyy-MM-dd')),
       ])
 
       if (recurringRes.error) throw recurringRes.error
@@ -121,86 +92,96 @@ serve(async (req: Request) => {
         overridesMap.get(dateKey)!.push(override)
       })
 
-      const newSchedules: Schedule[] = []
-      const daysToProcess = eachDayOfInterval({
-        start: startDate,
-        end: generationEndDate,
-      })
+      // Iterate Month by Month to manage batch size
+      let currentMonthStart = startOfMonth(today)
 
-      // 5. Iterate through each day and generate slots
-      for (const day of daysToProcess) {
-        const dateStr = format(day, 'yyyy-MM-dd')
-        const dayOfWeek = day.getDay()
-        const dayOverrides = overridesMap.get(dateStr) || []
+      while (isBefore(currentMonthStart, targetEndDate)) {
+        const currentMonthEnd = endOfMonth(currentMonthStart)
 
-        const availableBlocks: { start: Date; end: Date }[] = []
-
-        // Overrides take precedence
-        dayOverrides
-          .filter((o) => o.is_available)
-          .forEach((o) => {
-            availableBlocks.push({
-              start: parse(o.start_time, 'HH:mm:ss', day),
-              end: parse(o.end_time, 'HH:mm:ss', day),
-            })
-          })
-
-        // If no overrides, or to fill gaps between overrides, check recurring
-        const recurringForDay = recurringAvailability.filter(
-          (r) => r.day_of_week === dayOfWeek,
-        )
-        recurringForDay.forEach((r) => {
-          const blockStart = parse(r.start_time, 'HH:mm:ss', day)
-          const blockEnd = parse(r.end_time, 'HH:mm:ss', day)
-
-          // Check if this recurring block is blocked by an override
-          const isBlocked = dayOverrides.some(
-            (o) =>
-              !o.is_available &&
-              isBefore(blockStart, parse(o.end_time, 'HH:mm:ss', day)) &&
-              isBefore(parse(o.start_time, 'HH:mm:ss', day), blockEnd),
-          )
-
-          if (!isBlocked) {
-            availableBlocks.push({ start: blockStart, end: blockEnd })
-          }
+        const newSchedules: Schedule[] = []
+        const daysToProcess = eachDayOfInterval({
+          start: max([today, currentMonthStart]), // Don't generate for past days in the current month
+          end: currentMonthEnd,
         })
 
-        // 6. Create slots from available blocks
-        for (const block of availableBlocks) {
-          let currentTime = block.start
-          while (isBefore(currentTime, block.end)) {
-            const slotEnd = add(currentTime, { minutes: SLOT_DURATION_MINUTES })
-            if (!isBefore(block.end, slotEnd)) {
-              newSchedules.push({
-                professional_id: professional.id,
-                start_time: currentTime.toISOString(),
-                end_time: slotEnd.toISOString(),
-                // Removed is_booked property
-              })
-            }
-            currentTime = slotEnd
-          }
-        }
-      }
+        for (const day of daysToProcess) {
+          const dateStr = format(day, 'yyyy-MM-dd')
+          const dayOfWeek = day.getDay()
+          const dayOverrides = overridesMap.get(dateStr) || []
+          const negativeOverrides = dayOverrides.filter((o) => !o.is_available)
+          const positiveOverrides = dayOverrides.filter((o) => o.is_available)
 
-      // 7. Batch upsert new schedules
-      if (newSchedules.length > 0) {
-        // Upsert schedules without is_booked
-        const { error: upsertError } = await supabaseAdmin
-          .from('schedules')
-          .upsert(newSchedules, {
-            onConflict: 'professional_id, start_time',
+          const potentialSlots: Date[] = []
+
+          // Helper to add slots from a range
+          const addSlotsFromRange = (start: Date, end: Date) => {
+            let s = start
+            while (isBefore(s, end)) {
+              const e = add(s, { minutes: SLOT_DURATION_MINUTES })
+              if (!isBefore(end, e)) {
+                // Check blocking
+                const isBlocked = negativeOverrides.some((o) => {
+                  const oStart = parse(o.start_time, 'HH:mm:ss', day)
+                  const oEnd = parse(o.end_time, 'HH:mm:ss', day)
+                  // Check if slot overlaps with blocking override
+                  return isBefore(s, oEnd) && isBefore(oStart, e)
+                })
+
+                if (!isBlocked) {
+                  potentialSlots.push(s)
+                }
+              }
+              s = e
+            }
+          }
+
+          // From Recurring
+          recurringAvailability
+            .filter((r) => r.day_of_week === dayOfWeek)
+            .forEach((r) => {
+              addSlotsFromRange(
+                parse(r.start_time, 'HH:mm:ss', day),
+                parse(r.end_time, 'HH:mm:ss', day),
+              )
+            })
+
+          // From Positive Overrides
+          positiveOverrides.forEach((o) => {
+            addSlotsFromRange(
+              parse(o.start_time, 'HH:mm:ss', day),
+              parse(o.end_time, 'HH:mm:ss', day),
+            )
           })
 
-        if (upsertError) throw upsertError
-        logs.push(
-          `Upserted ${newSchedules.length} schedules for professional ${professional.name}.`,
-        )
-      } else {
-        logs.push(
-          `No new schedules to generate for professional ${professional.name}.`,
-        )
+          // Deduplicate and push
+          const uniqueSlots = new Set(
+            potentialSlots.map((d) => d.toISOString()),
+          )
+          uniqueSlots.forEach((timeIso) => {
+            const start = new Date(timeIso)
+            const end = add(start, { minutes: SLOT_DURATION_MINUTES })
+            newSchedules.push({
+              professional_id: professional.id,
+              start_time: timeIso,
+              end_time: end.toISOString(),
+            })
+          })
+        }
+
+        if (newSchedules.length > 0) {
+          const { error: upsertError } = await supabaseAdmin
+            .from('schedules')
+            .upsert(newSchedules, {
+              onConflict: 'professional_id, start_time',
+            })
+
+          if (upsertError) throw upsertError
+          logs.push(
+            `Generated/Upserted ${newSchedules.length} slots for ${professional.name} in ${format(currentMonthStart, 'MMM yyyy')}`,
+          )
+        }
+
+        currentMonthStart = add(currentMonthStart, { months: 1 })
       }
     }
 
