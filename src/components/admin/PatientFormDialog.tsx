@@ -32,7 +32,16 @@ import { Partnership } from '@/types'
 import { createClient } from '@/services/clients'
 import { getAllPartnerships } from '@/services/partnerships'
 import { Skeleton } from '../ui/skeleton'
-import { cleanCPF, formatCPF, validateCPF } from '@/lib/utils'
+import { cleanCPF, formatCPF, validateCPF, cn } from '@/lib/utils'
+import { CalendarIcon } from 'lucide-react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 
 const patientSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
@@ -41,6 +50,7 @@ const patientSchema = z.object({
   }),
   phone: z.string().optional(),
   partnership_id: z.string().uuid().nullable().optional(),
+  birth_date: z.date().optional().nullable(),
 })
 
 type PatientFormValues = z.infer<typeof patientSchema>
@@ -68,6 +78,7 @@ export const PatientFormDialog = ({
       email: '',
       phone: '',
       partnership_id: null,
+      birth_date: null,
     },
   })
 
@@ -83,12 +94,14 @@ export const PatientFormDialog = ({
 
   const onSubmit = async (values: PatientFormValues) => {
     setIsSubmitting(true)
-    // Save cleaned CPF into email field
     const cpfClean = cleanCPF(values.email)
     const { error } = await createClient({
       ...values,
       email: cpfClean,
       partnership_id: values.partnership_id || null,
+      birth_date: values.birth_date
+        ? format(values.birth_date, 'yyyy-MM-dd')
+        : null,
     })
 
     if (error) {
@@ -157,6 +170,50 @@ export const PatientFormDialog = ({
                       maxLength={14}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="birth_date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Data de Nascimento (Opcional)</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-full pl-3 text-left font-normal',
+                            !field.value && 'text-muted-foreground',
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, 'PPP', { locale: ptBR })
+                          ) : (
+                            <span>Selecione uma data</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value || undefined}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date('1900-01-01')
+                        }
+                        initialFocus
+                        captionLayout="dropdown-buttons"
+                        fromYear={1920}
+                        toYear={new Date().getFullYear()}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}

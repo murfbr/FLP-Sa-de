@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { PackagesManager } from '@/components/admin/PackagesManager'
+import { BirthdaysList } from '@/components/admin/BirthdaysList'
 
 type ClientStatusFilter = 'all' | 'active' | 'inactive'
 
@@ -115,6 +116,7 @@ const AdminDashboard = () => {
             <div className="grid gap-6 md:grid-cols-3">
               <div className="md:col-span-2">
                 <UpcomingAppointments />
+                <BirthdaysList />
               </div>
               <div className="space-y-6">
                 <Card>

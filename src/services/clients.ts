@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import { Client, ClientPackageWithDetails, ClientSubscription } from '@/types'
+import { format } from 'date-fns'
 
 export async function getClientsByProfessional(
   professionalId: string,
@@ -167,15 +168,30 @@ export async function cancelClientSubscription(
 export async function exportClientData(
   clientId: string,
   exportType: 'session_notes' | 'general_assessment',
-  format: 'pdf' | 'docx',
+  formatType: 'pdf' | 'docx',
 ): Promise<{ data: { content: string; filename: string } | null; error: any }> {
   const { data, error } = await supabase.functions.invoke(
     'export-client-data',
     {
-      body: { clientId, exportType, format },
+      body: { clientId, exportType, format: formatType },
     },
   )
 
   if (error) return { data: null, error }
   return { data, error: null }
+}
+
+export async function getClientsWithBirthdayThisWeek(
+  startDate: Date,
+  endDate: Date,
+): Promise<{ data: Client[] | null; error: any }> {
+  const { data, error } = await supabase.rpc(
+    'get_clients_with_birthday_this_week',
+    {
+      p_start_date: format(startDate, 'yyyy-MM-dd'),
+      p_end_date: format(endDate, 'yyyy-MM-dd'),
+    },
+  )
+
+  return { data, error }
 }

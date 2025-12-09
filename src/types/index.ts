@@ -45,6 +45,7 @@ export interface Client {
   partnerships?: Partnership | null
   profile_picture_url?: string | null
   general_assessment?: Record<string, any> | null
+  birth_date?: string | null
 }
 
 export interface NoteEntry {

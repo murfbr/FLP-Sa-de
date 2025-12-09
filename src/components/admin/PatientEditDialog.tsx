@@ -23,10 +23,18 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { Client } from '@/types'
 import { updateClient } from '@/services/clients'
-import { cleanCPF, formatCPF, validateCPF } from '@/lib/utils'
+import { cleanCPF, formatCPF, validateCPF, cn } from '@/lib/utils'
 import { uploadFile, getPublicUrl } from '@/services/storage'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Camera } from 'lucide-react'
+import { Camera, CalendarIcon } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 
 const patientSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
@@ -34,6 +42,7 @@ const patientSchema = z.object({
     message: 'CPF inválido. Deve conter 11 dígitos numéricos.',
   }),
   phone: z.string().optional(),
+  birth_date: z.date().optional().nullable(),
 })
 
 type PatientFormValues = z.infer<typeof patientSchema>
@@ -66,6 +75,7 @@ export const PatientEditDialog = ({
         name: patient.name,
         email: formatCPF(patient.email),
         phone: patient.phone || '',
+        birth_date: patient.birth_date ? parseISO(patient.birth_date) : null,
       })
       setPreviewUrl(patient.profile_picture_url || null)
       setAvatarFile(null)
@@ -90,7 +100,7 @@ export const PatientEditDialog = ({
     if (avatarFile) {
       const filePath = `patients/${patient.id}/${Date.now()}-${avatarFile.name}`
       const { error: uploadError } = await uploadFile(
-        'avatars', // Using existing 'avatars' bucket or 'patients' if exists, assuming 'avatars' is general purpose
+        'avatars',
         filePath,
         avatarFile,
       )
@@ -113,6 +123,9 @@ export const PatientEditDialog = ({
       ...values,
       email: cpfClean,
       profile_picture_url,
+      birth_date: values.birth_date
+        ? format(values.birth_date, 'yyyy-MM-dd')
+        : null,
     })
 
     if (error) {
@@ -167,9 +180,6 @@ export const PatientEditDialog = ({
                   />
                 </label>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Clique no ícone da câmera para alterar a foto.
-              </p>
             </div>
 
             <div className="space-y-4">
@@ -204,6 +214,50 @@ export const PatientEditDialog = ({
                         maxLength={14}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="birth_date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data de Nascimento (Opcional)</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn(
+                              'w-full pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground',
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, 'PPP', { locale: ptBR })
+                            ) : (
+                              <span>Selecione uma data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value || undefined}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date('1900-01-01')
+                          }
+                          initialFocus
+                          captionLayout="dropdown-buttons"
+                          fromYear={1920}
+                          toYear={new Date().getFullYear()}
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
