@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -45,6 +46,7 @@ type ClientStatusFilter = 'all' | 'active' | 'inactive'
 
 const AdminDashboard = () => {
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -57,6 +59,8 @@ const AdminDashboard = () => {
   const [newlyCreatedClient, setNewlyCreatedClient] = useState<Client | null>(
     null,
   )
+
+  const currentTab = searchParams.get('tab') || 'overview'
 
   const fetchData = async () => {
     setIsLoading(true)
@@ -79,11 +83,15 @@ const AdminDashboard = () => {
     setIsOnboardingDialogOpen(true)
   }
 
+  const handleTabChange = (value: string) => {
+    setSearchParams({ tab: value })
+  }
+
   const filteredClients = clients.filter((client) => {
     const search = clientSearch.toLowerCase()
     return (
       client.name.toLowerCase().includes(search) ||
-      client.email.toLowerCase().includes(search) || // email stores CPF or actual email depending on logic, search both
+      client.email.toLowerCase().includes(search) ||
       (client.phone && client.phone.toLowerCase().includes(search))
     )
   })
@@ -100,7 +108,11 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs
+          value={currentTab}
+          onValueChange={handleTabChange}
+          className="w-full"
+        >
           <ScrollArea className="w-full whitespace-nowrap">
             <TabsList className="inline-flex h-auto p-1 mb-6 w-max flex-wrap sm:flex-nowrap">
               <TabsTrigger value="overview">
@@ -227,7 +239,7 @@ const AdminDashboard = () => {
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         type="search"
-                        placeholder="Buscar por nome, email ou telefone..."
+                        placeholder="Buscar por nome ou CPF..."
                         className="pl-9 w-full"
                         value={clientSearch}
                         onChange={(e) => setClientSearch(e.target.value)}
