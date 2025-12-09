@@ -72,3 +72,74 @@ export function formatInTimeZone(
 
   return format(shiftedDate, formatStr, { locale: ptBR })
 }
+
+/**
+ * Formats a date string into dd/MM/yyyy format while typing.
+ * Also handles basic intelligent pasting of ISO dates.
+ */
+export function formatDateInput(value: string): string {
+  if (!value) return ''
+
+  // Handle ISO date paste (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split('-')
+    return `${d}/${m}/${y}`
+  }
+
+  // Remove non-digit characters
+  const digits = value.replace(/\D/g, '')
+
+  // Limit to 8 digits (ddmmyyyy)
+  const limited = digits.slice(0, 8)
+
+  // Apply mask
+  if (limited.length <= 2) return limited
+  if (limited.length <= 4) return `${limited.slice(0, 2)}/${limited.slice(2)}`
+  return `${limited.slice(0, 2)}/${limited.slice(2, 4)}/${limited.slice(4)}`
+}
+
+/**
+ * Validates if a string is a valid date in dd/MM/yyyy format.
+ * Checks for format, valid calendar day, and ensures it is not in the future.
+ */
+export function isValidDate(dateStr: string): boolean {
+  if (!dateStr) return true
+  if (dateStr.length !== 10) return false
+
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) return false
+
+  const [day, month, year] = dateStr.split('/').map(Number)
+
+  if (month < 1 || month > 12) return false
+  if (day < 1 || day > 31) return false
+  if (year < 1900) return false
+
+  const date = new Date(year, month - 1, day)
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return false
+  }
+
+  if (date > new Date()) return false
+
+  return true
+}
+
+/**
+ * Converts a dd/MM/yyyy string to YYYY-MM-DD (ISO format).
+ * Returns null if the input is invalid.
+ */
+export function convertDateToISO(
+  dateStr: string | null | undefined,
+): string | null {
+  if (!dateStr) return null
+  if (!isValidDate(dateStr)) return null
+  const [day, month, year] = dateStr.split('/').map(Number)
+  const y = year
+  const m = String(month).padStart(2, '0')
+  const d = String(day).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
