@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import { Schedule } from '@/types'
-import { format } from 'date-fns'
+import { startOfDay, endOfDay } from 'date-fns'
 
 /**
  * Fetches available schedules for a specific service and date,
@@ -14,10 +14,11 @@ export async function getFilteredAvailableSchedules(
   serviceId: string,
   date: Date,
 ): Promise<{ data: Schedule[] | null; error: any }> {
-  // Use explicit ISO format strings to match the RPC expectation (TEXT)
-  // This avoids potential localization or type casting issues on the server
-  const startDate = format(date, "yyyy-MM-dd'T'00:00:00")
-  const endDate = format(date, "yyyy-MM-dd'T'23:59:59")
+  // Use ISO strings with timezone information to ensure correct server-side parsing.
+  // startOfDay/endOfDay uses the local browser time, and toISOString() converts it to UTC
+  // which Postgres TIMESTAMPTZ expects.
+  const startDate = startOfDay(date).toISOString()
+  const endDate = endOfDay(date).toISOString()
 
   const { data, error } = await supabase.rpc(
     'get_available_slots_for_service',
@@ -28,6 +29,10 @@ export async function getFilteredAvailableSchedules(
       p_end_date: endDate,
     },
   )
+
+  if (error) {
+    console.error('Error fetching schedules:', error)
+  }
 
   return { data: data as Schedule[] | null, error }
 }
