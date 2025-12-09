@@ -495,8 +495,12 @@ export const AppointmentFormDialog = ({
                               format(day, 'yyyy-MM-dd'),
                             )
                           }
-                          if (!professionalId || !serviceId) return true
-                          return isLoading.dates
+                          // If waiting for date load, assume disabled to prevent clicking
+                          if (isLoading.dates) return true
+
+                          // If no available dates yet loaded but we are not loading, it means none available
+                          if (!availableDates && !isLoading.dates) return false // Should technically be false to allow selection if we want to show 'no slots', but user story implies only available dates selectable
+                          return false
                         }}
                         initialFocus
                       />
@@ -527,11 +531,12 @@ export const AppointmentFormDialog = ({
               <Button
                 type="submit"
                 disabled={
-                  selectedService?.value_type === 'monthly' &&
-                  !hasActiveSubscription
+                  (selectedService?.value_type === 'monthly' &&
+                    !hasActiveSubscription) ||
+                  form.formState.isSubmitting
                 }
               >
-                Agendar
+                {form.formState.isSubmitting ? 'Agendando...' : 'Agendar'}
               </Button>
             </DialogFooter>
           </form>

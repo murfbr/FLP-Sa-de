@@ -699,18 +699,11 @@ export type Database = {
           p_start_date: string
         }
         Returns: {
-          created_at: string
           end_time: string
           id: string
           professional_id: string
           start_time: string
         }[]
-        SetofOptions: {
-          from: '*'
-          to: 'schedules'
-          isOneToOne: false
-          isSetofReturn: true
-        }
       }
       get_kpi_metrics: {
         Args: { end_date: string; start_date: string }
