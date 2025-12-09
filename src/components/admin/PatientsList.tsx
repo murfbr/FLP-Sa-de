@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Badge } from '../ui/badge'
-import { cn } from '@/lib/utils'
+import { cn, formatCPF } from '@/lib/utils'
 
 interface PatientsListProps {
   patients: Client[]
@@ -53,7 +53,7 @@ export const PatientsList = ({ patients }: PatientsListProps) => {
                 </div>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                <p>{patient.email}</p>
+                <p>CPF: {formatCPF(patient.email)}</p>
                 <p>{patient.phone || 'Não informado'}</p>
               </CardContent>
             </Card>
@@ -69,7 +69,7 @@ export const PatientsList = ({ patients }: PatientsListProps) => {
         <TableHeader>
           <TableRow>
             <TableHead>Nome</TableHead>
-            <TableHead>Email</TableHead>
+            <TableHead>CPF</TableHead>
             <TableHead>Telefone</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
@@ -92,7 +92,7 @@ export const PatientsList = ({ patients }: PatientsListProps) => {
                 )}
               >
                 <TableCell className="font-medium">{patient.name}</TableCell>
-                <TableCell>{patient.email}</TableCell>
+                <TableCell>{formatCPF(patient.email)}</TableCell>
                 <TableCell>{patient.phone || 'Não informado'}</TableCell>
                 <TableCell>
                   <Badge

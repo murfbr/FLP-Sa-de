@@ -130,7 +130,7 @@ const PatientDetail = () => {
       toast({ title: 'Erro ao excluir paciente', variant: 'destructive' })
     } else {
       toast({ title: 'Paciente excluído com sucesso!' })
-      navigate('/')
+      navigate('/admin/pacientes')
     }
   }
 
@@ -230,7 +230,7 @@ const PatientDetail = () => {
       <div className="container mx-auto py-8 px-4 text-center">
         <h2 className="text-2xl font-bold">Paciente não encontrado</h2>
         <Button asChild className="mt-4">
-          <Link to="/">Voltar ao Dashboard</Link>
+          <Link to="/admin/pacientes">Voltar para Pacientes</Link>
         </Button>
       </div>
     )
@@ -240,9 +240,9 @@ const PatientDetail = () => {
     <>
       <div className="container mx-auto py-8 px-4">
         <Button asChild variant="outline" className="mb-6">
-          <Link to="/">
+          <Link to="/admin/pacientes">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar ao Dashboard
+            Voltar para Pacientes
           </Link>
         </Button>
         <div className="grid md:grid-cols-3 gap-6">

@@ -11,6 +11,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import ProfessionalArea from './pages/ProfessionalArea'
 import PatientDetail from './pages/admin/PatientDetail'
+import Patients from './pages/admin/Patients'
 import ProfessionalDetail from './pages/admin/ProfessionalDetail'
 import NotFound from './pages/NotFound'
 import ClientAreaUnavailable from './pages/ClientAreaUnavailable'
@@ -65,6 +66,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <NotificationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/pacientes"
+              element={
+                <ProtectedRoute>
+                  <Patients />
                 </ProtectedRoute>
               }
             />
