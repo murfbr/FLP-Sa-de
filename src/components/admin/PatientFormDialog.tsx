@@ -209,8 +209,9 @@ export const PatientFormDialog = ({
                         }
                         initialFocus
                         captionLayout="dropdown-buttons"
-                        fromYear={1920}
+                        fromYear={1900}
                         toYear={new Date().getFullYear()}
+                        locale={ptBR}
                       />
                     </PopoverContent>
                   </Popover>
