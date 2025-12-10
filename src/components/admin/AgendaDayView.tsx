@@ -1,47 +1,103 @@
 import { useState, useEffect } from 'react'
 import { addDays, subDays, format, isValid } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAllAppointments } from '@/services/appointments'
 import { Appointment } from '@/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatInTimeZone } from '@/lib/utils'
+import { cn, formatInTimeZone } from '@/lib/utils'
+import { ViewMode } from './AgendaView'
 
 interface AgendaDayViewProps {
+  currentDate: Date
+  onDateChange: (date: Date) => void
+  onViewChange: (view: ViewMode) => void
   onAppointmentClick: (appointment: Appointment) => void
+  onTimeSlotClick: (date: Date) => void
+  selectedProfessional: string
 }
 
-export const AgendaDayView = ({ onAppointmentClick }: AgendaDayViewProps) => {
-  const [currentDate, setCurrentDate] = useState(new Date())
+// Reuse timeline constants
+const START_HOUR = 0
+const END_HOUR = 24
+const COMPACT_START = 7
+const COMPACT_END = 21
+const NORMAL_HEIGHT = 80 // Taller for day view
+const COMPACT_HEIGHT = 28
+
+const getHourHeight = (hour: number) => {
+  if (hour < COMPACT_START || hour >= COMPACT_END) return COMPACT_HEIGHT
+  return NORMAL_HEIGHT
+}
+
+const getTopOffset = (time: Date) => {
+  const timeStr = formatInTimeZone(time, 'HH:mm')
+  const [h, m] = timeStr.split(':').map(Number)
+
+  let offset = 0
+  for (let i = 0; i < h; i++) {
+    offset += getHourHeight(i)
+  }
+  offset += (m / 60) * getHourHeight(h)
+  return offset
+}
+
+const getDurationHeight = (startTime: Date, durationMinutes: number) => {
+  const startStr = formatInTimeZone(startTime, 'HH:mm')
+  let [h, m] = startStr.split(':').map(Number)
+  let height = 0
+  let remaining = durationMinutes
+  while (remaining > 0) {
+    const minutesLeftInHour = 60 - m
+    const chunk = Math.min(remaining, minutesLeftInHour)
+    height += (chunk / 60) * getHourHeight(h)
+    remaining -= chunk
+    h = (h + 1) % 24
+    m = 0
+  }
+  return height
+}
+
+export const AgendaDayView = ({
+  currentDate,
+  onDateChange,
+  onAppointmentClick,
+  onTimeSlotClick,
+  selectedProfessional,
+}: AgendaDayViewProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
-      const { data } = await getAllAppointments()
+      const { data } = await getAllAppointments(selectedProfessional)
       setAppointments(data || [])
       setIsLoading(false)
     }
     fetchData()
-  }, [])
+  }, [selectedProfessional])
 
-  const dayAppointments = appointments.filter(
-    (appt) =>
-      appt.schedules?.start_time &&
-      isValid(new Date(appt.schedules.start_time)) &&
-      new Date(appt.schedules.start_time).toDateString() ===
-        currentDate.toDateString(),
+  const dayAppointments = appointments.filter((appt) => {
+    if (!appt.schedules?.start_time) return false
+    return (
+      formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd') ===
+      format(currentDate, 'yyyy-MM-dd')
+    )
+  })
+
+  const nextDay = () => onDateChange(addDays(currentDate, 1))
+  const prevDay = () => onDateChange(subDays(currentDate, 1))
+
+  const hours = Array.from(
+    { length: END_HOUR - START_HOUR },
+    (_, i) => i + START_HOUR,
   )
 
-  const nextDay = () => setCurrentDate(addDays(currentDate, 1))
-  const prevDay = () => setCurrentDate(subDays(currentDate, 1))
-
   return (
-    <div className="p-4 border rounded-lg">
-      <div className="flex justify-between items-center mb-4">
+    <div className="p-4 border rounded-lg flex flex-col h-[800px]">
+      <div className="flex justify-between items-center mb-4 shrink-0">
         <Button variant="outline" size="icon" onClick={prevDay}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -52,47 +108,99 @@ export const AgendaDayView = ({ onAppointmentClick }: AgendaDayViewProps) => {
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
+
       {isLoading ? (
-        <Skeleton className="h-[600px] w-full" />
+        <Skeleton className="flex-1 w-full" />
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Agendamentos do Dia</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {dayAppointments.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                Nenhum agendamento para este dia.
-              </p>
-            ) : (
-              <ul className="space-y-3">
-                {dayAppointments
-                  .sort(
-                    (a, b) =>
-                      new Date(a.schedules.start_time).getTime() -
-                      new Date(b.schedules.start_time).getTime(),
-                  )
-                  .map((appt) => (
-                    <li
-                      key={appt.id}
-                      className="p-3 border rounded-md flex items-center justify-between cursor-pointer hover:bg-muted/50"
-                      onClick={() => onAppointmentClick(appt)}
+        <div className="flex-1 overflow-y-auto relative border rounded-md">
+          <div className="flex relative min-h-full">
+            {/* Time Column */}
+            <div className="w-20 shrink-0 border-r bg-muted/10 sticky left-0 z-20">
+              {hours.map((h) => (
+                <div
+                  key={h}
+                  style={{ height: getHourHeight(h) }}
+                  className="border-b text-xs text-muted-foreground text-right pr-3 pt-2 relative"
+                >
+                  <span className="-top-3 relative">{h}:00</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Day Column */}
+            <div className="flex-1 relative bg-background">
+              {/* Grid Lines & Hover Actions */}
+              {hours.map((h) => (
+                <div
+                  key={h}
+                  style={{ height: getHourHeight(h) }}
+                  className="border-b border-dashed group relative hover:bg-muted/30 transition-colors"
+                >
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
+                    <Button
+                      variant="secondary"
+                      className="rounded-full shadow-sm pointer-events-auto"
+                      onClick={() => {
+                        const targetTime = new Date(currentDate)
+                        targetTime.setHours(h, 0, 0, 0)
+                        onTimeSlotClick(targetTime)
+                      }}
                     >
-                      <div>
-                        <p className="font-semibold">{appt.clients.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {appt.services.name} com {appt.professionals.name}
-                        </p>
-                      </div>
-                      <p className="font-mono text-sm">
-                        {formatInTimeZone(appt.schedules.start_time, 'HH:mm')}
-                      </p>
-                    </li>
-                  ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Agendar às {h}:00
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              {/* Appointments */}
+              {dayAppointments.map((appt) => {
+                const top = getTopOffset(new Date(appt.schedules.start_time))
+                const height = getDurationHeight(
+                  new Date(appt.schedules.start_time),
+                  appt.services.duration_minutes || 30,
+                )
+
+                return (
+                  <div
+                    key={appt.id}
+                    style={{
+                      top: top,
+                      height: Math.max(height, 28),
+                      left: '10px',
+                      right: '10px',
+                    }}
+                    className={cn(
+                      'absolute rounded-md p-3 text-sm cursor-pointer shadow-sm overflow-hidden border transition-all hover:scale-[1.01] hover:shadow-md hover:z-20',
+                      appt.status === 'completed'
+                        ? 'bg-green-100 text-green-900 border-green-200'
+                        : appt.status === 'cancelled'
+                          ? 'bg-red-100 text-red-900 border-red-200'
+                          : appt.status === 'no_show'
+                            ? 'bg-orange-100 text-orange-900 border-orange-200'
+                            : 'bg-primary/10 text-primary border-primary/20',
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onAppointmentClick(appt)
+                    }}
+                  >
+                    <div className="flex justify-between items-start font-bold">
+                      <span>{appt.clients.name}</span>
+                      <span className="font-mono text-xs opacity-75">
+                        {formatInTimeZone(appt.schedules.start_time, 'HH:mm')} -{' '}
+                        {formatInTimeZone(appt.schedules.end_time, 'HH:mm')}
+                      </span>
+                    </div>
+                    <div className="text-xs opacity-90 mt-1">
+                      {appt.services.name} • {appt.professionals.name}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

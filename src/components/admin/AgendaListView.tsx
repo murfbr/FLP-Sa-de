@@ -7,43 +7,39 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAllAppointments } from '@/services/appointments'
-import { getAllProfessionals } from '@/services/professionals'
-import { Appointment, Professional } from '@/types'
+import { Appointment } from '@/types'
 import { isValid } from 'date-fns'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { formatInTimeZone } from '@/lib/utils'
+import { ViewMode } from './AgendaView'
 
 interface AgendaListViewProps {
   onAppointmentClick: (appointment: Appointment) => void
+  selectedProfessional: string
+  // Unused props but kept for interface compatibility
+  currentDate?: Date
+  onDateChange?: (date: Date) => void
+  onViewChange?: (view: ViewMode) => void
+  onTimeSlotClick?: (date: Date) => void
 }
 
-export const AgendaListView = ({ onAppointmentClick }: AgendaListViewProps) => {
+export const AgendaListView = ({
+  onAppointmentClick,
+  selectedProfessional,
+}: AgendaListViewProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [professionals, setProfessionals] = useState<Professional[]>([])
-  const [selectedProfessional, setSelectedProfessional] = useState('all')
   const [isLoading, setIsLoading] = useState(true)
   const isMobile = useIsMobile()
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
-      const [profRes, apptRes] = await Promise.all([
-        getAllProfessionals(),
-        getAllAppointments(selectedProfessional),
-      ])
-      if (profRes.data) setProfessionals(profRes.data)
-      if (apptRes.data) setAppointments(apptRes.data)
+      const { data } = await getAllAppointments(selectedProfessional)
+      if (data) setAppointments(data)
       setIsLoading(false)
     }
     fetchData()
@@ -135,27 +131,5 @@ export const AgendaListView = ({ onAppointmentClick }: AgendaListViewProps) => {
     )
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Select
-          value={selectedProfessional}
-          onValueChange={setSelectedProfessional}
-        >
-          <SelectTrigger className="w-full sm:w-[280px]">
-            <SelectValue placeholder="Filtrar por profissional" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os Profissionais</SelectItem>
-            {professionals.map((prof) => (
-              <SelectItem key={prof.id} value={prof.id}>
-                {prof.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      {renderContent()}
-    </div>
-  )
+  return <div className="space-y-4">{renderContent()}</div>
 }

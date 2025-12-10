@@ -16,7 +16,7 @@ import { AgendaWeekView } from './AgendaWeekView'
 import { AgendaDayView } from './AgendaDayView'
 import { Button } from '../ui/button'
 import { AppointmentFormDialog } from './AppointmentFormDialog'
-import { Appointment } from '@/types'
+import { Appointment, Professional } from '@/types'
 import { AppointmentDetailDialog } from './AppointmentDetailDialog'
 import { useIsMobile } from '@/hooks/use-mobile'
 import {
@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '../ui/select'
 import { generateSchedules } from '@/services/system'
+import { getAllProfessionals } from '@/services/professionals'
 import { useToast } from '@/hooks/use-toast'
 import {
   AlertDialog,
@@ -39,8 +40,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { useEffect } from 'react'
 
-type ViewMode = 'list' | 'month' | 'week' | 'day'
+export type ViewMode = 'list' | 'month' | 'week' | 'day'
 
 export const AgendaView = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('list')
@@ -50,8 +52,25 @@ export const AgendaView = () => {
     useState<Appointment | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
+
+  // Lifted State
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedProfessional, setSelectedProfessional] = useState('all')
+  const [professionals, setProfessionals] = useState<Professional[]>([])
+
+  // Quick Create State
+  const [quickCreateDate, setQuickCreateDate] = useState<Date | undefined>(
+    undefined,
+  )
+
   const isMobile = useIsMobile()
   const { toast } = useToast()
+
+  useEffect(() => {
+    getAllProfessionals().then(({ data }) => {
+      setProfessionals(data || [])
+    })
+  }, [])
 
   const handleAppointmentClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment)
@@ -62,6 +81,21 @@ export const AgendaView = () => {
     setRefreshKey((prevKey) => prevKey + 1)
   }
 
+  const handleTimeSlotClick = (date: Date) => {
+    setQuickCreateDate(date)
+    setIsFormOpen(true)
+  }
+
+  const handleOpenForm = () => {
+    setQuickCreateDate(new Date())
+    setIsFormOpen(true)
+  }
+
+  const handleFormClose = (open: boolean) => {
+    setIsFormOpen(open)
+    if (!open) setQuickCreateDate(undefined)
+  }
+
   const handleGenerateSchedules = async () => {
     setIsGenerating(true)
     toast({
@@ -69,7 +103,9 @@ export const AgendaView = () => {
       description: 'Este processo pode levar alguns minutos.',
     })
 
-    const { data, error } = await generateSchedules()
+    const { data, error } = await generateSchedules(
+      selectedProfessional !== 'all' ? selectedProfessional : undefined,
+    )
 
     if (error) {
       toast({
@@ -87,22 +123,28 @@ export const AgendaView = () => {
     setIsGenerating(false)
   }
 
+  const commonProps = {
+    key: refreshKey,
+    currentDate,
+    onDateChange: setCurrentDate,
+    onViewChange: setViewMode,
+    onAppointmentClick: handleAppointmentClick,
+    onTimeSlotClick: handleTimeSlotClick,
+    selectedProfessional,
+  }
+
   const renderView = () => {
-    const props = {
-      key: refreshKey,
-      onAppointmentClick: handleAppointmentClick,
-    }
     switch (viewMode) {
       case 'list':
-        return <AgendaListView {...props} />
+        return <AgendaListView {...commonProps} />
       case 'month':
-        return <AgendaCalendarView {...props} />
+        return <AgendaCalendarView {...commonProps} />
       case 'week':
-        return <AgendaWeekView {...props} />
+        return <AgendaWeekView {...commonProps} />
       case 'day':
-        return <AgendaDayView {...props} />
+        return <AgendaDayView {...commonProps} />
       default:
-        return <AgendaListView {...props} />
+        return <AgendaListView {...commonProps} />
     }
   }
 
@@ -151,14 +193,28 @@ export const AgendaView = () => {
     <>
       <div className="space-y-4">
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-          <div className="flex flex-wrap gap-2 w-full xl:w-auto">
-            <Button
-              onClick={() => setIsFormOpen(true)}
-              className="flex-1 sm:flex-none"
-            >
+          <div className="flex flex-wrap gap-2 w-full xl:w-auto items-center">
+            <Button onClick={handleOpenForm} className="flex-1 sm:flex-none">
               <PlusCircle className="mr-2 h-4 w-4" />
               Novo Agendamento
             </Button>
+
+            <Select
+              value={selectedProfessional}
+              onValueChange={setSelectedProfessional}
+            >
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Filtrar Profissional" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Profissionais</SelectItem>
+                {professionals.map((prof) => (
+                  <SelectItem key={prof.id} value={prof.id}>
+                    {prof.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -181,9 +237,12 @@ export const AgendaView = () => {
                     Gerar Horários Disponíveis
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Isso criará os horários na agenda para todos os
-                    profissionais com base em suas configurações de
-                    disponibilidade até o fim do próximo ano. Deseja continuar?
+                    Isso criará os horários na agenda para{' '}
+                    {selectedProfessional === 'all'
+                      ? 'todos os profissionais'
+                      : 'o profissional selecionado'}{' '}
+                    com base em suas configurações de disponibilidade até o fim
+                    do próximo ano. Deseja continuar?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -212,8 +271,12 @@ export const AgendaView = () => {
       </div>
       <AppointmentFormDialog
         isOpen={isFormOpen}
-        onOpenChange={setIsFormOpen}
+        onOpenChange={handleFormClose}
         onAppointmentCreated={handleDataRefresh}
+        initialDate={quickCreateDate}
+        preselectedProfessionalId={
+          selectedProfessional !== 'all' ? selectedProfessional : undefined
+        }
       />
       <AppointmentDetailDialog
         isOpen={isDetailOpen}

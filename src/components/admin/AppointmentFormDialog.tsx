@@ -34,8 +34,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { CalendarIcon, CheckCircle, AlertCircle } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { format, addMonths } from 'date-fns'
+import { cn, formatInTimeZone } from '@/lib/utils'
+import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -77,12 +77,16 @@ interface AppointmentFormDialogProps {
   isOpen: boolean
   onOpenChange: (isOpen: boolean) => void
   onAppointmentCreated: () => void
+  initialDate?: Date
+  preselectedProfessionalId?: string
 }
 
 export const AppointmentFormDialog = ({
   isOpen,
   onOpenChange,
   onAppointmentCreated,
+  initialDate,
+  preselectedProfessionalId,
 }: AppointmentFormDialogProps) => {
   const { toast } = useToast()
   const [clients, setClients] = useState<Client[]>([])
@@ -110,6 +114,8 @@ export const AppointmentFormDialog = ({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
       usePackage: true,
+      professionalId: preselectedProfessionalId || '',
+      date: initialDate || undefined,
     },
   })
 
@@ -118,6 +124,19 @@ export const AppointmentFormDialog = ({
   const serviceId = form.watch('serviceId')
   const date = form.watch('date')
   const usePackage = form.watch('usePackage')
+
+  // Set initial values when dialog opens or props change
+  useEffect(() => {
+    if (isOpen) {
+      if (preselectedProfessionalId) {
+        form.setValue('professionalId', preselectedProfessionalId)
+      }
+      if (initialDate) {
+        form.setValue('date', initialDate)
+        setCurrentMonth(initialDate)
+      }
+    }
+  }, [isOpen, initialDate, preselectedProfessionalId, form])
 
   // Fetch initial data
   useEffect(() => {
@@ -141,13 +160,14 @@ export const AppointmentFormDialog = ({
       setIsLoading((prev) => ({ ...prev, services: true }))
       getServicesByProfessional(professionalId).then((res) => {
         setServices(res.data || [])
-        form.resetField('serviceId')
+        // Only reset if serviceId is no longer valid or if we changed professional
+        // form.resetField('serviceId')
         setIsLoading((prev) => ({ ...prev, services: false }))
       })
     } else {
       setServices([])
     }
-  }, [professionalId, form])
+  }, [professionalId])
 
   // Check entitlements (Packages or Subscriptions) when client and service are selected
   useEffect(() => {
@@ -208,14 +228,25 @@ export const AppointmentFormDialog = ({
       getFilteredAvailableSchedules(professionalId, serviceId, date).then(
         (res) => {
           setSchedules(res.data || [])
-          form.resetField('scheduleId')
           setIsLoading((prev) => ({ ...prev, schedules: false }))
+
+          // Auto-select schedule if initialDate has time component matching a slot
+          if (initialDate && initialDate.getDate() === date.getDate()) {
+            // Extract HH:mm from initialDate
+            const targetTime = formatInTimeZone(initialDate, 'HH:mm')
+            const matchingSlot = res.data?.find(
+              (s) => formatInTimeZone(s.start_time, 'HH:mm') === targetTime,
+            )
+            if (matchingSlot) {
+              form.setValue('scheduleId', matchingSlot.id)
+            }
+          }
         },
       )
     } else {
       setSchedules([])
     }
-  }, [professionalId, serviceId, date, form])
+  }, [professionalId, serviceId, date, form, initialDate])
 
   const selectedService = services.find((s) => s.id === serviceId)
 
@@ -259,7 +290,7 @@ export const AppointmentFormDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Agendamento</DialogTitle>
           <DialogDescription>
@@ -490,16 +521,13 @@ export const AppointmentFormDialog = ({
                         disabled={(day) => {
                           if (day < new Date(new Date().setHours(0, 0, 0, 0)))
                             return true
-                          if (availableDates) {
+                          // If no professional/service is selected, allow date pick (will be filtered later)
+                          // But if we have them, use availableDates
+                          if (professionalId && serviceId && availableDates) {
                             return !availableDates.includes(
                               format(day, 'yyyy-MM-dd'),
                             )
                           }
-                          // If waiting for date load, assume disabled to prevent clicking
-                          if (isLoading.dates) return true
-
-                          // If no available dates yet loaded but we are not loading, it means none available
-                          if (!availableDates && !isLoading.dates) return false // Should technically be false to allow selection if we want to show 'no slots', but user story implies only available dates selectable
                           return false
                         }}
                         initialFocus
