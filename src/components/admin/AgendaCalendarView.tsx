@@ -39,14 +39,9 @@ export const AgendaCalendarView = ({
 }: AgendaCalendarViewProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
-
-  // Use local state for the month being viewed, but sync with currentDate initially if needed
-  // However, normally calendar view changes month independently until a date is selected.
-  // We'll keep currentDate as the "selected" date but track displayedMonth separately.
   const [displayedMonth, setDisplayedMonth] = useState(currentDate)
 
   useEffect(() => {
-    // When currentDate changes externally (e.g. navigation), update displayedMonth
     setDisplayedMonth(currentDate)
   }, [currentDate])
 
@@ -58,7 +53,7 @@ export const AgendaCalendarView = ({
       setIsLoading(false)
     }
     fetchData()
-  }, [displayedMonth, selectedProfessional]) // Re-fetch if month changes? Actually fetching ALL appointments is safer for now if we don't have month filtering on backend efficiently exposed for 'all' appointments or just simple. getAllAppointments fetches recent/future usually? No, it fetches all. Optimization might be needed later.
+  }, [displayedMonth, selectedProfessional])
 
   const daysInMonth = useMemo(() => {
     const start = startOfMonth(displayedMonth)
@@ -77,7 +72,6 @@ export const AgendaCalendarView = ({
           isValid(new Date(appt.schedules.start_time)),
       )
       .forEach((appt) => {
-        // Group using Brazil timezone date
         const day = formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd')
         if (!map.has(day)) {
           map.set(day, [])
@@ -96,10 +90,11 @@ export const AgendaCalendarView = ({
   }
 
   const handlePlusClick = (e: React.MouseEvent, day: Date) => {
-    e.stopPropagation() // Prevent navigation to day view
-    // Set time to something reasonable, e.g. 09:00
+    e.stopPropagation()
+    // We pass the day without specific time (start of day)
+    // The form will detect this is just a date, not a specific slot selection
     const dateWithTime = new Date(day)
-    dateWithTime.setHours(9, 0, 0, 0)
+    dateWithTime.setHours(0, 0, 0, 0)
     onTimeSlotClick(dateWithTime)
   }
 
@@ -155,7 +150,6 @@ export const AgendaCalendarView = ({
                       {format(day, 'd')}
                     </time>
 
-                    {/* Plus Button - Only visible on hover */}
                     <Button
                       variant="ghost"
                       size="icon"

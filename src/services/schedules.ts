@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import { Schedule } from '@/types'
+import { Schedule, Professional } from '@/types'
 import { format } from 'date-fns'
 
 /**
@@ -30,15 +30,6 @@ export async function getFilteredAvailableSchedules(
   const startDate = `${dateStr}T03:00:00.000Z`
 
   // End: 02:59:59.999 UTC of the next day
-  // We can just add 1 day to the dateStr for the next part, or use calculation.
-  // Easiest is to just ask for 27 hours from start (covering 03:00 to 06:00 next day is safe, RPC filters exact matches)
-  // But let's be precise:
-  // We want to pass the range to the RPC.
-  // The RPC `get_available_slots_for_service` filters schedules where `start_time` is between p_start_date and p_end_date.
-  // Ideally we want 00:00 BRT to 23:59:59 BRT.
-  // So we pass the UTC equivalents.
-
-  // Calculate next day date string
   const nextDay = new Date(date)
   nextDay.setDate(date.getDate() + 1)
   const nyyyy = nextDay.getFullYear()
@@ -72,4 +63,62 @@ export async function getAvailableSchedules(
   date: Date,
 ): Promise<{ data: Schedule[] | null; error: any }> {
   return getFilteredAvailableSchedules(professionalId, serviceId, date)
+}
+
+/**
+ * Fetches list of professionals who have an available schedule slot at the specified date/time.
+ * Used for "Intelligent Filtering".
+ */
+export async function getAvailableProfessionalsForSlot(
+  date: Date,
+): Promise<{ data: Professional[] | null; error: any }> {
+  // Convert JS Date to ISO string to match database
+  const timeStr = date.toISOString()
+
+  // 1. Get all schedules at this exact time
+  const { data: schedules, error: scheduleError } = await supabase
+    .from('schedules')
+    .select('id, professional_id, professionals(*)')
+    .eq('start_time', timeStr)
+
+  if (scheduleError || !schedules) {
+    return { data: null, error: scheduleError }
+  }
+
+  if (schedules.length === 0) {
+    return { data: [], error: null }
+  }
+
+  const scheduleIds = schedules.map((s) => s.id)
+
+  // 2. Check which of these schedules are already booked
+  // We want schedules that do NOT have an active appointment
+  const { data: bookedAppointments, error: appointmentError } = await supabase
+    .from('appointments')
+    .select('schedule_id')
+    .in('schedule_id', scheduleIds)
+    .neq('status', 'cancelled')
+
+  if (appointmentError) {
+    return { data: null, error: appointmentError }
+  }
+
+  const bookedScheduleIds = new Set(
+    bookedAppointments?.map((a) => a.schedule_id) || [],
+  )
+
+  // 3. Filter schedules that are free
+  const availableSchedules = schedules.filter(
+    (s) => !bookedScheduleIds.has(s.id),
+  )
+
+  // 4. Extract professionals (unique)
+  const professionalsMap = new Map<string, Professional>()
+  availableSchedules.forEach((s) => {
+    if (s.professionals) {
+      professionalsMap.set(s.professional_id, s.professionals as Professional)
+    }
+  })
+
+  return { data: Array.from(professionalsMap.values()), error: null }
 }

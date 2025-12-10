@@ -7,11 +7,6 @@ import {
   endOfWeek,
   eachDayOfInterval,
   isToday,
-  addHours,
-  addMinutes,
-  startOfDay,
-  differenceInMinutes,
-  parseISO,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
@@ -21,6 +16,7 @@ import { getAllAppointments } from '@/services/appointments'
 import { Appointment } from '@/types'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { ViewMode } from './AgendaView'
+import { computeEventLayout } from '@/lib/event-layout'
 
 interface AgendaWeekViewProps {
   currentDate: Date
@@ -36,8 +32,8 @@ const START_HOUR = 0
 const END_HOUR = 24
 const COMPACT_START = 7
 const COMPACT_END = 21
-const NORMAL_HEIGHT = 64 // px per hour
-const COMPACT_HEIGHT = 24 // px per hour
+const NORMAL_HEIGHT = 64
+const COMPACT_HEIGHT = 24
 
 const getHourHeight = (hour: number) => {
   if (hour < COMPACT_START || hour >= COMPACT_END) return COMPACT_HEIGHT
@@ -45,11 +41,6 @@ const getHourHeight = (hour: number) => {
 }
 
 const getTopOffset = (time: Date) => {
-  // Time must be normalized to the day being rendered or just use hours/minutes
-  // NOTE: This assumes time is in local browser context that matches "Brazil Time" conceptually if we construct it that way.
-  // However, input dates are UTC/ISO. We need to extract hours/minutes in Brazil Time.
-  // Since we can't easily change browser timezone, we rely on formatInTimeZone to get "HH" and "mm" and do math.
-
   const timeStr = formatInTimeZone(time, 'HH:mm')
   const [h, m] = timeStr.split(':').map(Number)
 
@@ -62,8 +53,6 @@ const getTopOffset = (time: Date) => {
 }
 
 const getDurationHeight = (startTime: Date, durationMinutes: number) => {
-  // This is complex because duration might span across compacted/normal boundaries.
-  // We can simulate step by step.
   const startStr = formatInTimeZone(startTime, 'HH:mm')
   let [h, m] = startStr.split(':').map(Number)
 
@@ -73,9 +62,7 @@ const getDurationHeight = (startTime: Date, durationMinutes: number) => {
   while (remaining > 0) {
     const minutesLeftInHour = 60 - m
     const chunk = Math.min(remaining, minutesLeftInHour)
-
     height += (chunk / 60) * getHourHeight(h)
-
     remaining -= chunk
     h = (h + 1) % 24
     m = 0
@@ -110,15 +97,24 @@ export const AgendaWeekView = ({
     return eachDayOfInterval({ start, end })
   }, [currentDate])
 
-  // Group appointments by day (YYYY-MM-DD)
   const appointmentsByDay = useMemo(() => {
-    const map = new Map<string, Appointment[]>()
+    const map = new Map<string, ReturnType<typeof computeEventLayout>>()
+
+    // Group raw appointments first
+    const rawMap = new Map<string, Appointment[]>()
+
     appointments.forEach((appt) => {
       if (!appt.schedules?.start_time) return
       const day = formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd')
-      if (!map.has(day)) map.set(day, [])
-      map.get(day)?.push(appt)
+      if (!rawMap.has(day)) rawMap.set(day, [])
+      rawMap.get(day)?.push(appt)
     })
+
+    // Then compute layout for each day
+    rawMap.forEach((appts, day) => {
+      map.set(day, computeEventLayout(appts, getTopOffset, getDurationHeight))
+    })
+
     return map
   }, [appointments])
 
@@ -154,8 +150,7 @@ export const AgendaWeekView = ({
           <div className="min-w-[800px] relative">
             {/* Header Row */}
             <div className="sticky top-0 z-20 flex border-b bg-background">
-              <div className="w-16 shrink-0 border-r bg-muted/30"></div>{' '}
-              {/* Time Col */}
+              <div className="w-16 shrink-0 border-r bg-muted/30"></div>
               {daysInWeek.map((day) => (
                 <div
                   key={day.toString()}
@@ -230,48 +225,47 @@ export const AgendaWeekView = ({
 
                     {/* Appointments Layer */}
                     {dayAppts.map((appt) => {
-                      const top = getTopOffset(
-                        new Date(appt.schedules.start_time),
-                      )
-                      const height = getDurationHeight(
-                        new Date(appt.schedules.start_time),
-                        appt.services.duration_minutes || 30,
-                      )
+                      const { top, height, left, width } = appt.layout
 
                       return (
                         <div
                           key={appt.id}
                           style={{
                             top: top,
-                            height: Math.max(height, 20), // Min height for visibility
-                            left: '2px',
-                            right: '2px',
+                            height: height,
+                            left: `${left}%`,
+                            width: `${width}%`,
+                            position: 'absolute',
+                            padding: '1px',
                           }}
-                          className={cn(
-                            'absolute rounded p-1 text-xs cursor-pointer shadow-sm overflow-hidden border transition-transform hover:scale-[1.02] hover:z-20',
-                            appt.status === 'completed'
-                              ? 'bg-green-100 text-green-800 border-green-200'
-                              : appt.status === 'cancelled'
-                                ? 'bg-red-100 text-red-800 border-red-200'
-                                : appt.status === 'no_show'
-                                  ? 'bg-orange-100 text-orange-800 border-orange-200'
-                                  : 'bg-primary/10 text-primary border-primary/20',
-                          )}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onAppointmentClick(appt)
-                          }}
-                          title={`${appt.clients.name} - ${appt.services.name}`}
+                          className="z-10"
                         >
-                          <div className="font-semibold truncate leading-none mb-0.5">
-                            {appt.clients.name}
-                          </div>
-                          <div className="truncate text-[10px] opacity-80 leading-none">
-                            {formatInTimeZone(
-                              appt.schedules.start_time,
-                              'HH:mm',
-                            )}{' '}
-                            - {appt.services.name}
+                          <div
+                            className={cn(
+                              'h-full w-full rounded p-1 text-xs cursor-pointer shadow-sm overflow-hidden border transition-transform hover:scale-[1.02] hover:z-20',
+                              appt.status === 'completed'
+                                ? 'bg-green-100 text-green-800 border-green-200'
+                                : appt.status === 'cancelled'
+                                  ? 'bg-red-100 text-red-800 border-red-200'
+                                  : appt.status === 'no_show'
+                                    ? 'bg-orange-100 text-orange-800 border-orange-200'
+                                    : 'bg-primary/10 text-primary border-primary/20',
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onAppointmentClick(appt)
+                            }}
+                            title={`${appt.clients.name} - ${appt.services.name}`}
+                          >
+                            <div className="font-semibold truncate leading-none mb-0.5">
+                              {appt.clients.name}
+                            </div>
+                            <div className="truncate text-[10px] opacity-80 leading-none">
+                              {formatInTimeZone(
+                                appt.schedules.start_time,
+                                'HH:mm',
+                              )}
+                            </div>
                           </div>
                         </div>
                       )

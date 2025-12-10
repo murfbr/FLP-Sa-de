@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { addDays, subDays, format, isValid } from 'date-fns'
+import { useState, useEffect, useMemo } from 'react'
+import { addDays, subDays, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { getAllAppointments } from '@/services/appointments'
 import { Appointment } from '@/types'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { ViewMode } from './AgendaView'
+import { computeEventLayout } from '@/lib/event-layout'
 
 interface AgendaDayViewProps {
   currentDate: Date
@@ -18,13 +19,13 @@ interface AgendaDayViewProps {
   selectedProfessional: string
 }
 
-// Reuse timeline constants
+// Timeline constants
 const START_HOUR = 0
 const END_HOUR = 24
 const COMPACT_START = 7
 const COMPACT_END = 21
-const NORMAL_HEIGHT = 80 // Taller for day view
-const COMPACT_HEIGHT = 28
+const NORMAL_HEIGHT = 80
+const COMPACT_HEIGHT = 30
 
 const getHourHeight = (hour: number) => {
   if (hour < COMPACT_START || hour >= COMPACT_END) return COMPACT_HEIGHT
@@ -79,13 +80,18 @@ export const AgendaDayView = ({
     fetchData()
   }, [selectedProfessional])
 
-  const dayAppointments = appointments.filter((appt) => {
-    if (!appt.schedules?.start_time) return false
-    return (
-      formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd') ===
-      format(currentDate, 'yyyy-MM-dd')
-    )
-  })
+  const dayAppointments = useMemo(() => {
+    const filtered = appointments.filter((appt) => {
+      if (!appt.schedules?.start_time) return false
+      return (
+        formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd') ===
+        format(currentDate, 'yyyy-MM-dd')
+      )
+    })
+
+    // Apply layout logic for side-by-side overlap
+    return computeEventLayout(filtered, getTopOffset, getDurationHeight)
+  }, [appointments, currentDate])
 
   const nextDay = () => onDateChange(addDays(currentDate, 1))
   const prevDay = () => onDateChange(subDays(currentDate, 1))
@@ -155,45 +161,46 @@ export const AgendaDayView = ({
 
               {/* Appointments */}
               {dayAppointments.map((appt) => {
-                const top = getTopOffset(new Date(appt.schedules.start_time))
-                const height = getDurationHeight(
-                  new Date(appt.schedules.start_time),
-                  appt.services.duration_minutes || 30,
-                )
+                const { top, height, left, width } = appt.layout
 
                 return (
                   <div
                     key={appt.id}
                     style={{
                       top: top,
-                      height: Math.max(height, 28),
-                      left: '10px',
-                      right: '10px',
+                      height: height,
+                      left: `${left}%`,
+                      width: `${width}%`,
+                      position: 'absolute',
+                      padding: '2px', // Gap
                     }}
-                    className={cn(
-                      'absolute rounded-md p-3 text-sm cursor-pointer shadow-sm overflow-hidden border transition-all hover:scale-[1.01] hover:shadow-md hover:z-20',
-                      appt.status === 'completed'
-                        ? 'bg-green-100 text-green-900 border-green-200'
-                        : appt.status === 'cancelled'
-                          ? 'bg-red-100 text-red-900 border-red-200'
-                          : appt.status === 'no_show'
-                            ? 'bg-orange-100 text-orange-900 border-orange-200'
-                            : 'bg-primary/10 text-primary border-primary/20',
-                    )}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onAppointmentClick(appt)
-                    }}
+                    className="z-10"
                   >
-                    <div className="flex justify-between items-start font-bold">
-                      <span>{appt.clients.name}</span>
-                      <span className="font-mono text-xs opacity-75">
-                        {formatInTimeZone(appt.schedules.start_time, 'HH:mm')} -{' '}
-                        {formatInTimeZone(appt.schedules.end_time, 'HH:mm')}
-                      </span>
-                    </div>
-                    <div className="text-xs opacity-90 mt-1">
-                      {appt.services.name} • {appt.professionals.name}
+                    <div
+                      className={cn(
+                        'h-full w-full rounded-md p-2 text-sm cursor-pointer shadow-sm overflow-hidden border transition-all hover:brightness-95 hover:z-20',
+                        appt.status === 'completed'
+                          ? 'bg-green-100 text-green-900 border-green-200'
+                          : appt.status === 'cancelled'
+                            ? 'bg-red-100 text-red-900 border-red-200'
+                            : appt.status === 'no_show'
+                              ? 'bg-orange-100 text-orange-900 border-orange-200'
+                              : 'bg-primary/10 text-primary border-primary/20',
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onAppointmentClick(appt)
+                      }}
+                    >
+                      <div className="flex justify-between items-start font-bold">
+                        <span className="truncate">{appt.clients.name}</span>
+                        <span className="font-mono text-xs opacity-75 shrink-0 ml-1">
+                          {formatInTimeZone(appt.schedules.start_time, 'HH:mm')}
+                        </span>
+                      </div>
+                      <div className="text-xs opacity-90 mt-1 truncate">
+                        {appt.services.name}
+                      </div>
                     </div>
                   </div>
                 )
