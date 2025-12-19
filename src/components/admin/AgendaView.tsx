@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   List,
@@ -9,6 +9,7 @@ import {
   RefreshCw,
   PlayCircle,
   Loader2,
+  Filter,
 } from 'lucide-react'
 import { AgendaListView } from './AgendaListView'
 import { AgendaCalendarView } from './AgendaCalendarView'
@@ -40,7 +41,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { useEffect } from 'react'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { DateRange } from 'react-day-picker'
+import { startOfMonth, endOfMonth } from 'date-fns'
 
 export type ViewMode = 'list' | 'month' | 'week' | 'day'
 
@@ -57,6 +60,12 @@ export const AgendaView = () => {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedProfessional, setSelectedProfessional] = useState('all')
   const [professionals, setProfessionals] = useState<Professional[]>([])
+
+  // Date Range Filter State (Primary for List View)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date()),
+  })
 
   // Quick Create State
   const [quickCreateDate, setQuickCreateDate] = useState<Date | undefined>(
@@ -136,7 +145,7 @@ export const AgendaView = () => {
   const renderView = () => {
     switch (viewMode) {
       case 'list':
-        return <AgendaListView {...commonProps} />
+        return <AgendaListView {...commonProps} dateRange={dateRange} />
       case 'month':
         return <AgendaCalendarView {...commonProps} />
       case 'week':
@@ -144,7 +153,7 @@ export const AgendaView = () => {
       case 'day':
         return <AgendaDayView {...commonProps} />
       default:
-        return <AgendaListView {...commonProps} />
+        return <AgendaListView {...commonProps} dateRange={dateRange} />
     }
   }
 
@@ -215,6 +224,14 @@ export const AgendaView = () => {
                 ))}
               </SelectContent>
             </Select>
+
+            {viewMode === 'list' && (
+              <DateRangePicker
+                date={dateRange}
+                onDateChange={setDateRange}
+                className="w-full sm:w-auto"
+              />
+            )}
 
             <AlertDialog>
               <AlertDialogTrigger asChild>

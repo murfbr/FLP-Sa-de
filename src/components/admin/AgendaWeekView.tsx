@@ -12,7 +12,7 @@ import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getAllAppointments } from '@/services/appointments'
+import { getAppointmentsForRange } from '@/services/appointments'
 import { Appointment } from '@/types'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { ViewMode } from './AgendaView'
@@ -84,12 +84,19 @@ export const AgendaWeekView = ({
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
-      const { data } = await getAllAppointments(selectedProfessional)
+      const start = startOfWeek(currentDate, { locale: ptBR })
+      const end = endOfWeek(currentDate, { locale: ptBR })
+
+      const { data } = await getAppointmentsForRange(
+        start,
+        end,
+        selectedProfessional,
+      )
       setAppointments(data || [])
       setIsLoading(false)
     }
     fetchData()
-  }, [selectedProfessional])
+  }, [selectedProfessional, currentDate])
 
   const daysInWeek = useMemo(() => {
     const start = startOfWeek(currentDate, { locale: ptBR })

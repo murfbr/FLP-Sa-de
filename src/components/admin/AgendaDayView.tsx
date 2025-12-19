@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
-import { addDays, subDays, format } from 'date-fns'
+import { addDays, subDays, format, startOfDay, endOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { getAllAppointments } from '@/services/appointments'
+import { getAppointmentsForRange } from '@/services/appointments'
 import { Appointment } from '@/types'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { ViewMode } from './AgendaView'
@@ -73,12 +73,18 @@ export const AgendaDayView = ({
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
-      const { data } = await getAllAppointments(selectedProfessional)
+      const start = startOfDay(currentDate)
+      const end = endOfDay(currentDate)
+      const { data } = await getAppointmentsForRange(
+        start,
+        end,
+        selectedProfessional,
+      )
       setAppointments(data || [])
       setIsLoading(false)
     }
     fetchData()
-  }, [selectedProfessional])
+  }, [selectedProfessional, currentDate])
 
   const dayAppointments = useMemo(() => {
     const filtered = appointments.filter((appt) => {

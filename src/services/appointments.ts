@@ -21,6 +21,84 @@ export async function bookAppointment(
   return { data: { appointment_id: data }, error: null }
 }
 
+export async function getAppointmentsPaginated(
+  page: number,
+  pageSize: number,
+  filters: {
+    professionalId?: string
+    startDate?: Date
+    endDate?: Date
+  },
+): Promise<{ data: Appointment[] | null; count: number | null; error: any }> {
+  const startISO = filters.startDate?.toISOString()
+  const endISO = filters.endDate?.toISOString()
+
+  let query = supabase.from('appointments').select(
+    `
+      id, status, notes, created_at,
+      clients (id, name, email),
+      professionals (id, name),
+      services (id, name, duration_minutes, max_attendees),
+      schedules!inner (start_time, end_time)
+    `,
+    { count: 'exact' },
+  )
+
+  if (filters.professionalId && filters.professionalId !== 'all') {
+    query = query.eq('professional_id', filters.professionalId)
+  }
+
+  if (startISO) {
+    query = query.gte('schedules.start_time', startISO)
+  }
+
+  if (endISO) {
+    query = query.lte('schedules.start_time', endISO)
+  }
+
+  query = query
+    .order('start_time', { foreignTable: 'schedules', ascending: true })
+    .range((page - 1) * pageSize, page * pageSize - 1)
+
+  const { data, error, count } = await query
+  return { data: data as Appointment[] | null, count, error }
+}
+
+export async function getAppointmentsForRange(
+  startDate: Date,
+  endDate: Date,
+  professionalId?: string,
+): Promise<{ data: Appointment[] | null; error: any }> {
+  const startISO = startDate.toISOString()
+  const endISO = endDate.toISOString()
+
+  let query = supabase
+    .from('appointments')
+    .select(
+      `
+      id, status, notes, created_at,
+      clients (id, name, email),
+      professionals (id, name),
+      services (id, name, duration_minutes, max_attendees),
+      schedules!inner (start_time, end_time)
+    `,
+    )
+    .gte('schedules.start_time', startISO)
+    .lte('schedules.start_time', endISO)
+
+  if (professionalId && professionalId !== 'all') {
+    query = query.eq('professional_id', professionalId)
+  }
+
+  query = query.order('start_time', {
+    foreignTable: 'schedules',
+    ascending: true,
+  })
+
+  const { data, error } = await query
+  return { data: data as Appointment[] | null, error }
+}
+
 export async function getAppointmentsByProfessional(
   professionalId: string,
 ): Promise<{ data: Appointment[] | null; error: any }> {

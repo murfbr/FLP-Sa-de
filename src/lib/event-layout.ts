@@ -77,24 +77,6 @@ export function computeEventLayout(
   })
 
   // 3. Group events into colliding clusters to determine width
-  // A cluster is a group of events that overlap with each other directly or indirectly
-
-  // Simple approach: For each event, look at its time range.
-  // Calculate the max number of columns active during this event's time range.
-
-  // Refined approach:
-  // Iterate through all events. Determine which group of overlapping events it belongs to.
-  // The max columns in that group determines the width (100% / maxCols).
-
-  // We can just rely on the column assignment we did.
-  // If we have N columns max at any point, width is 1/N?
-  // Not quite. If column 1 and 2 overlap, but 3 is far away, 3 shouldn't be thin.
-
-  // Standard Calendar algorithm:
-  // 1. Compute disjoint clusters of events.
-  // 2. For each cluster, width = 1 / cluster.columns.length
-
-  // Let's identify clusters.
   const clusters: (LayoutedEvent & { layout: { colIndex: number } })[][] = []
   let currentCluster: (LayoutedEvent & { layout: { colIndex: number } })[] = []
   let clusterEnd = 0
