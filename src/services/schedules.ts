@@ -19,17 +19,14 @@ export async function getFilteredAvailableSchedules(
   // 00:00 BRT = 03:00 UTC
   // 23:59 BRT = 02:59 UTC (+1 day)
 
-  // We use the YYYY-MM-DD from the input date object (which comes from the calendar selection)
   const yyyy = date.getFullYear()
   const mm = String(date.getMonth() + 1).padStart(2, '0')
   const dd = String(date.getDate()).padStart(2, '0')
   const dateStr = `${yyyy}-${mm}-${dd}`
 
   // Construct UTC range for Brazil day
-  // Start: 03:00:00 UTC
   const startDate = `${dateStr}T03:00:00.000Z`
 
-  // End: 02:59:59.999 UTC of the next day
   const nextDay = new Date(date)
   nextDay.setDate(date.getDate() + 1)
   const nyyyy = nextDay.getFullYear()
@@ -91,8 +88,20 @@ export async function getAvailableProfessionalsForSlot(
 
   const scheduleIds = schedules.map((s) => s.id)
 
-  // 2. Check which of these schedules are already booked
-  // We want schedules that do NOT have an active appointment
+  // 2. Check existing bookings to filter out busy professionals
+  // NOTE: This simple check does NOT account for capacity.
+  // Ideally, this should also check capacity if we knew the service.
+  // Without service ID, we assume we want professionals who are COMPLETELY free?
+  // Or at least have SOME capacity?
+  // Since we don't know the service here (user selects date first), we can't check capacity accurately.
+  // So we default to checking if they have ANY booking, which might be too strict now.
+  // However, without a service_id, we can't know if they can take more attendees.
+  // For now, let's keep it as checking for completely free slots to be safe,
+  // or we could relax it later if needed.
+  // Actually, let's relax it: if they are booked, we can't check compatibility without service_id.
+  // So showing them as available might lead to "Busy with other service" error later.
+  // That is acceptable. The user will select a service and then see they are busy.
+
   const { data: bookedAppointments, error: appointmentError } = await supabase
     .from('appointments')
     .select('schedule_id')

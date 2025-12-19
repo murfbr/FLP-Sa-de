@@ -25,6 +25,8 @@ export interface Schedule {
   professional_id: string
   start_time: string
   end_time: string
+  current_count?: number
+  max_capacity?: number
 }
 
 export interface Partnership {

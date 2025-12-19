@@ -147,10 +147,6 @@ export const AppointmentFormDialog = ({
         setClients(clientRes.data || [])
         let allProfessionals = profRes.data || []
 
-        // Intelligent Filtering: If initialDate has a specific time (not 00:00:00 or default),
-        // filter professionals who are available at that time.
-        // We assume specific time if hours/minutes are not 0 (simplified check)
-        // or if explicitly passed from a time slot click context (which sets initialDate).
         if (
           initialDate &&
           (initialDate.getHours() !== 0 || initialDate.getMinutes() !== 0)
@@ -163,14 +159,10 @@ export const AppointmentFormDialog = ({
             setProfessionals(availablePros)
             setIsFilteredByTime(true)
 
-            // If preselectedProfessionalId is not in the filtered list, clear it?
-            // Or if no preselection, maybe auto-select if only 1?
             if (!preselectedProfessionalId && availablePros.length === 1) {
               form.setValue('professionalId', availablePros[0].id)
             }
           } else {
-            // If no one is available (weird if clicked on slot), show all but warn?
-            // Or just show all.
             setProfessionals(allProfessionals)
             setIsFilteredByTime(false)
           }
@@ -196,7 +188,6 @@ export const AppointmentFormDialog = ({
 
       initializeForm()
     } else {
-      // Reset state on close
       setIsFilteredByTime(false)
     }
   }, [isOpen, initialDate, preselectedProfessionalId, form])
@@ -272,7 +263,6 @@ export const AppointmentFormDialog = ({
           setSchedules(res.data || [])
           setIsLoading((prev) => ({ ...prev, schedules: false }))
 
-          // Auto-select schedule logic
           if (initialDate && initialDate.getDate() === date.getDate()) {
             const targetTime = formatInTimeZone(initialDate, 'HH:mm')
             const matchingSlot = res.data?.find(
@@ -460,7 +450,6 @@ export const AppointmentFormDialog = ({
               )}
             />
 
-            {/* Entitlements UI logic same as before */}
             {!checkingEntitlements &&
               clientId &&
               serviceId &&
