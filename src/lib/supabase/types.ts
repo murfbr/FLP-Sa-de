@@ -702,8 +702,10 @@ export type Database = {
           p_start_date: string
         }
         Returns: {
+          current_count: number
           end_time: string
           id: string
+          max_capacity: number
           professional_id: string
           start_time: string
         }[]

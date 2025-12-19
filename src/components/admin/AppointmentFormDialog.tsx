@@ -260,24 +260,34 @@ export const AppointmentFormDialog = ({
       setIsLoading((prev) => ({ ...prev, schedules: true }))
       getFilteredAvailableSchedules(professionalId, serviceId, date).then(
         (res) => {
-          setSchedules(res.data || [])
-          setIsLoading((prev) => ({ ...prev, schedules: false }))
+          if (res.error) {
+            console.error('Error fetching schedules:', res.error)
+            toast({
+              title: 'Erro ao buscar horários',
+              description: 'Não foi possível carregar os horários disponíveis.',
+              variant: 'destructive',
+            })
+            setSchedules([])
+          } else {
+            setSchedules(res.data || [])
 
-          if (initialDate && initialDate.getDate() === date.getDate()) {
-            const targetTime = formatInTimeZone(initialDate, 'HH:mm')
-            const matchingSlot = res.data?.find(
-              (s) => formatInTimeZone(s.start_time, 'HH:mm') === targetTime,
-            )
-            if (matchingSlot) {
-              form.setValue('scheduleId', matchingSlot.id)
+            if (initialDate && initialDate.getDate() === date.getDate()) {
+              const targetTime = formatInTimeZone(initialDate, 'HH:mm')
+              const matchingSlot = res.data?.find(
+                (s) => formatInTimeZone(s.start_time, 'HH:mm') === targetTime,
+              )
+              if (matchingSlot) {
+                form.setValue('scheduleId', matchingSlot.id)
+              }
             }
           }
+          setIsLoading((prev) => ({ ...prev, schedules: false }))
         },
       )
     } else {
       setSchedules([])
     }
-  }, [professionalId, serviceId, date, form, initialDate])
+  }, [professionalId, serviceId, date, form, initialDate, toast])
 
   const selectedService = services.find((s) => s.id === serviceId)
 
