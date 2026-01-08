@@ -5,6 +5,7 @@ import {
   useState,
   ReactNode,
   useCallback,
+  useRef,
 } from 'react'
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
@@ -31,12 +32,16 @@ export const useAuth = () => {
   return context
 }
 
+// 5 seconds failsafe timeout
+const AUTH_TIMEOUT_MS = 5000
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [role, setRole] = useState<UserRole | null>(null)
   const [professionalId, setProfessionalId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const initializationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const fetchUserRoleAndProfile = useCallback(
     async (currentUser: User | null) => {
@@ -52,7 +57,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       try {
         // Fetch Profile
-        // We use maybeSingle to avoid 406 error if row doesn't exist yet
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
@@ -63,7 +67,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.error('AuthProvider: Error fetching profile:', profileError)
         }
 
-        // Default to 'client' for safety if no role is found or if RLS hides it
         const userRole = (profileData?.role as UserRole) ?? 'client'
         console.log('AuthProvider: Resolved role:', userRole)
         setRole(userRole)
@@ -85,10 +88,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
 
           setProfessionalId(professionalData?.id ?? null)
-          console.log(
-            'AuthProvider: Professional ID:',
-            professionalData?.id ?? 'Not found',
-          )
         } else {
           setProfessionalId(null)
         }
@@ -99,6 +98,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } finally {
         setLoading(false)
         console.log('AuthProvider: Loading complete.')
+        if (initializationTimeoutRef.current) {
+          clearTimeout(initializationTimeoutRef.current)
+          initializationTimeoutRef.current = null
+        }
       }
     },
     [],
@@ -108,13 +111,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let mounted = true
     console.log('AuthProvider: Initializing...')
 
+    // Start failsafe timeout
+    initializationTimeoutRef.current = setTimeout(() => {
+      if (loading && mounted) {
+        console.warn(
+          `AuthProvider: Initialization timeout of ${AUTH_TIMEOUT_MS}ms reached. Force releasing loading state.`,
+        )
+        setLoading(false)
+      }
+    }, AUTH_TIMEOUT_MS)
+
     // Initial Session Check
     const checkSession = async () => {
       console.log('AuthProvider: Checking initial session...')
       try {
         const {
           data: { session: initialSession },
+          error,
         } = await supabase.auth.getSession()
+
+        if (error) {
+          throw error
+        }
 
         if (mounted) {
           if (initialSession) {
@@ -129,11 +147,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setRole(null)
             setProfessionalId(null)
             setLoading(false)
+            if (initializationTimeoutRef.current) {
+              clearTimeout(initializationTimeoutRef.current)
+              initializationTimeoutRef.current = null
+            }
           }
         }
       } catch (error) {
         console.error('AuthProvider: Session check failed:', error)
         if (mounted) setLoading(false)
+        if (initializationTimeoutRef.current) {
+          clearTimeout(initializationTimeoutRef.current)
+          initializationTimeoutRef.current = null
+        }
       }
     }
 
@@ -156,12 +182,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           event === 'INITIAL_SESSION' ||
           event === 'USER_UPDATED'
         ) {
-          // Force fetch if user changed or signed in
           setLoading(true)
           await fetchUserRoleAndProfile(currentUser)
-        } else if (event === 'TOKEN_REFRESHED') {
-          // Token refresh usually doesn't require profile re-fetch, but can be done if needed
-          // Keeping it minimal to avoid UI flickering
         } else if (event === 'SIGNED_OUT') {
           console.log('AuthProvider: User signed out.')
           setLoading(false)
@@ -173,6 +195,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => {
       mounted = false
+      if (initializationTimeoutRef.current) {
+        clearTimeout(initializationTimeoutRef.current)
+      }
       subscription.unsubscribe()
     }
   }, [fetchUserRoleAndProfile])
