@@ -6,6 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/providers/AuthProvider'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import Layout from './components/Layout'
+import PublicLayout from './components/PublicLayout'
 import Index from './pages/Index'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -32,6 +33,18 @@ const App = () => (
         <Toaster />
         <Sonner />
         <Routes>
+          {/* Public Routes - Use PublicLayout to isolate from authenticated header logic */}
+          <Route element={<PublicLayout />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route
+              path="/cliente-indisponivel"
+              element={<ClientAreaUnavailable />}
+            />
+            <Route path="/access-denied" element={<AccessDenied />} />
+          </Route>
+
+          {/* Protected Routes - Use Main Layout */}
           <Route element={<Layout />}>
             {/* Index Route - Controller for redirection */}
             <Route
@@ -44,15 +57,6 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-
-            {/* Public Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route
-              path="/cliente-indisponivel"
-              element={<ClientAreaUnavailable />}
-            />
-            <Route path="/access-denied" element={<AccessDenied />} />
 
             {/* Admin Routes - Strictly Admin Only */}
             <Route

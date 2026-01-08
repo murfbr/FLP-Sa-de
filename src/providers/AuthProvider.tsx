@@ -41,14 +41,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchUserRoleAndProfile = useCallback(
     async (currentUser: User | null) => {
       if (!currentUser) {
+        console.log('AuthProvider: No user to fetch profile for.')
         setRole(null)
         setProfessionalId(null)
         setLoading(false)
         return
       }
 
+      console.log('AuthProvider: Fetching profile for user', currentUser.id)
+
       try {
         // Fetch Profile
+        // We use maybeSingle to avoid 406 error if row doesn't exist yet
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
@@ -56,16 +60,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .maybeSingle()
 
         if (profileError) {
-          console.error('Error fetching profile:', profileError)
+          console.error('AuthProvider: Error fetching profile:', profileError)
         }
 
         // Default to 'client' for safety if no role is found or if RLS hides it
-        // This handles the case where profile might not exist yet for new users
         const userRole = (profileData?.role as UserRole) ?? 'client'
+        console.log('AuthProvider: Resolved role:', userRole)
         setRole(userRole)
 
         // Check for professional ID if role is professional OR admin
         if (userRole === 'professional' || userRole === 'admin') {
+          console.log('AuthProvider: Fetching professional ID...')
           const { data: professionalData, error: profError } = await supabase
             .from('professionals')
             .select('id')
@@ -73,19 +78,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             .maybeSingle()
 
           if (profError) {
-            console.error('Error fetching professional:', profError)
+            console.error(
+              'AuthProvider: Error fetching professional:',
+              profError,
+            )
           }
 
           setProfessionalId(professionalData?.id ?? null)
+          console.log(
+            'AuthProvider: Professional ID:',
+            professionalData?.id ?? 'Not found',
+          )
         } else {
           setProfessionalId(null)
         }
       } catch (error) {
-        console.error('Unexpected error in auth fetch:', error)
+        console.error('AuthProvider: Unexpected error in auth fetch:', error)
         setRole('client') // Fallback
         setProfessionalId(null)
       } finally {
         setLoading(false)
+        console.log('AuthProvider: Loading complete.')
       }
     },
     [],
@@ -93,9 +106,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let mounted = true
+    console.log('AuthProvider: Initializing...')
 
     // Initial Session Check
     const checkSession = async () => {
+      console.log('AuthProvider: Checking initial session...')
       try {
         const {
           data: { session: initialSession },
@@ -103,12 +118,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (mounted) {
           if (initialSession) {
+            console.log('AuthProvider: Initial session found.')
             setSession(initialSession)
             setUser(initialSession.user)
-            // Fetch profile only if session exists
             await fetchUserRoleAndProfile(initialSession.user)
           } else {
-            // No session found
+            console.log('AuthProvider: No initial session found.')
             setSession(null)
             setUser(null)
             setRole(null)
@@ -117,7 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       } catch (error) {
-        console.error('Session check failed:', error)
+        console.error('AuthProvider: Session check failed:', error)
         if (mounted) setLoading(false)
       }
     }
@@ -130,6 +145,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, currentSession) => {
         if (!mounted) return
+        console.log(`AuthProvider: Auth event '${event}' detected.`)
 
         setSession(currentSession)
         const currentUser = currentSession?.user ?? null
@@ -138,22 +154,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (
           event === 'SIGNED_IN' ||
           event === 'INITIAL_SESSION' ||
-          event === 'USER_UPDATED' ||
-          event === 'TOKEN_REFRESHED'
+          event === 'USER_UPDATED'
         ) {
-          if (currentUser) {
-            // Only set loading to true if we are actually going to fetch something new
-            // For token refresh, usually profile doesn't change, but safe to verify
-            if (event !== 'TOKEN_REFRESHED') setLoading(true)
-            await fetchUserRoleAndProfile(currentUser)
-          } else {
-            setLoading(false)
-          }
+          // Force fetch if user changed or signed in
+          setLoading(true)
+          await fetchUserRoleAndProfile(currentUser)
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Token refresh usually doesn't require profile re-fetch, but can be done if needed
+          // Keeping it minimal to avoid UI flickering
         } else if (event === 'SIGNED_OUT') {
+          console.log('AuthProvider: User signed out.')
           setLoading(false)
           setRole(null)
           setProfessionalId(null)
-          // Clear query cache or local state if needed here
         }
       },
     )
