@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
 import { Schedule, Professional } from '@/types'
-import { format } from 'date-fns'
 
 /**
  * Fetches available schedules for a specific service and date,
@@ -73,6 +72,7 @@ export async function getAvailableProfessionalsForSlot(
   const timeStr = date.toISOString()
 
   // 1. Get all schedules at this exact time
+  // We no longer check for occupancy, just pure availability (existence of schedule slot)
   const { data: schedules, error: scheduleError } = await supabase
     .from('schedules')
     .select('id, professional_id, professionals(*)')
@@ -86,44 +86,9 @@ export async function getAvailableProfessionalsForSlot(
     return { data: [], error: null }
   }
 
-  const scheduleIds = schedules.map((s) => s.id)
-
-  // 2. Check existing bookings to filter out busy professionals
-  // NOTE: This simple check does NOT account for capacity.
-  // Ideally, this should also check capacity if we knew the service.
-  // Without service ID, we assume we want professionals who are COMPLETELY free?
-  // Or at least have SOME capacity?
-  // Since we don't know the service here (user selects date first), we can't check capacity accurately.
-  // So we default to checking if they have ANY booking, which might be too strict now.
-  // However, without a service_id, we can't know if they can take more attendees.
-  // For now, let's keep it as checking for completely free slots to be safe,
-  // or we could relax it later if needed.
-  // Actually, let's relax it: if they are booked, we can't check compatibility without service_id.
-  // So showing them as available might lead to "Busy with other service" error later.
-  // That is acceptable. The user will select a service and then see they are busy.
-
-  const { data: bookedAppointments, error: appointmentError } = await supabase
-    .from('appointments')
-    .select('schedule_id')
-    .in('schedule_id', scheduleIds)
-    .neq('status', 'cancelled')
-
-  if (appointmentError) {
-    return { data: null, error: appointmentError }
-  }
-
-  const bookedScheduleIds = new Set(
-    bookedAppointments?.map((a) => a.schedule_id) || [],
-  )
-
-  // 3. Filter schedules that are free
-  const availableSchedules = schedules.filter(
-    (s) => !bookedScheduleIds.has(s.id),
-  )
-
-  // 4. Extract professionals (unique)
+  // 2. Extract professionals (unique)
   const professionalsMap = new Map<string, Professional>()
-  availableSchedules.forEach((s) => {
+  schedules.forEach((s) => {
     if (s.professionals) {
       professionalsMap.set(s.professional_id, s.professionals as Professional)
     }
