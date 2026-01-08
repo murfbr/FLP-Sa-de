@@ -683,17 +683,29 @@ export type Database = {
           total_revenue: number
         }[]
       }
-      get_available_dates: {
-        Args: {
-          p_end_date: string
-          p_professional_id: string
-          p_service_id: string
-          p_start_date: string
-        }
-        Returns: {
-          available_date: string
-        }[]
-      }
+      get_available_dates:
+        | {
+            Args: {
+              p_end_date: string
+              p_professional_id: string
+              p_service_id: string
+              p_start_date: string
+            }
+            Returns: {
+              available_date: string
+            }[]
+          }
+        | {
+            Args: {
+              p_end_date: string
+              p_professional_id: string
+              p_service_id: string
+              p_start_date: string
+            }
+            Returns: {
+              available_date: string
+            }[]
+          }
       get_available_slots_for_service: {
         Args: {
           p_end_date: string

@@ -265,7 +265,7 @@ export const AgendaWeekView = ({
                             title={`${appt.clients.name} - ${appt.services.name}`}
                           >
                             <div className="font-semibold truncate leading-none mb-0.5">
-                              {appt.clients.name}
+                              {appt.clients.name} - {appt.services.name}
                             </div>
                             <div className="truncate text-[10px] opacity-80 leading-none">
                               {formatInTimeZone(
