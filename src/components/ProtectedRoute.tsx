@@ -16,32 +16,34 @@ export const ProtectedRoute = ({
   const { user, role, loading } = useAuth()
   const location = useLocation()
 
-  // 1. Loading State
+  // 1. Loading State - Display a full-screen centered loader
+  // This provides immediate feedback while session is being verified
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] bg-background space-y-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background space-y-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground animate-pulse">
-          Verificando sessão...
+        <p className="text-muted-foreground animate-pulse text-sm">
+          Carregando aplicação...
         </p>
       </div>
     )
   }
 
   // 2. Unauthenticated Redirect
+  // Immediate redirection if no user is found after loading
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   // 3. Role verification (only if authenticated)
+  // Ensure user has one of the allowed roles if specified
   if (allowedRoles) {
-    // If role is null but user exists (edge case, e.g. profile creation delayed),
-    // we should might wait or fallback. AuthProvider defaults role to 'client' mostly.
-    // If role is strictly not in allowed list:
+    // If role is available and not in the allowed list, deny access
     if (role && !allowedRoles.includes(role)) {
       return <Navigate to="/access-denied" replace />
     }
   }
 
+  // Render children (Layout or Page) only when authentication is confirmed
   return <>{children}</>
 }

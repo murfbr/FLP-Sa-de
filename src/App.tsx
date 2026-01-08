@@ -25,7 +25,6 @@ import AdminDashboard from './pages/AdminDashboard'
 // ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
 // AVOID REMOVING ANY CONTEXT PROVIDERS FROM THIS FILE (e.g. TooltipProvider, Toaster, Sonner)
 
-// Diagnostic log at entry point
 console.log('App.tsx: Initializing application...')
 
 const App = () => (
@@ -49,19 +48,17 @@ const App = () => (
               <Route path="/access-denied" element={<AccessDenied />} />
             </Route>
 
-            {/* Protected Routes - Use Main Layout */}
-            <Route element={<Layout />}>
+            {/* Protected Routes - Structure Refactoring */}
+            {/* We wrap the Layout with ProtectedRoute to ensure authentication before any layout rendering */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
               {/* Index Route - Controller for redirection */}
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute
-                    allowedRoles={['admin', 'professional', 'client']}
-                  >
-                    <Index />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/" element={<Index />} />
 
               {/* Admin Routes - Strictly Admin Only */}
               <Route
@@ -123,6 +120,8 @@ const App = () => (
                 }
               />
             </Route>
+
+            {/* Catch-all for 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </TooltipProvider>

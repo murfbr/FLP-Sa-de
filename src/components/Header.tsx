@@ -7,7 +7,7 @@ import { Skeleton } from './ui/skeleton'
 
 export const Header = () => {
   const isMobile = useIsMobile()
-  const { loading } = useAuth()
+  const { user, loading } = useAuth()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -21,10 +21,16 @@ export const Header = () => {
               <Skeleton className="h-8 w-24" />
               <Skeleton className="h-8 w-8 rounded-full" />
             </div>
-          ) : isMobile ? (
-            <MobileNav />
+          ) : user ? (
+            // Only render navigation if user is authenticated
+            isMobile ? (
+              <MobileNav />
+            ) : (
+              <UserNav />
+            )
           ) : (
-            <UserNav />
+            // Fallback for safety - shouldn't be reached inside protected layout
+            <div className="w-8 h-8" />
           )}
         </nav>
       </div>
