@@ -15,6 +15,7 @@ import Patients from './pages/admin/Patients'
 import ProfessionalDetail from './pages/admin/ProfessionalDetail'
 import NotFound from './pages/NotFound'
 import ClientAreaUnavailable from './pages/ClientAreaUnavailable'
+import AccessDenied from './pages/AccessDenied'
 import ProfessionalPatientDetail from './pages/professional/PatientDetail'
 import NotificationsPage from './pages/professional/Notifications'
 
@@ -31,24 +32,30 @@ const App = () => (
         <Sonner />
         <Routes>
           <Route element={<Layout />}>
+            {/* Index Route - Accessible by Admin and Professional (redirects) */}
             <Route
               path="/"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['admin', 'professional']}>
                   <Index />
                 </ProtectedRoute>
               }
             />
+
+            {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route
               path="/cliente-indisponivel"
               element={<ClientAreaUnavailable />}
             />
+            <Route path="/access-denied" element={<AccessDenied />} />
+
+            {/* Professional Routes - Accessible by Professional and Admin */}
             <Route
               path="/profissional"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['professional', 'admin']}>
                   <ProfessionalArea />
                 </ProtectedRoute>
               }
@@ -56,7 +63,7 @@ const App = () => (
             <Route
               path="/profissional/pacientes/:id"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['professional', 'admin']}>
                   <ProfessionalPatientDetail />
                 </ProtectedRoute>
               }
@@ -64,15 +71,17 @@ const App = () => (
             <Route
               path="/profissional/notifications"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['professional', 'admin']}>
                   <NotificationsPage />
                 </ProtectedRoute>
               }
             />
+
+            {/* Admin Routes - Strictly Admin Only */}
             <Route
               path="/admin/pacientes"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <Patients />
                 </ProtectedRoute>
               }
@@ -80,7 +89,7 @@ const App = () => (
             <Route
               path="/admin/pacientes/:id"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <PatientDetail />
                 </ProtectedRoute>
               }
@@ -88,7 +97,7 @@ const App = () => (
             <Route
               path="/admin/profissionais/:id"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <ProfessionalDetail />
                 </ProtectedRoute>
               }

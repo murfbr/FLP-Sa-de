@@ -4,10 +4,12 @@ import {
   useEffect,
   useState,
   ReactNode,
+  useCallback,
 } from 'react'
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 import { UserRole } from '@/types'
+import { useToast } from '@/hooks/use-toast'
 
 interface AuthContextType {
   user: User | null
@@ -36,11 +38,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<UserRole | null>(null)
   const [professionalId, setProfessionalId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  useEffect(() => {
-    let mounted = true
-
-    const fetchUserRoleAndProfile = async (currentUser: User | null) => {
+  const fetchUserRoleAndProfile = useCallback(
+    async (currentUser: User | null) => {
       try {
         if (currentUser) {
           // Fetch Profile
@@ -52,12 +53,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           if (profileError) {
             console.error('Error fetching profile:', profileError)
+            // If error is 406 (Not Acceptable) or RLS related, handle gracefully
+            if (
+              profileError.code === 'PGRST301' ||
+              profileError.code === '406'
+            ) {
+              // RLS blocked access or no profile found
+            }
           }
 
-          // Default to 'client' for safety if no role is found
+          // Default to 'client' for safety if no role is found or if RLS hides it
           const userRole = (profileData?.role as UserRole) ?? 'client'
 
-          if (mounted) setRole(userRole)
+          setRole(userRole)
 
           // Check for professional ID if role is professional OR admin (Dual Role Recognition)
           if (userRole === 'professional' || userRole === 'admin') {
@@ -71,27 +79,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               console.error('Error fetching professional:', profError)
             }
 
-            if (mounted) setProfessionalId(professionalData?.id ?? null)
+            setProfessionalId(professionalData?.id ?? null)
           } else {
-            if (mounted) setProfessionalId(null)
-          }
-        } else {
-          if (mounted) {
-            setRole(null)
             setProfessionalId(null)
           }
-        }
-      } catch (error) {
-        console.error('Unexpected error in auth fetch:', error)
-        // Ensure we don't leave the app in a broken state
-        if (mounted) {
+        } else {
           setRole(null)
           setProfessionalId(null)
         }
+      } catch (error) {
+        console.error('Unexpected error in auth fetch:', error)
+        setRole(null)
+        setProfessionalId(null)
       } finally {
-        if (mounted) setLoading(false)
+        setLoading(false)
       }
-    }
+    },
+    [],
+  )
+
+  useEffect(() => {
+    let mounted = true
 
     // Initial Session Check
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -99,7 +107,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session)
         const currentUser = session?.user ?? null
         setUser(currentUser)
-        // Only fetch role if we have a user, otherwise stop loading
+
         if (currentUser) {
           fetchUserRoleAndProfile(currentUser)
         } else {
@@ -117,24 +125,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const currentUser = session?.user ?? null
         setUser(currentUser)
 
-        // Optimize loading state transitions
         if (
           event === 'SIGNED_IN' ||
           event === 'INITIAL_SESSION' ||
           event === 'USER_UPDATED'
         ) {
+          // Keep loading true until profile fetch completes
           setLoading(true)
           fetchUserRoleAndProfile(currentUser)
         } else if (event === 'SIGNED_OUT') {
           setLoading(false)
           setRole(null)
           setProfessionalId(null)
-        } else if (event === 'TOKEN_REFRESHED') {
-          // Do nothing on token refresh to avoid UI flickering
-          // Assuming role doesn't change on token refresh
-        } else {
-          // For other events, ensure loading is disabled if we have a user or not
-          // But safer to just let it be handled by specific events
         }
       }
     })
@@ -143,7 +145,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [fetchUserRoleAndProfile])
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`
@@ -165,6 +167,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
+    setRole(null)
+    setProfessionalId(null)
     return { error }
   }
 

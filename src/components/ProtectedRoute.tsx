@@ -2,12 +2,17 @@ import { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
 import { Skeleton } from '@/components/ui/skeleton'
+import { UserRole } from '@/types'
 
 interface ProtectedRouteProps {
   children: ReactNode
+  allowedRoles?: UserRole[]
 }
 
-export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({
+  children,
+  allowedRoles,
+}: ProtectedRouteProps) => {
   const { user, role, loading } = useAuth()
   const location = useLocation()
 
@@ -26,15 +31,20 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     )
   }
 
+  // 1. Check if user is authenticated
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // If user is authenticated but role is somehow missing (error state),
-  // treat as client/restricted to avoid infinite loops or black screens.
-  // Or if strictly 'client'.
-  if (!role || role === 'client') {
+  // 2. Check if role is loaded and valid
+  // If role is missing or specifically 'client' (without explicit allow), treat as unauthorized for the main app
+  if (!role || (role === 'client' && !allowedRoles?.includes('client'))) {
     return <Navigate to="/cliente-indisponivel" replace />
+  }
+
+  // 3. Check for specific role requirements (RBAC)
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    return <Navigate to="/access-denied" replace />
   }
 
   return <>{children}</>
