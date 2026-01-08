@@ -16,7 +16,7 @@ const Index = () => {
     }
   }, [role, loading, navigate])
 
-  if (loading || role !== 'admin') {
+  if (loading) {
     return (
       <div className="container mx-auto py-8 px-4 space-y-4">
         <Skeleton className="h-12 w-1/3" />
@@ -27,6 +27,30 @@ const Index = () => {
             <Skeleton className="h-96 w-full" />
           </div>
         </div>
+      </div>
+    )
+  }
+
+  // If role is professional, we return null or skeleton while redirect happens
+  if (role === 'professional') {
+    return (
+      <div className="container mx-auto py-8 px-4 space-y-4">
+        <Skeleton className="h-12 w-1/3" />
+        <Skeleton className="h-8 w-1/2" />
+      </div>
+    )
+  }
+
+  // Ensure only admin sees the dashboard here.
+  // If role is unknown or unexpected (not admin, not professional), handle gracefully.
+  if (role !== 'admin') {
+    // This case theoretically shouldn't be reached if ProtectedRoute is doing its job for 'client'
+    // But if 'role' is something else or null, we might want to fallback.
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <p className="text-center text-muted-foreground">
+          Permissão insuficiente ou erro ao carregar perfil.
+        </p>
       </div>
     )
   }

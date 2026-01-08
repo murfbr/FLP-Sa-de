@@ -30,7 +30,10 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  if (role === 'client') {
+  // If user is authenticated but role is somehow missing (error state),
+  // treat as client/restricted to avoid infinite loops or black screens.
+  // Or if strictly 'client'.
+  if (!role || role === 'client') {
     return <Navigate to="/cliente-indisponivel" replace />
   }
 

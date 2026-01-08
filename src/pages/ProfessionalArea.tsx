@@ -16,6 +16,8 @@ const ProfessionalArea = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      // If professionalId is null, we can't fetch clients.
+      // But isLoading starts true. We need to stop loading if id is missing.
       if (!user || !professionalId) {
         setIsLoading(false)
         return
@@ -58,8 +60,9 @@ const ProfessionalArea = () => {
         <h2 className="text-2xl font-bold">
           Perfil de Profissional não encontrado
         </h2>
-        <p className="text-muted-foreground">
-          Seu usuário não está vinculado a um perfil de profissional.
+        <p className="text-muted-foreground mt-2">
+          Seu usuário não está vinculado a um perfil de profissional válido.
+          Entre em contato com o administrador.
         </p>
       </div>
     )

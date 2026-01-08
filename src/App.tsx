@@ -23,7 +23,7 @@ import NotificationsPage from './pages/professional/Notifications'
 
 const App = () => (
   <BrowserRouter
-    future={{ v7_startTransition: false, v7_relativeSplatPath: false }}
+    future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
   >
     <AuthProvider>
       <TooltipProvider>
