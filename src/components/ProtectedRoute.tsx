@@ -3,6 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
 import { Skeleton } from '@/components/ui/skeleton'
 import { UserRole } from '@/types'
+import { Loader2 } from 'lucide-react'
 
 interface ProtectedRouteProps {
   children: ReactNode
@@ -16,35 +17,41 @@ export const ProtectedRoute = ({
   const { user, role, loading } = useAuth()
   const location = useLocation()
 
+  // 1. Loading State
   if (loading) {
     return (
-      <div className="container mx-auto py-8 px-4 space-y-4">
-        <Skeleton className="h-12 w-1/3" />
-        <Skeleton className="h-8 w-1/2" />
-        <div className="grid md:grid-cols-3 gap-8 mt-8">
-          <Skeleton className="h-64 w-full" />
-          <div className="md:col-span-2">
-            <Skeleton className="h-96 w-full" />
-          </div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background space-y-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-muted-foreground animate-pulse">Carregando...</p>
+        <div className="container max-w-md space-y-3 p-4">
+          <Skeleton className="h-8 w-3/4 mx-auto" />
+          <Skeleton className="h-4 w-1/2 mx-auto" />
         </div>
       </div>
     )
   }
 
-  // 1. Check if user is authenticated
+  // 2. Unauthenticated Redirect
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // 2. Check if role is loaded and valid
-  // If role is missing or specifically 'client' (without explicit allow), treat as unauthorized for the main app
-  if (!role || (role === 'client' && !allowedRoles?.includes('client'))) {
-    return <Navigate to="/cliente-indisponivel" replace />
-  }
+  // 3. Role verification (only if authenticated)
+  // If no allowedRoles specified, assume allow all authenticated (or restrict based on role logic downstream)
+  // However, usually we want to block access if role is not loaded yet (should be handled by loading)
+  // or if role is strictly invalid.
 
-  // 3. Check for specific role requirements (RBAC)
-  if (allowedRoles && !allowedRoles.includes(role)) {
-    return <Navigate to="/access-denied" replace />
+  if (allowedRoles) {
+    if (!role) {
+      // Role should be loaded if user is authenticated and loading is false.
+      // If null, it means profile fetch failed or no profile.
+      // Fallback to denying access or showing error.
+      return <Navigate to="/access-denied" replace />
+    }
+
+    if (!allowedRoles.includes(role)) {
+      return <Navigate to="/access-denied" replace />
+    }
   }
 
   return <>{children}</>
