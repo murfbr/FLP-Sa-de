@@ -34,7 +34,7 @@ interface AgendaListViewProps {
   currentDate?: Date
   onDateChange?: (date: Date) => void
   onViewChange?: (view: ViewMode) => void
-  onTimeSlotClick?: (date: Date) => void
+  onTimeSlotClick?: (date: Date, isSpecificSlot?: boolean) => void
 }
 
 const PAGE_SIZE = 20

@@ -6,12 +6,14 @@ export async function bookAppointment(
   clientId: string,
   serviceId: string,
   clientPackageId?: string,
+  isRecurring: boolean = false,
 ): Promise<{ data: { appointment_id: string } | null; error: any }> {
   const { data, error } = await supabase.rpc('book_appointment', {
     p_schedule_id: scheduleId,
     p_client_id: clientId,
     p_service_id: serviceId,
     p_client_package_id: clientPackageId || null,
+    p_is_recurring: isRecurring,
   })
 
   if (error) {

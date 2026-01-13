@@ -25,7 +25,7 @@ interface AgendaCalendarViewProps {
   onDateChange: (date: Date) => void
   onViewChange: (view: ViewMode) => void
   onAppointmentClick: (appointment: Appointment) => void
-  onTimeSlotClick: (date: Date) => void
+  onTimeSlotClick: (date: Date, isSpecificSlot?: boolean) => void
   selectedProfessional: string
 }
 
@@ -100,9 +100,10 @@ export const AgendaCalendarView = ({
     e.stopPropagation()
     // We pass the day without specific time (start of day)
     // The form will detect this is just a date, not a specific slot selection
+    // Passing false for isSpecificSlot to allow manual time selection
     const dateWithTime = new Date(day)
     dateWithTime.setHours(0, 0, 0, 0)
-    onTimeSlotClick(dateWithTime)
+    onTimeSlotClick(dateWithTime, false)
   }
 
   return (

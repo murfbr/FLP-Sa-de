@@ -4,26 +4,19 @@ import { Schedule, Professional } from '@/types'
 /**
  * Fetches available schedules for a specific service and date,
  * respecting professional availability, overrides, and existing appointments.
- *
- * Uses the `get_available_slots_for_service` RPC which handles all
- * logic server-side for accuracy and performance.
  */
 export async function getFilteredAvailableSchedules(
   professionalId: string,
   serviceId: string,
   date: Date,
 ): Promise<{ data: Schedule[] | null; error: any }> {
-  // To fetch slots for a specific "Calendar Day" in Brazil (GMT-3),
-  // we need to construct the UTC range that corresponds to that day.
-  // 00:00 BRT = 03:00 UTC
-  // 23:59 BRT = 02:59 UTC (+1 day)
-
   const yyyy = date.getFullYear()
   const mm = String(date.getMonth() + 1).padStart(2, '0')
   const dd = String(date.getDate()).padStart(2, '0')
   const dateStr = `${yyyy}-${mm}-${dd}`
 
   // Construct UTC range for Brazil day
+  // 00:00 BRT = 03:00 UTC
   const startDate = `${dateStr}T03:00:00.000Z`
 
   const nextDay = new Date(date)
@@ -52,7 +45,6 @@ export async function getFilteredAvailableSchedules(
   return { data: data as Schedule[] | null, error }
 }
 
-// Retain for backward compatibility if used elsewhere, but simply alias the filtered one
 export async function getAvailableSchedules(
   professionalId: string,
   serviceId: string,
@@ -63,16 +55,13 @@ export async function getAvailableSchedules(
 
 /**
  * Fetches list of professionals who have an available schedule slot at the specified date/time.
- * Used for "Intelligent Filtering".
+ * Used for "Intelligent Filtering" in legacy flow.
  */
 export async function getAvailableProfessionalsForSlot(
   date: Date,
 ): Promise<{ data: Professional[] | null; error: any }> {
-  // Convert JS Date to ISO string to match database
   const timeStr = date.toISOString()
 
-  // 1. Get all schedules at this exact time
-  // We no longer check for occupancy, just pure availability (existence of schedule slot)
   const { data: schedules, error: scheduleError } = await supabase
     .from('schedules')
     .select('id, professional_id, professionals(*)')
@@ -86,7 +75,6 @@ export async function getAvailableProfessionalsForSlot(
     return { data: [], error: null }
   }
 
-  // 2. Extract professionals (unique)
   const professionalsMap = new Map<string, Professional>()
   schedules.forEach((s) => {
     if (s.professionals) {
@@ -95,4 +83,45 @@ export async function getAvailableProfessionalsForSlot(
   })
 
   return { data: Array.from(professionalsMap.values()), error: null }
+}
+
+/**
+ * Fetches available professionals for a specific service and time slot.
+ * Used for the new Context-Aware Appointment Modal.
+ */
+export async function getAvailableProfessionalsAtSlot(
+  serviceId: string,
+  date: Date,
+): Promise<{ data: Professional[] | null; error: any }> {
+  const timeStr = date.toISOString()
+
+  const { data, error } = await supabase.rpc(
+    'get_available_professionals_for_service_at_time',
+    {
+      p_service_id: serviceId,
+      p_start_time: timeStr,
+    },
+  )
+
+  return { data: data as Professional[] | null, error }
+}
+
+/**
+ * Fetches the specific schedule ID for a professional at a given time.
+ * Used to lock in the appointment.
+ */
+export async function getScheduleIdForSlot(
+  professionalId: string,
+  date: Date,
+): Promise<{ data: string | null; error: any }> {
+  const timeStr = date.toISOString()
+
+  const { data, error } = await supabase
+    .from('schedules')
+    .select('id')
+    .eq('professional_id', professionalId)
+    .eq('start_time', timeStr)
+    .single()
+
+  return { data: data?.id || null, error }
 }

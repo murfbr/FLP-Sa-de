@@ -69,6 +69,7 @@ export const AgendaView = () => {
   const [quickCreateDate, setQuickCreateDate] = useState<Date | undefined>(
     undefined,
   )
+  const [isSpecificTimeSlot, setIsSpecificTimeSlot] = useState(false)
 
   const isMobile = useIsMobile()
   const { toast } = useToast()
@@ -88,14 +89,18 @@ export const AgendaView = () => {
     setRefreshKey((prevKey) => prevKey + 1)
   }
 
-  const handleTimeSlotClick = (date: Date) => {
+  const handleTimeSlotClick = (date: Date, isSpecificSlot: boolean = true) => {
     setQuickCreateDate(date)
+    setIsSpecificTimeSlot(isSpecificSlot)
     setIsFormOpen(true)
   }
 
   const handleFormClose = (open: boolean) => {
     setIsFormOpen(open)
-    if (!open) setQuickCreateDate(undefined)
+    if (!open) {
+      setQuickCreateDate(undefined)
+      setIsSpecificTimeSlot(false)
+    }
   }
 
   const handleGenerateSchedules = async () => {
@@ -279,6 +284,7 @@ export const AgendaView = () => {
         onOpenChange={handleFormClose}
         onAppointmentCreated={handleDataRefresh}
         initialDate={quickCreateDate}
+        isSpecificTimeSlot={isSpecificTimeSlot}
         preselectedProfessionalId={
           selectedProfessional !== 'all' ? selectedProfessional : undefined
         }

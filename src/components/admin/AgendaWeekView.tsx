@@ -23,7 +23,7 @@ interface AgendaWeekViewProps {
   onDateChange: (date: Date) => void
   onViewChange: (view: ViewMode) => void
   onAppointmentClick: (appointment: Appointment) => void
-  onTimeSlotClick: (date: Date) => void
+  onTimeSlotClick: (date: Date, isSpecificSlot?: boolean) => void
   selectedProfessional: string
 }
 
@@ -221,7 +221,7 @@ export const AgendaWeekView = ({
                             onClick={() => {
                               const targetTime = new Date(day)
                               targetTime.setHours(h, 0, 0, 0)
-                              onTimeSlotClick(targetTime)
+                              onTimeSlotClick(targetTime, true)
                             }}
                           >
                             <Plus className="h-4 w-4" />
