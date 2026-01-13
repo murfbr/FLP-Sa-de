@@ -12,12 +12,12 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { LogIn } from 'lucide-react'
+import { LogIn, Loader2 } from 'lucide-react'
 
 const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { signIn, user, loading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -28,36 +28,60 @@ const Login = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (!loading && user) {
-      navigate(from === '/login' ? '/' : from, { replace: true })
+      // Avoid redirecting to login page itself
+      const destination = from === '/login' ? '/' : from
+      navigate(destination, { replace: true })
     }
   }, [user, loading, navigate, from])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    const { error } = await signIn(email, password)
-    if (error) {
+    setIsSubmitting(true)
+
+    try {
+      const { error } = await signIn(email, password)
+
+      if (error) {
+        toast({
+          title: 'Erro de Autenticação',
+          description: 'Email ou senha inválidos. Por favor, tente novamente.',
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'Login bem-sucedido!',
+          description: 'Entrando no sistema...',
+          className: 'bg-primary text-primary-foreground',
+        })
+        // The useEffect will handle the redirection once 'user' state updates
+      }
+    } catch (err) {
+      console.error(err)
       toast({
-        title: 'Erro de Autenticação',
-        description: 'Email ou senha inválidos. Por favor, tente novamente.',
+        title: 'Erro Inesperado',
+        description: 'Ocorreu um erro ao tentar fazer login.',
         variant: 'destructive',
       })
-    } else {
-      toast({
-        title: 'Login bem-sucedido!',
-        description: 'Redirecionando...',
-        className: 'bg-primary text-primary-foreground',
-      })
-      // Navigation handled by useEffect
+    } finally {
+      setIsSubmitting(false)
     }
-    setIsLoading(false)
   }
 
-  if (loading) return null // Avoid flash of login form
+  // If initial auth check is running, show simple loading state or nothing
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  // If already logged in, we are redirecting, so rendering null avoids flicker
+  if (user) return null
 
   return (
     <div className="container flex items-center justify-center min-h-[calc(100vh-112px)] py-12">
-      <Card className="w-full max-w-sm animate-fade-in-up">
+      <Card className="w-full max-w-sm animate-fade-in-up shadow-lg">
         <CardHeader className="text-center">
           <div className="mx-auto bg-primary text-primary-foreground rounded-full h-16 w-16 flex items-center justify-center mb-4">
             <LogIn className="h-8 w-8" />
@@ -78,24 +102,38 @@ const Login = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isSubmitting}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Senha</Label>
+              </div>
               <Input
                 id="password"
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isSubmitting}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Entrando...' : 'Entrar'}
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Entrando...
+                </>
+              ) : (
+                'Entrar'
+              )}
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
+            <p className="text-center text-sm text-muted-foreground mt-4">
               Não tem uma conta?{' '}
-              <Link to="/register" className="underline hover:text-primary">
+              <Link
+                to="/register"
+                className="underline hover:text-primary transition-colors"
+              >
                 Cadastre-se
               </Link>
             </p>

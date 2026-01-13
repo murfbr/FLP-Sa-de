@@ -5,7 +5,6 @@ import {
   useState,
   ReactNode,
   useCallback,
-  useRef,
 } from 'react'
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
@@ -32,31 +31,23 @@ export const useAuth = () => {
   return context
 }
 
-// 5 seconds failsafe timeout
-const AUTH_TIMEOUT_MS = 5000
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [role, setRole] = useState<UserRole | null>(null)
   const [professionalId, setProfessionalId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const initializationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  const fetchUserRoleAndProfile = useCallback(
-    async (currentUser: User | null) => {
+  const fetchProfileAndRole = useCallback(
+    async (currentUser: User | null): Promise<void> => {
       if (!currentUser) {
-        console.log('AuthProvider: No user to fetch profile for.')
         setRole(null)
         setProfessionalId(null)
-        setLoading(false)
         return
       }
 
-      console.log('AuthProvider: Fetching profile for user', currentUser.id)
-
       try {
-        // Fetch Profile
+        // Fetch Profile for Role
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
@@ -67,13 +58,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.error('AuthProvider: Error fetching profile:', profileError)
         }
 
+        // Default to 'client' if no profile found (safe fallback)
         const userRole = (profileData?.role as UserRole) ?? 'client'
-        console.log('AuthProvider: Resolved role:', userRole)
         setRole(userRole)
 
-        // Check for professional ID if role is professional OR admin
+        // Fetch Professional ID if applicable
         if (userRole === 'professional' || userRole === 'admin') {
-          console.log('AuthProvider: Fetching professional ID...')
           const { data: professionalData, error: profError } = await supabase
             .from('professionals')
             .select('id')
@@ -86,22 +76,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               profError,
             )
           }
-
           setProfessionalId(professionalData?.id ?? null)
         } else {
           setProfessionalId(null)
         }
       } catch (error) {
-        console.error('AuthProvider: Unexpected error in auth fetch:', error)
-        setRole('client') // Fallback
+        console.error('AuthProvider: Unexpected error fetching profile:', error)
+        // Fallback to client to allow app to load at least
+        setRole('client')
         setProfessionalId(null)
-      } finally {
-        setLoading(false)
-        console.log('AuthProvider: Loading complete.')
-        if (initializationTimeoutRef.current) {
-          clearTimeout(initializationTimeoutRef.current)
-          initializationTimeoutRef.current = null
-        }
       }
     },
     [],
@@ -109,98 +92,83 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let mounted = true
-    console.log('AuthProvider: Initializing...')
 
-    // Start failsafe timeout
-    initializationTimeoutRef.current = setTimeout(() => {
-      if (loading && mounted) {
-        console.warn(
-          `AuthProvider: Initialization timeout of ${AUTH_TIMEOUT_MS}ms reached. Force releasing loading state.`,
-        )
-        setLoading(false)
-      }
-    }, AUTH_TIMEOUT_MS)
-
-    // Initial Session Check
-    const checkSession = async () => {
-      console.log('AuthProvider: Checking initial session...')
+    const initializeAuth = async () => {
+      console.log('AuthProvider: Initializing...')
       try {
+        // 1. Get initial session
         const {
           data: { session: initialSession },
-          error,
         } = await supabase.auth.getSession()
-
-        if (error) {
-          throw error
-        }
 
         if (mounted) {
           if (initialSession) {
-            console.log('AuthProvider: Initial session found.')
+            console.log('AuthProvider: Session found.')
             setSession(initialSession)
             setUser(initialSession.user)
-            await fetchUserRoleAndProfile(initialSession.user)
+            // 2. Fetch profile BEFORE setting loading to false
+            await fetchProfileAndRole(initialSession.user)
           } else {
-            console.log('AuthProvider: No initial session found.')
+            console.log('AuthProvider: No session found.')
             setSession(null)
             setUser(null)
             setRole(null)
             setProfessionalId(null)
-            setLoading(false)
-            if (initializationTimeoutRef.current) {
-              clearTimeout(initializationTimeoutRef.current)
-              initializationTimeoutRef.current = null
-            }
           }
         }
       } catch (error) {
-        console.error('AuthProvider: Session check failed:', error)
-        if (mounted) setLoading(false)
-        if (initializationTimeoutRef.current) {
-          clearTimeout(initializationTimeoutRef.current)
-          initializationTimeoutRef.current = null
+        console.error('AuthProvider: Initialization error:', error)
+      } finally {
+        if (mounted) {
+          setLoading(false)
+          console.log('AuthProvider: Initialization complete.')
         }
       }
     }
 
-    checkSession()
+    initializeAuth()
 
-    // Auth State Listener
+    // 3. Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, currentSession) => {
         if (!mounted) return
-        console.log(`AuthProvider: Auth event '${event}' detected.`)
+        console.log(`AuthProvider: Auth event '${event}'`)
 
-        setSession(currentSession)
-        const currentUser = currentSession?.user ?? null
-        setUser(currentUser)
-
-        if (
+        if (event === 'SIGNED_OUT') {
+          setSession(null)
+          setUser(null)
+          setRole(null)
+          setProfessionalId(null)
+          setLoading(false)
+        } else if (
           event === 'SIGNED_IN' ||
+          event === 'TOKEN_REFRESHED' ||
           event === 'INITIAL_SESSION' ||
           event === 'USER_UPDATED'
         ) {
-          setLoading(true)
-          await fetchUserRoleAndProfile(currentUser)
-        } else if (event === 'SIGNED_OUT') {
-          console.log('AuthProvider: User signed out.')
-          setLoading(false)
-          setRole(null)
-          setProfessionalId(null)
+          setSession(currentSession)
+          setUser(currentSession?.user ?? null)
+          // We must reload profile on sign in or user update
+          // Set loading true briefly if it's a critical change
+          if (event === 'SIGNED_IN') {
+            setLoading(true)
+            await fetchProfileAndRole(currentSession?.user ?? null)
+            if (mounted) setLoading(false)
+          } else {
+            // Background update for token refresh, don't block UI with loading
+            fetchProfileAndRole(currentSession?.user ?? null)
+          }
         }
       },
     )
 
     return () => {
       mounted = false
-      if (initializationTimeoutRef.current) {
-        clearTimeout(initializationTimeoutRef.current)
-      }
       subscription.unsubscribe()
     }
-  }, [fetchUserRoleAndProfile])
+  }, [fetchProfileAndRole])
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`
@@ -222,8 +190,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
-    setRole(null)
-    setProfessionalId(null)
+    if (!error) {
+      setSession(null)
+      setUser(null)
+      setRole(null)
+      setProfessionalId(null)
+    }
     return { error }
   }
 

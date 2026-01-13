@@ -6,12 +6,15 @@ import { useAuth } from '@/providers/AuthProvider'
 export default function Layout() {
   const { user, loading } = useAuth()
 
-  // Resilient Layout Architecture:
-  // Ensure we don't render the layout shell if there is no user data and we are not loading.
-  // This prevents child components from accessing a null user context.
-  // Although ProtectedRoute wraps this, this is a secondary safety check.
-  if (!loading && !user) {
-    return null
+  // Safety check: Layout should theoretically be protected by ProtectedRoute
+  // but if it renders while loading or without user, we want to handle it gracefully.
+
+  if (loading) {
+    return null // ProtectedRoute handles the loading spinner
+  }
+
+  if (!user) {
+    return null // ProtectedRoute handles redirect
   }
 
   return (
