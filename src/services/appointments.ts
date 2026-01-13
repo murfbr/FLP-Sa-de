@@ -8,6 +8,23 @@ export async function bookAppointment(
   clientPackageId?: string,
   isRecurring: boolean = false,
 ): Promise<{ data: { appointment_id: string } | null; error: any }> {
+  console.log('[AppointmentService] bookAppointment called with:', {
+    scheduleId,
+    clientId,
+    serviceId,
+    clientPackageId,
+    isRecurring,
+  })
+
+  // Basic validation before RPC
+  if (!scheduleId || !clientId || !serviceId) {
+    console.error('[AppointmentService] Missing required parameters')
+    return {
+      data: null,
+      error: { message: 'Parâmetros obrigatórios faltando.' },
+    }
+  }
+
   const { data, error } = await supabase.rpc('book_appointment', {
     p_schedule_id: scheduleId,
     p_client_id: clientId,
@@ -17,9 +34,11 @@ export async function bookAppointment(
   })
 
   if (error) {
+    console.error('[AppointmentService] RPC Error:', error)
     return { data: null, error }
   }
 
+  console.log('[AppointmentService] Booking successful, ID:', data)
   return { data: { appointment_id: data }, error: null }
 }
 

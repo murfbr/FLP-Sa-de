@@ -129,7 +129,9 @@ export const AppointmentFormDialog = ({
       professionalId: preselectedProfessionalId || '',
       date: initialDate || undefined,
       isRecurring: false,
-      scheduleId: '', // Will be set automatically in context mode or selected manually
+      scheduleId: '',
+      serviceId: '',
+      clientId: '',
     },
   })
 
@@ -163,7 +165,7 @@ export const AppointmentFormDialog = ({
 
       initializeForm()
     } else {
-      // Reset logic handled by react-hook-form reset if needed, but manual clean up is safer for complex state
+      // Reset logic
       form.reset({
         usePackage: true,
         professionalId: preselectedProfessionalId || '',
@@ -203,10 +205,8 @@ export const AppointmentFormDialog = ({
         const { data: servicePros } = await getProfessionalsByService(serviceId)
         availablePros = servicePros || []
 
-        // 2. Filter by date/time if already selected (Legacy logic)
+        // 2. Filter by date/time if already selected
         if (initialDate && !isSpecificTimeSlot) {
-          // Note: getAvailableProfessionalsForSlot checks schedule EXISTENCE, not vacancy specifically
-          // But kept for consistency with legacy manual flow behavior
           const { data: timePros } =
             await getAvailableProfessionalsForSlot(initialDate)
           if (timePros) {
@@ -241,7 +241,6 @@ export const AppointmentFormDialog = ({
         if (scheduleId) {
           form.setValue('scheduleId', scheduleId)
         } else {
-          // Should not happen if professionals list is filtered correctly
           toast({
             title: 'Erro',
             description: 'Horário não disponível para este profissional.',
@@ -317,7 +316,6 @@ export const AppointmentFormDialog = ({
             const slots = res.data || []
             setSchedules(slots)
 
-            // Auto select if matches initialDate time
             if (initialDate && initialDate.getDate() === date.getDate()) {
               const targetTime = formatInTimeZone(initialDate, 'HH:mm')
               const matchingSlot = slots.find(
@@ -354,25 +352,41 @@ export const AppointmentFormDialog = ({
         ? values.packageId
         : undefined
 
-    const { error } = await bookAppointment(
-      values.scheduleId,
-      values.clientId,
-      values.serviceId,
+    console.log('[AppointmentForm] Submitting booking request:', {
+      ...values,
       packageIdToUse,
-      values.isRecurring,
-    )
+    })
 
-    if (error) {
+    try {
+      const { error } = await bookAppointment(
+        values.scheduleId,
+        values.clientId,
+        values.serviceId,
+        packageIdToUse,
+        values.isRecurring,
+      )
+
+      if (error) {
+        console.error('[AppointmentForm] Error during booking:', error)
+        toast({
+          title: 'Erro ao agendar',
+          description: error.message || 'Falha ao processar agendamento.',
+          variant: 'destructive',
+        })
+      } else {
+        toast({ title: 'Agendamento criado com sucesso!' })
+        onAppointmentCreated()
+        onOpenChange(false)
+        form.reset()
+      }
+    } catch (err: any) {
+      console.error('[AppointmentForm] Unexpected error:', err)
       toast({
-        title: 'Erro ao agendar',
-        description: error.message,
+        title: 'Erro inesperado',
+        description:
+          err.message || 'Ocorreu um erro desconhecido ao tentar agendar.',
         variant: 'destructive',
       })
-    } else {
-      toast({ title: 'Agendamento criado com sucesso!' })
-      onAppointmentCreated()
-      onOpenChange(false)
-      form.reset()
     }
   }
 
@@ -711,8 +725,8 @@ export const AppointmentFormDialog = ({
                   (selectedService?.value_type === 'monthly' &&
                     !hasActiveSubscription) ||
                   form.formState.isSubmitting ||
-                  (!isSpecificTimeSlot && !form.watch('scheduleId')) || // Manual mode check
-                  (isSpecificTimeSlot && !form.watch('scheduleId')) // Context mode check (should be auto-filled)
+                  (!isSpecificTimeSlot && !form.watch('scheduleId')) ||
+                  (isSpecificTimeSlot && !form.watch('scheduleId'))
                 }
               >
                 {form.formState.isSubmitting ? (
