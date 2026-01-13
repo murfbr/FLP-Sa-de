@@ -2,7 +2,8 @@ import { ReactNode, useEffect } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
 import { UserRole } from '@/types'
-import { Loader2 } from 'lucide-react'
+import { Loader2, LogOut } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface ProtectedRouteProps {
   children: ReactNode
@@ -13,7 +14,7 @@ export const ProtectedRoute = ({
   children,
   allowedRoles,
 }: ProtectedRouteProps) => {
-  const { user, role, loading } = useAuth()
+  const { user, role, loading, signOut } = useAuth()
   const location = useLocation()
 
   useEffect(() => {
@@ -39,11 +40,26 @@ export const ProtectedRoute = ({
   // Blocks rendering until we are sure about auth state
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background space-y-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground animate-pulse text-sm">
-          Verificando credenciais...
-        </p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background space-y-6">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground animate-pulse text-sm text-center px-4">
+            Verificando credenciais e carregando perfil...
+          </p>
+        </div>
+
+        {/* Global Emergency Logout - Functional even during loading */}
+        <div className="mt-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => signOut()}
+            className="text-muted-foreground hover:text-destructive gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Cancelar e Sair
+          </Button>
+        </div>
       </div>
     )
   }

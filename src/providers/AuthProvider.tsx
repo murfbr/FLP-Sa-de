@@ -41,10 +41,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchProfileAndRole = useCallback(
     async (currentUser: User | null): Promise<void> => {
       console.log(
-        '[AuthDebug] fetchProfileAndRole: Fetching profile for user:',
+        '[AuthDebug] fetchProfileAndRole: Starting profile fetch for user:',
         currentUser?.id,
       )
       if (!currentUser) {
+        console.log(
+          '[AuthDebug] fetchProfileAndRole: No user provided. Clearing role.',
+        )
         setRole(null)
         setProfessionalId(null)
         return
@@ -52,6 +55,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       try {
         // Fetch Profile for Role
+        console.log(
+          '[AuthDebug] fetchProfileAndRole: Querying profiles table...',
+        )
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
@@ -60,21 +66,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (profileError) {
           console.error(
-            '[AuthDebug] fetchProfileAndRole: Error fetching profile:',
+            '[AuthDebug] fetchProfileAndRole: Database error fetching profile:',
             profileError,
           )
         }
 
-        // Default to 'client' if no profile found (safe fallback)
+        if (!profileData) {
+          console.warn(
+            '[AuthDebug] fetchProfileAndRole: No profile found for user. Using default role.',
+          )
+        } else {
+          console.log(
+            '[AuthDebug] fetchProfileAndRole: Profile found:',
+            profileData,
+          )
+        }
+
+        // Default to 'client' if no profile found or role is missing (safe fallback)
         const userRole = (profileData?.role as UserRole) ?? 'client'
         console.log(
-          '[AuthDebug] fetchProfileAndRole: Role determined:',
+          '[AuthDebug] fetchProfileAndRole: Determined Role:',
           userRole,
         )
         setRole(userRole)
 
         // Fetch Professional ID if applicable
         if (userRole === 'professional' || userRole === 'admin') {
+          console.log(
+            '[AuthDebug] fetchProfileAndRole: Fetching professional ID...',
+          )
           const { data: professionalData, error: profError } = await supabase
             .from('professionals')
             .select('id')
@@ -87,20 +107,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               profError,
             )
           }
-          setProfessionalId(professionalData?.id ?? null)
-          console.log(
-            '[AuthDebug] fetchProfileAndRole: Professional ID:',
-            professionalData?.id,
-          )
+
+          if (professionalData) {
+            console.log(
+              '[AuthDebug] fetchProfileAndRole: Professional ID found:',
+              professionalData.id,
+            )
+            setProfessionalId(professionalData.id)
+          } else {
+            console.warn(
+              '[AuthDebug] fetchProfileAndRole: No professional profile found for user with role',
+              userRole,
+            )
+            setProfessionalId(null)
+          }
         } else {
           setProfessionalId(null)
         }
       } catch (error) {
         console.error(
-          '[AuthDebug] fetchProfileAndRole: Unexpected error fetching profile:',
+          '[AuthDebug] fetchProfileAndRole: Unexpected execution error:',
           error,
         )
-        // Fallback to client to allow app to load at least
+        // Critical Fallback to client to allow app to load
         setRole('client')
         setProfessionalId(null)
       }
@@ -138,7 +167,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       } catch (error) {
-        console.error('[AuthDebug] AuthProvider: Initialization error:', error)
+        console.error(
+          '[AuthDebug] AuthProvider: Critical initialization error:',
+          error,
+        )
+        // Even on critical error, we must stop loading to show something (e.g. login or error page)
       } finally {
         if (mounted) {
           setLoading(false)
@@ -176,13 +209,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           // Force a loading state while we fetch the profile to prevent redirection loops
           setLoading(true)
-          await fetchProfileAndRole(currentSession?.user ?? null)
-          if (mounted) setLoading(false)
+          try {
+            await fetchProfileAndRole(currentSession?.user ?? null)
+          } catch (err) {
+            console.error(
+              '[AuthDebug] Error updating profile on auth change:',
+              err,
+            )
+          } finally {
+            if (mounted) setLoading(false)
+          }
         } else if (event === 'TOKEN_REFRESHED') {
           setSession(currentSession)
           setUser(currentSession?.user ?? null)
-          // Typically profile doesn't change on token refresh, but we can re-verify if needed
-          // For now, let's just ensure user state is fresh without blocking
+          // Profile refresh typically not needed on simple token refresh unless roles depend on claims
         }
       },
     )
