@@ -33,7 +33,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { CalendarIcon, CheckCircle, AlertCircle, Clock } from 'lucide-react'
+import { CalendarIcon, CheckCircle, AlertCircle } from 'lucide-react'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -50,15 +50,13 @@ import {
   getClientPackages,
   getClientSubscriptions,
 } from '@/services/clients'
-import {
-  getAllProfessionals,
-  getServicesByProfessional,
-} from '@/services/professionals'
+import { getProfessionalsByService } from '@/services/professionals'
 import {
   getFilteredAvailableSchedules,
   getAvailableProfessionalsForSlot,
 } from '@/services/schedules'
 import { getAvailableDatesForProfessional } from '@/services/availability'
+import { getAllServices } from '@/services/services'
 import { bookAppointment } from '@/services/appointments'
 import { AvailableSlots } from '../AvailableSlots'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -66,8 +64,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 const appointmentSchema = z.object({
   clientId: z.string().uuid('Selecione um cliente.'),
-  professionalId: z.string().uuid('Selecione um profissional.'),
   serviceId: z.string().uuid('Selecione um serviço.'),
+  professionalId: z.string().uuid('Selecione um profissional.'),
   date: z.date({ required_error: 'Selecione uma data.' }),
   scheduleId: z.string().uuid('Selecione um horário.'),
   usePackage: z.boolean().default(true),
@@ -98,11 +96,10 @@ export const AppointmentFormDialog = ({
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [availableDates, setAvailableDates] = useState<string[] | null>(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [isFilteredByTime, setIsFilteredByTime] = useState(false)
   const [isLoading, setIsLoading] = useState({
     clients: true,
-    professionals: true,
     services: false,
+    professionals: false,
     schedules: false,
     dates: false,
   })
@@ -124,86 +121,101 @@ export const AppointmentFormDialog = ({
   })
 
   const clientId = form.watch('clientId')
-  const professionalId = form.watch('professionalId')
   const serviceId = form.watch('serviceId')
+  const professionalId = form.watch('professionalId')
   const date = form.watch('date')
   const usePackage = form.watch('usePackage')
 
-  // Initialize form state
+  // Initialize form: Fetch Clients and Services
   useEffect(() => {
     if (isOpen) {
       const initializeForm = async () => {
-        setIsLoading((prev) => ({
-          ...prev,
-          clients: true,
-          professionals: true,
-        }))
+        setIsLoading((prev) => ({ ...prev, clients: true, services: true }))
 
-        const [clientRes, profRes] = await Promise.all([
-          getAllClients({ status: 'active' }),
-          getAllProfessionals(),
-        ])
+        // Fetch Clients
+        const { data: clientsData } = await getAllClients({ status: 'active' })
+        setClients(clientsData || [])
 
-        setClients(clientRes.data || [])
-        let allProfessionals = profRes.data || []
+        // Fetch Services
+        const { data: servicesData } = await getAllServices()
+        setServices(servicesData || [])
 
-        if (
-          initialDate &&
-          (initialDate.getHours() !== 0 || initialDate.getMinutes() !== 0)
-        ) {
-          setIsLoading((prev) => ({ ...prev, professionals: true }))
-          const { data: availablePros } =
-            await getAvailableProfessionalsForSlot(initialDate)
+        setIsLoading((prev) => ({ ...prev, clients: false, services: false }))
 
-          if (availablePros && availablePros.length > 0) {
-            setProfessionals(availablePros)
-            setIsFilteredByTime(true)
-
-            if (!preselectedProfessionalId && availablePros.length === 1) {
-              form.setValue('professionalId', availablePros[0].id)
-            }
-          } else {
-            setProfessionals(allProfessionals)
-            setIsFilteredByTime(false)
-          }
-        } else {
-          setProfessionals(allProfessionals)
-          setIsFilteredByTime(false)
-        }
-
-        if (preselectedProfessionalId) {
-          form.setValue('professionalId', preselectedProfessionalId)
-        }
         if (initialDate) {
           form.setValue('date', initialDate)
           setCurrentMonth(initialDate)
         }
-
-        setIsLoading((prev) => ({
-          ...prev,
-          clients: false,
-          professionals: false,
-        }))
       }
 
       initializeForm()
     } else {
-      setIsFilteredByTime(false)
+      // Reset form state on close if needed (react-hook-form reset handles mostly)
     }
-  }, [isOpen, initialDate, preselectedProfessionalId, form])
+  }, [isOpen, initialDate, form])
 
-  // Fetch services when professional changes
+  // Fetch Professionals when Service Changes
   useEffect(() => {
-    if (professionalId) {
-      setIsLoading((prev) => ({ ...prev, services: true }))
-      getServicesByProfessional(professionalId).then((res) => {
-        setServices(res.data || [])
-        setIsLoading((prev) => ({ ...prev, services: false }))
-      })
-    } else {
-      setServices([])
+    const fetchProfessionals = async () => {
+      if (!serviceId) {
+        setProfessionals([])
+        return
+      }
+
+      setIsLoading((prev) => ({ ...prev, professionals: true }))
+
+      // 1. Get professionals who perform this service
+      const { data: servicePros } = await getProfessionalsByService(serviceId)
+
+      // 2. If we have a date/time (initialDate), filter availability
+      let availablePros = servicePros || []
+
+      if (initialDate) {
+        const { data: timePros } =
+          await getAvailableProfessionalsForSlot(initialDate)
+        if (timePros) {
+          const timeProsIds = new Set(timePros.map((p) => p.id))
+          availablePros = availablePros.filter((p) => timeProsIds.has(p.id))
+        } else {
+          // If checking fails, maybe fallback to all? Or empty?
+          // Assuming empty if check runs but returns nothing implies no one available.
+          // availablePros = []
+        }
+      }
+
+      setProfessionals(availablePros)
+      setIsLoading((prev) => ({ ...prev, professionals: false }))
+
+      // Logic to preserve or reset professional selection
+      const currentProfId = form.getValues('professionalId')
+
+      if (preselectedProfessionalId) {
+        // If view has a fixed professional, ensure they are in the list
+        const isAvailable = availablePros.some(
+          (p) => p.id === preselectedProfessionalId,
+        )
+        if (isAvailable) {
+          form.setValue('professionalId', preselectedProfessionalId)
+        } else {
+          // Even if filtered out by time check, if we are in "Professional View", we might want to keep them?
+          // But if they are not available at that time, we shouldn't allow booking.
+          // However, user might change date? But Date is fixed by click.
+          // So if not available, unselect.
+          if (currentProfId === preselectedProfessionalId) {
+            form.setValue('professionalId', '')
+          }
+        }
+      } else {
+        // If current selection is no longer valid, reset
+        const isValid = availablePros.some((p) => p.id === currentProfId)
+        if (!isValid) {
+          form.setValue('professionalId', '')
+        }
+      }
     }
-  }, [professionalId])
+
+    fetchProfessionals()
+  }, [serviceId, initialDate, preselectedProfessionalId, form])
 
   // Check entitlements
   useEffect(() => {
@@ -238,7 +250,7 @@ export const AppointmentFormDialog = ({
     checkEntitlements()
   }, [clientId, serviceId, services, form])
 
-  // Fetch available dates
+  // Fetch available dates (for date picker validation)
   useEffect(() => {
     if (professionalId && serviceId) {
       setIsLoading((prev) => ({ ...prev, dates: true }))
@@ -254,7 +266,7 @@ export const AppointmentFormDialog = ({
     }
   }, [professionalId, serviceId, currentMonth])
 
-  // Fetch schedules
+  // Fetch schedules and Auto-select slot
   useEffect(() => {
     if (professionalId && serviceId && date) {
       setIsLoading((prev) => ({ ...prev, schedules: true }))
@@ -262,18 +274,14 @@ export const AppointmentFormDialog = ({
         (res) => {
           if (res.error) {
             console.error('Error fetching schedules:', res.error)
-            toast({
-              title: 'Erro ao buscar horários',
-              description: 'Não foi possível carregar os horários disponíveis.',
-              variant: 'destructive',
-            })
             setSchedules([])
           } else {
-            setSchedules(res.data || [])
+            const slots = res.data || []
+            setSchedules(slots)
 
             if (initialDate && initialDate.getDate() === date.getDate()) {
               const targetTime = formatInTimeZone(initialDate, 'HH:mm')
-              const matchingSlot = res.data?.find(
+              const matchingSlot = slots.find(
                 (s) => formatInTimeZone(s.start_time, 'HH:mm') === targetTime,
               )
               if (matchingSlot) {
@@ -287,7 +295,7 @@ export const AppointmentFormDialog = ({
     } else {
       setSchedules([])
     }
-  }, [professionalId, serviceId, date, form, initialDate, toast])
+  }, [professionalId, serviceId, date, form, initialDate])
 
   const selectedService = services.find((s) => s.id === serviceId)
 
@@ -328,33 +336,18 @@ export const AppointmentFormDialog = ({
     }
   }
 
-  const handleClearTimeFilter = async () => {
-    setIsFilteredByTime(false)
-    setIsLoading((prev) => ({ ...prev, professionals: true }))
-    const { data } = await getAllProfessionals()
-    setProfessionals(data || [])
-    setIsLoading((prev) => ({ ...prev, professionals: false }))
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Agendamento</DialogTitle>
           <DialogDescription>
-            {isFilteredByTime ? (
-              <span className="text-primary flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                Exibindo apenas profissionais disponíveis às{' '}
-                {initialDate && formatInTimeZone(initialDate, 'HH:mm')}.
-              </span>
-            ) : (
-              'Preencha os detalhes para criar um novo agendamento.'
-            )}
+            Selecione o serviço e o profissional para confirmar o horário.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* 1. Client Selection */}
             <FormField
               control={form.control}
               name="clientId"
@@ -383,54 +376,7 @@ export const AppointmentFormDialog = ({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="professionalId"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex justify-between items-center">
-                    <FormLabel>Profissional</FormLabel>
-                    {isFilteredByTime && (
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="h-auto p-0 text-xs"
-                        onClick={handleClearTimeFilter}
-                        type="button"
-                      >
-                        Mostrar todos
-                      </Button>
-                    )}
-                  </div>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={isLoading.professionals}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o profissional" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {professionals.length === 0 ? (
-                        <div className="p-2 text-sm text-muted-foreground text-center">
-                          Nenhum profissional disponível
-                        </div>
-                      ) : (
-                        professionals.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+            {/* 2. Service Selection (First Step of Flow) */}
             <FormField
               control={form.control}
               name="serviceId"
@@ -438,9 +384,13 @@ export const AppointmentFormDialog = ({
                 <FormItem>
                   <FormLabel>Serviço</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
+                    onValueChange={(val) => {
+                      field.onChange(val)
+                      // Reset professional when service changes
+                      form.setValue('professionalId', '')
+                    }}
                     defaultValue={field.value}
-                    disabled={!professionalId || isLoading.services}
+                    disabled={isLoading.services}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -460,6 +410,46 @@ export const AppointmentFormDialog = ({
               )}
             />
 
+            {/* 3. Professional Selection (Filtered by Service) */}
+            <FormField
+              control={form.control}
+              name="professionalId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Profissional</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={!serviceId || isLoading.professionals}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o profissional" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {professionals.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground text-center">
+                          {serviceId
+                            ? 'Nenhum profissional disponível'
+                            : 'Selecione um serviço primeiro'}
+                        </div>
+                      ) : (
+                        professionals.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Payment/Package Options */}
             {!checkingEntitlements &&
               clientId &&
               serviceId &&
@@ -556,56 +546,59 @@ export const AppointmentFormDialog = ({
                 </div>
               )}
 
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Data</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={'outline'}
-                          className={cn(
-                            'w-full pl-3 text-left font-normal',
-                            !field.value && 'text-muted-foreground',
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, 'PPP', { locale: ptBR })
-                          ) : (
-                            <span>Escolha uma data</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        month={currentMonth}
-                        onMonthChange={setCurrentMonth}
-                        disabled={(day) => {
-                          if (day < new Date(new Date().setHours(0, 0, 0, 0)))
-                            return true
-                          if (professionalId && serviceId && availableDates) {
-                            return !availableDates.includes(
-                              format(day, 'yyyy-MM-dd'),
-                            )
-                          }
-                          return false
-                        }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* 4. Date and Time (Confirmation) */}
+            <div className="flex gap-4">
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormLabel>Data</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn(
+                              'w-full pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground',
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, 'PPP', { locale: ptBR })
+                            ) : (
+                              <span>Escolha uma data</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          month={currentMonth}
+                          onMonthChange={setCurrentMonth}
+                          disabled={(day) => {
+                            if (day < new Date(new Date().setHours(0, 0, 0, 0)))
+                              return true
+                            if (professionalId && serviceId && availableDates) {
+                              return !availableDates.includes(
+                                format(day, 'yyyy-MM-dd'),
+                              )
+                            }
+                            return false
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="scheduleId"
@@ -623,6 +616,7 @@ export const AppointmentFormDialog = ({
                 </FormItem>
               )}
             />
+
             <DialogFooter>
               <Button
                 type="submit"
@@ -632,7 +626,7 @@ export const AppointmentFormDialog = ({
                   form.formState.isSubmitting
                 }
               >
-                {form.formState.isSubmitting ? 'Agendando...' : 'Agendar'}
+                {form.formState.isSubmitting ? 'Agendando...' : 'Confirmar'}
               </Button>
             </DialogFooter>
           </form>

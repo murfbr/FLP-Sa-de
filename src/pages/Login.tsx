@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
 import { Button } from '@/components/ui/button'
@@ -18,12 +18,19 @@ const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn, user, loading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
 
   const from = location.state?.from?.pathname || '/'
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && user) {
+      navigate(from === '/login' ? '/' : from, { replace: true })
+    }
+  }, [user, loading, navigate, from])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,10 +48,12 @@ const Login = () => {
         description: 'Redirecionando...',
         className: 'bg-primary text-primary-foreground',
       })
-      navigate(from, { replace: true })
+      // Navigation handled by useEffect
     }
     setIsLoading(false)
   }
+
+  if (loading) return null // Avoid flash of login form
 
   return (
     <div className="container flex items-center justify-center min-h-[calc(100vh-112px)] py-12">

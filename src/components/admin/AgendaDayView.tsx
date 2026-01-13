@@ -199,13 +199,12 @@ export const AgendaDayView = ({
                       }}
                     >
                       <div className="flex justify-between items-start font-bold">
-                        <span className="truncate">{appt.clients.name}</span>
+                        <span className="truncate">
+                          {appt.clients.name} - {appt.services.name}
+                        </span>
                         <span className="font-mono text-xs opacity-75 shrink-0 ml-1">
                           {formatInTimeZone(appt.schedules.start_time, 'HH:mm')}
                         </span>
-                      </div>
-                      <div className="text-xs opacity-90 mt-1 truncate">
-                        {appt.services.name}
                       </div>
                     </div>
                   </div>

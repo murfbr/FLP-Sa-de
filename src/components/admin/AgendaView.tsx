@@ -5,11 +5,9 @@ import {
   Calendar,
   View,
   Columns,
-  PlusCircle,
   RefreshCw,
   PlayCircle,
   Loader2,
-  Filter,
 } from 'lucide-react'
 import { AgendaListView } from './AgendaListView'
 import { AgendaCalendarView } from './AgendaCalendarView'
@@ -48,7 +46,7 @@ import { startOfMonth, endOfMonth } from 'date-fns'
 export type ViewMode = 'list' | 'month' | 'week' | 'day'
 
 export const AgendaView = () => {
-  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [viewMode, setViewMode] = useState<ViewMode>('week')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedAppointment, setSelectedAppointment] =
@@ -92,11 +90,6 @@ export const AgendaView = () => {
 
   const handleTimeSlotClick = (date: Date) => {
     setQuickCreateDate(date)
-    setIsFormOpen(true)
-  }
-
-  const handleOpenForm = () => {
-    setQuickCreateDate(new Date())
     setIsFormOpen(true)
   }
 
@@ -203,11 +196,6 @@ export const AgendaView = () => {
       <div className="space-y-4">
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
           <div className="flex flex-wrap gap-2 w-full xl:w-auto items-center">
-            <Button onClick={handleOpenForm} className="flex-1 sm:flex-none">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Novo Agendamento
-            </Button>
-
             <Select
               value={selectedProfessional}
               onValueChange={setSelectedProfessional}
