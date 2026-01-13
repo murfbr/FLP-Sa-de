@@ -1,8 +1,8 @@
-import { ReactNode, useEffect } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
 import { UserRole } from '@/types'
-import { Loader2, LogOut } from 'lucide-react'
+import { Loader2, LogOut, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ProtectedRouteProps {
@@ -16,10 +16,24 @@ export const ProtectedRoute = ({
 }: ProtectedRouteProps) => {
   const { user, role, loading, signOut } = useAuth()
   const location = useLocation()
+  const [showLongLoadingMessage, setShowLongLoadingMessage] = useState(false)
+
+  // Failsafe timer for visual feedback if loading takes > 2 seconds
+  useEffect(() => {
+    let timer: NodeJS.Timeout
+    if (loading) {
+      timer = setTimeout(() => {
+        setShowLongLoadingMessage(true)
+      }, 2000)
+    } else {
+      setShowLongLoadingMessage(false)
+    }
+    return () => clearTimeout(timer)
+  }, [loading])
 
   useEffect(() => {
     if (loading) {
-      console.log('[AuthDebug] ProtectedRoute: Auth is loading...')
+      // Just logging, waiting for loading to finish
     } else if (!user) {
       console.log(
         '[AuthDebug] ProtectedRoute: No user found, redirecting to login. Location:',
@@ -37,14 +51,20 @@ export const ProtectedRoute = ({
   }, [loading, user, role, location, allowedRoles])
 
   // 1. Loading State
-  // Blocks rendering until we are sure about auth state
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background space-y-6">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background space-y-6 p-4">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-muted-foreground animate-pulse text-sm text-center px-4">
-            Verificando credenciais e carregando perfil...
+          <p className="text-muted-foreground animate-pulse text-sm text-center">
+            {showLongLoadingMessage ? (
+              <span className="flex items-center gap-2 text-orange-600">
+                <AlertTriangle className="h-4 w-4" />A conexão está lenta,
+                aguarde...
+              </span>
+            ) : (
+              'Verificando credenciais e carregando perfil...'
+            )}
           </p>
         </div>
 

@@ -5,6 +5,7 @@ import {
   useState,
   ReactNode,
   useCallback,
+  useRef,
 } from 'react'
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
@@ -23,6 +24,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const PROFILE_FETCH_TIMEOUT_MS = 5000
+
 export const useAuth = () => {
   const context = useContext(AuthContext)
   if (context === undefined) {
@@ -38,64 +41,91 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [professionalId, setProfessionalId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Use a ref to track mounting to avoid state updates on unmounted component
+  // in complex async flows
+  const isMounted = useRef(true)
+
+  useEffect(() => {
+    isMounted.current = true
+    return () => {
+      isMounted.current = false
+    }
+  }, [])
+
   const fetchProfileAndRole = useCallback(
     async (currentUser: User | null): Promise<void> => {
+      const startTime = performance.now()
+      const logPrefix = `[AuthDebug] fetchProfileAndRole (${currentUser?.id?.slice(0, 6)}):`
+
       console.log(
-        '[AuthDebug] fetchProfileAndRole: Starting profile fetch for user:',
-        currentUser?.id,
+        `${logPrefix} Starting profile fetch at ${new Date().toISOString()}`,
       )
+
       if (!currentUser) {
-        console.log(
-          '[AuthDebug] fetchProfileAndRole: No user provided. Clearing role.',
-        )
-        setRole(null)
-        setProfessionalId(null)
+        console.log(`${logPrefix} No user provided. Clearing role.`)
+        if (isMounted.current) {
+          setRole(null)
+          setProfessionalId(null)
+        }
         return
       }
 
+      // Default safe fallback
+      let resolvedRole: UserRole = 'client'
+      let resolvedProfId: string | null = null
+
       try {
-        // Fetch Profile for Role
-        console.log(
-          '[AuthDebug] fetchProfileAndRole: Querying profiles table...',
-        )
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', currentUser.id)
-          .maybeSingle()
+        console.log(`${logPrefix} Initiating DB query for profile...`)
+        const queryStart = performance.now()
 
-        if (profileError) {
-          console.error(
-            '[AuthDebug] fetchProfileAndRole: Database error fetching profile:',
-            profileError,
-          )
+        // TIMEOUT PROMISE
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(
+              new Error(
+                `Profile fetch timeout exceeded (${PROFILE_FETCH_TIMEOUT_MS}ms)`,
+              ),
+            )
+          }, PROFILE_FETCH_TIMEOUT_MS)
+        })
+
+        // DATA PROMISE - Profile
+        const profileQuery = async () => {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', currentUser.id)
+            .maybeSingle()
+
+          if (error) throw error
+          return data
         }
 
-        if (!profileData) {
-          console.warn(
-            '[AuthDebug] fetchProfileAndRole: No profile found for user. Using default role.',
-          )
+        // RACE: Profile Query vs Timeout
+        const profileData = (await Promise.race([
+          profileQuery(),
+          timeoutPromise,
+        ])) as { role: string } | null
+
+        const queryEnd = performance.now()
+        console.log(
+          `${logPrefix} Profile Query finished in ${(queryEnd - queryStart).toFixed(2)}ms`,
+        )
+
+        if (profileData) {
+          resolvedRole = (profileData.role as UserRole) ?? 'client'
+          console.log(`${logPrefix} Role resolved to: ${resolvedRole}`)
         } else {
-          console.log(
-            '[AuthDebug] fetchProfileAndRole: Profile found:',
-            profileData,
+          console.warn(
+            `${logPrefix} No profile record found. Defaulting to 'client'.`,
           )
         }
 
-        // Default to 'client' if no profile found or role is missing (safe fallback)
-        const userRole = (profileData?.role as UserRole) ?? 'client'
-        console.log(
-          '[AuthDebug] fetchProfileAndRole: Determined Role:',
-          userRole,
-        )
-        setRole(userRole)
-
-        // Fetch Professional ID if applicable
-        if (userRole === 'professional' || userRole === 'admin') {
-          console.log(
-            '[AuthDebug] fetchProfileAndRole: Fetching professional ID...',
-          )
-          const { data: professionalData, error: profError } = await supabase
+        // Secondary fetch for professional ID if needed
+        // Only run if we are still within reasonable time (simplification: just run it, but catch errors)
+        if (resolvedRole === 'professional' || resolvedRole === 'admin') {
+          console.log(`${logPrefix} Fetching professional ID...`)
+          const { data: profData, error: profError } = await supabase
             .from('professionals')
             .select('id')
             .eq('user_id', currentUser.id)
@@ -103,63 +133,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           if (profError) {
             console.error(
-              '[AuthDebug] fetchProfileAndRole: Error fetching professional:',
+              `${logPrefix} Error fetching professional ID:`,
               profError,
             )
-          }
-
-          if (professionalData) {
-            console.log(
-              '[AuthDebug] fetchProfileAndRole: Professional ID found:',
-              professionalData.id,
-            )
-            setProfessionalId(professionalData.id)
+          } else if (profData) {
+            resolvedProfId = profData.id
+            console.log(`${logPrefix} Professional ID found: ${profData.id}`)
           } else {
             console.warn(
-              '[AuthDebug] fetchProfileAndRole: No professional profile found for user with role',
-              userRole,
+              `${logPrefix} No professional record found for role ${resolvedRole}`,
             )
-            setProfessionalId(null)
           }
-        } else {
-          setProfessionalId(null)
         }
-      } catch (error) {
+      } catch (error: any) {
+        const errorTime = performance.now()
         console.error(
-          '[AuthDebug] fetchProfileAndRole: Unexpected execution error:',
+          `${logPrefix} FAILED or TIMED OUT after ${(errorTime - startTime).toFixed(2)}ms. Using fallback. Error:`,
           error,
         )
-        // Critical Fallback to client to allow app to load
-        setRole('client')
-        setProfessionalId(null)
+        // resolvedRole remains 'client' (fallback)
+      } finally {
+        const endTime = performance.now()
+        console.log(
+          `${logPrefix} Completed total flow in ${(endTime - startTime).toFixed(2)}ms`,
+        )
+
+        if (isMounted.current) {
+          setRole(resolvedRole)
+          setProfessionalId(resolvedProfId)
+        }
       }
     },
     [],
   )
 
   useEffect(() => {
-    let mounted = true
     console.log('[AuthDebug] AuthProvider: Initializing...')
 
     const initializeAuth = async () => {
       try {
-        // 1. Get initial session
         const {
           data: { session: initialSession },
         } = await supabase.auth.getSession()
 
-        if (mounted) {
+        if (isMounted.current) {
           if (initialSession) {
-            console.log(
-              '[AuthDebug] AuthProvider: Initial session found for:',
-              initialSession.user.email,
-            )
+            console.log('[AuthDebug] AuthProvider: Initial session found.')
             setSession(initialSession)
             setUser(initialSession.user)
-            // 2. Fetch profile BEFORE setting loading to false
             await fetchProfileAndRole(initialSession.user)
           } else {
-            console.log('[AuthDebug] AuthProvider: No initial session found.')
+            console.log('[AuthDebug] AuthProvider: No initial session.')
             setSession(null)
             setUser(null)
             setRole(null)
@@ -171,43 +195,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           '[AuthDebug] AuthProvider: Critical initialization error:',
           error,
         )
-        // Even on critical error, we must stop loading to show something (e.g. login or error page)
       } finally {
-        if (mounted) {
-          setLoading(false)
+        if (isMounted.current) {
           console.log(
-            '[AuthDebug] AuthProvider: Initialization complete. Loading set to false.',
+            '[AuthDebug] AuthProvider: Initialization done. Setting loading=false.',
           )
+          setLoading(false)
         }
       }
     }
 
     initializeAuth()
 
-    // 3. Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, currentSession) => {
-        if (!mounted) return
+        if (!isMounted.current) return
         console.log(`[AuthDebug] AuthProvider: Auth event '${event}'`)
 
         if (event === 'SIGNED_OUT') {
-          console.log('[AuthDebug] Handling SIGNED_OUT...')
           setSession(null)
           setUser(null)
           setRole(null)
           setProfessionalId(null)
           setLoading(false)
         } else if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-          console.log(
-            '[AuthDebug] Handling SIGNED_IN/USER_UPDATED. User:',
-            currentSession?.user.email,
-          )
           setSession(currentSession)
           setUser(currentSession?.user ?? null)
 
-          // Force a loading state while we fetch the profile to prevent redirection loops
+          // Only show loading if we are actually switching users or signing in
           setLoading(true)
           try {
             await fetchProfileAndRole(currentSession?.user ?? null)
@@ -217,18 +234,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               err,
             )
           } finally {
-            if (mounted) setLoading(false)
+            if (isMounted.current) setLoading(false)
           }
         } else if (event === 'TOKEN_REFRESHED') {
           setSession(currentSession)
           setUser(currentSession?.user ?? null)
-          // Profile refresh typically not needed on simple token refresh unless roles depend on claims
         }
       },
     )
 
     return () => {
-      mounted = false
       subscription.unsubscribe()
     }
   }, [fetchProfileAndRole])
@@ -244,32 +259,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signIn = async (email: string, password: string) => {
-    console.log('[AuthDebug] signIn: Attempting login for', email)
+    console.log('[AuthDebug] signIn: Attempting login...')
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
-    if (error) {
-      console.error('[AuthDebug] signIn: Error:', error.message)
-    } else {
-      console.log('[AuthDebug] signIn: Success')
-    }
     return { error }
   }
 
   const signOut = async () => {
-    console.log('[AuthDebug] signOut: Signing out...')
-    const { error } = await supabase.auth.signOut()
-    if (!error) {
+    console.log('[AuthDebug] signOut: Immediate cleanup requested.')
+
+    // Immediate state cleanup to unblock UI
+    if (isMounted.current) {
       setSession(null)
       setUser(null)
       setRole(null)
       setProfessionalId(null)
-      console.log('[AuthDebug] signOut: User signed out successfully.')
-    } else {
-      console.error('[AuthDebug] signOut: Error signing out:', error.message)
+      setLoading(false)
     }
-    return { error }
+
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error)
+        console.error('[AuthDebug] signOut: Supabase error:', error.message)
+      return { error }
+    } catch (e) {
+      console.error('[AuthDebug] signOut: Exception:', e)
+      return { error: e }
+    }
   }
 
   const value = {
