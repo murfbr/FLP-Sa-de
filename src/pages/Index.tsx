@@ -10,23 +10,37 @@ const Index = () => {
   useEffect(() => {
     // Only decide redirect when strictly done loading
     if (!loading) {
+      console.log(
+        '[AuthDebug] Index: Checking redirection logic. User:',
+        user?.email,
+        'Role:',
+        role,
+      )
       if (!user) {
+        console.log('[AuthDebug] Index: No user, redirecting to /login')
         navigate('/login', { replace: true })
       } else {
         // Authenticated logic
+        console.log('[AuthDebug] Index: Authenticated. Role is:', role)
         switch (role) {
           case 'admin':
+            console.log('[AuthDebug] Index: Redirecting to /admin')
             navigate('/admin', { replace: true })
             break
           case 'professional':
+            console.log('[AuthDebug] Index: Redirecting to /profissional')
             navigate('/profissional', { replace: true })
             break
           case 'client':
+            console.log(
+              '[AuthDebug] Index: Redirecting to /cliente-indisponivel',
+            )
             navigate('/cliente-indisponivel', { replace: true })
             break
           default:
-            // If user exists but role is somehow null or unknown, fallback to login or an error page
-            // Ideally role shouldn't be null if user is set (handled in AuthProvider)
+            console.warn(
+              '[AuthDebug] Index: Unknown role, redirecting to /login',
+            )
             navigate('/login', { replace: true })
             break
         }

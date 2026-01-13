@@ -30,6 +30,10 @@ const Login = () => {
     if (!loading && user) {
       // Avoid redirecting to login page itself
       const destination = from === '/login' ? '/' : from
+      console.log(
+        '[AuthDebug] Login: User already authenticated, redirecting to:',
+        destination,
+      )
       navigate(destination, { replace: true })
     }
   }, [user, loading, navigate, from])

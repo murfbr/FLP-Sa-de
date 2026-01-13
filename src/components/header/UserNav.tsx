@@ -18,8 +18,10 @@ export const UserNav = () => {
   const navigate = useNavigate()
 
   const handleSignOut = async () => {
+    console.log('[AuthDebug] UserNav: Triggering sign out...')
     await signOut()
-    navigate('/')
+    console.log('[AuthDebug] UserNav: Sign out complete, navigating to login.')
+    navigate('/login')
   }
 
   const getInitials = (email: string) => {

@@ -15,8 +15,12 @@ export const MobileNav = () => {
   const navigate = useNavigate()
 
   const handleSignOut = async () => {
+    console.log('[AuthDebug] MobileNav: Triggering sign out...')
     await signOut()
-    navigate('/')
+    console.log(
+      '[AuthDebug] MobileNav: Sign out complete, navigating to login.',
+    )
+    navigate('/login')
   }
 
   const handleNavigate = (path: string) => {

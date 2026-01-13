@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactNode, useEffect } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
 import { UserRole } from '@/types'
@@ -16,6 +16,25 @@ export const ProtectedRoute = ({
   const { user, role, loading } = useAuth()
   const location = useLocation()
 
+  useEffect(() => {
+    if (loading) {
+      console.log('[AuthDebug] ProtectedRoute: Auth is loading...')
+    } else if (!user) {
+      console.log(
+        '[AuthDebug] ProtectedRoute: No user found, redirecting to login. Location:',
+        location.pathname,
+      )
+    } else if (allowedRoles && role && !allowedRoles.includes(role)) {
+      console.log(
+        `[AuthDebug] ProtectedRoute: Access denied for role ${role} at ${location.pathname}`,
+      )
+    } else {
+      console.log(
+        `[AuthDebug] ProtectedRoute: Access granted to ${location.pathname} for ${user?.email} (${role})`,
+      )
+    }
+  }, [loading, user, role, location, allowedRoles])
+
   // 1. Loading State
   // Blocks rendering until we are sure about auth state
   if (loading) {
@@ -23,7 +42,7 @@ export const ProtectedRoute = ({
       <div className="flex flex-col items-center justify-center min-h-screen bg-background space-y-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
         <p className="text-muted-foreground animate-pulse text-sm">
-          Carregando...
+          Verificando credenciais...
         </p>
       </div>
     )

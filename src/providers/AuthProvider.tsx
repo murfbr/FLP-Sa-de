@@ -40,6 +40,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchProfileAndRole = useCallback(
     async (currentUser: User | null): Promise<void> => {
+      console.log(
+        '[AuthDebug] fetchProfileAndRole: Fetching profile for user:',
+        currentUser?.id,
+      )
       if (!currentUser) {
         setRole(null)
         setProfessionalId(null)
@@ -55,11 +59,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .maybeSingle()
 
         if (profileError) {
-          console.error('AuthProvider: Error fetching profile:', profileError)
+          console.error(
+            '[AuthDebug] fetchProfileAndRole: Error fetching profile:',
+            profileError,
+          )
         }
 
         // Default to 'client' if no profile found (safe fallback)
         const userRole = (profileData?.role as UserRole) ?? 'client'
+        console.log(
+          '[AuthDebug] fetchProfileAndRole: Role determined:',
+          userRole,
+        )
         setRole(userRole)
 
         // Fetch Professional ID if applicable
@@ -72,16 +83,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           if (profError) {
             console.error(
-              'AuthProvider: Error fetching professional:',
+              '[AuthDebug] fetchProfileAndRole: Error fetching professional:',
               profError,
             )
           }
           setProfessionalId(professionalData?.id ?? null)
+          console.log(
+            '[AuthDebug] fetchProfileAndRole: Professional ID:',
+            professionalData?.id,
+          )
         } else {
           setProfessionalId(null)
         }
       } catch (error) {
-        console.error('AuthProvider: Unexpected error fetching profile:', error)
+        console.error(
+          '[AuthDebug] fetchProfileAndRole: Unexpected error fetching profile:',
+          error,
+        )
         // Fallback to client to allow app to load at least
         setRole('client')
         setProfessionalId(null)
@@ -92,9 +110,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let mounted = true
+    console.log('[AuthDebug] AuthProvider: Initializing...')
 
     const initializeAuth = async () => {
-      console.log('AuthProvider: Initializing...')
       try {
         // 1. Get initial session
         const {
@@ -103,13 +121,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (mounted) {
           if (initialSession) {
-            console.log('AuthProvider: Session found.')
+            console.log(
+              '[AuthDebug] AuthProvider: Initial session found for:',
+              initialSession.user.email,
+            )
             setSession(initialSession)
             setUser(initialSession.user)
             // 2. Fetch profile BEFORE setting loading to false
             await fetchProfileAndRole(initialSession.user)
           } else {
-            console.log('AuthProvider: No session found.')
+            console.log('[AuthDebug] AuthProvider: No initial session found.')
             setSession(null)
             setUser(null)
             setRole(null)
@@ -117,11 +138,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       } catch (error) {
-        console.error('AuthProvider: Initialization error:', error)
+        console.error('[AuthDebug] AuthProvider: Initialization error:', error)
       } finally {
         if (mounted) {
           setLoading(false)
-          console.log('AuthProvider: Initialization complete.')
+          console.log(
+            '[AuthDebug] AuthProvider: Initialization complete. Loading set to false.',
+          )
         }
       }
     }
@@ -134,32 +157,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, currentSession) => {
         if (!mounted) return
-        console.log(`AuthProvider: Auth event '${event}'`)
+        console.log(`[AuthDebug] AuthProvider: Auth event '${event}'`)
 
         if (event === 'SIGNED_OUT') {
+          console.log('[AuthDebug] Handling SIGNED_OUT...')
           setSession(null)
           setUser(null)
           setRole(null)
           setProfessionalId(null)
           setLoading(false)
-        } else if (
-          event === 'SIGNED_IN' ||
-          event === 'TOKEN_REFRESHED' ||
-          event === 'INITIAL_SESSION' ||
-          event === 'USER_UPDATED'
-        ) {
+        } else if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          console.log(
+            '[AuthDebug] Handling SIGNED_IN/USER_UPDATED. User:',
+            currentSession?.user.email,
+          )
           setSession(currentSession)
           setUser(currentSession?.user ?? null)
-          // We must reload profile on sign in or user update
-          // Set loading true briefly if it's a critical change
-          if (event === 'SIGNED_IN') {
-            setLoading(true)
-            await fetchProfileAndRole(currentSession?.user ?? null)
-            if (mounted) setLoading(false)
-          } else {
-            // Background update for token refresh, don't block UI with loading
-            fetchProfileAndRole(currentSession?.user ?? null)
-          }
+
+          // Force a loading state while we fetch the profile to prevent redirection loops
+          setLoading(true)
+          await fetchProfileAndRole(currentSession?.user ?? null)
+          if (mounted) setLoading(false)
+        } else if (event === 'TOKEN_REFRESHED') {
+          setSession(currentSession)
+          setUser(currentSession?.user ?? null)
+          // Typically profile doesn't change on token refresh, but we can re-verify if needed
+          // For now, let's just ensure user state is fresh without blocking
         }
       },
     )
@@ -181,20 +204,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signIn = async (email: string, password: string) => {
+    console.log('[AuthDebug] signIn: Attempting login for', email)
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
+    if (error) {
+      console.error('[AuthDebug] signIn: Error:', error.message)
+    } else {
+      console.log('[AuthDebug] signIn: Success')
+    }
     return { error }
   }
 
   const signOut = async () => {
+    console.log('[AuthDebug] signOut: Signing out...')
     const { error } = await supabase.auth.signOut()
     if (!error) {
       setSession(null)
       setUser(null)
       setRole(null)
       setProfessionalId(null)
+      console.log('[AuthDebug] signOut: User signed out successfully.')
+    } else {
+      console.error('[AuthDebug] signOut: Error signing out:', error.message)
     }
     return { error }
   }
