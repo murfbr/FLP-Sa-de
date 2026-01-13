@@ -144,8 +144,8 @@ export const ClientOnboardingDialog = ({
             <div>
               <h3 className="font-semibold mb-3">Assinaturas Mensais</h3>
               {isLoading ? (
-                <div className="space-y-2 py-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
               ) : services.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
@@ -156,19 +156,25 @@ export const ClientOnboardingDialog = ({
                   {services.map((service) => (
                     <div
                       key={service.id}
-                      className="flex items-center space-x-2"
+                      className="flex items-center space-x-2 rounded-md border p-3 hover:bg-accent cursor-pointer"
+                      onClick={() => toggleService(service.id)}
                     >
                       <Checkbox
                         id={`srv-${service.id}`}
                         checked={selectedServices.includes(service.id)}
                         onCheckedChange={() => toggleService(service.id)}
                       />
-                      <Label
-                        htmlFor={`srv-${service.id}`}
-                        className="cursor-pointer"
-                      >
-                        {service.name} - R$ {service.price.toFixed(2)}/mês
-                      </Label>
+                      <div className="flex-1">
+                        <Label
+                          htmlFor={`srv-${service.id}`}
+                          className="cursor-pointer font-medium"
+                        >
+                          {service.name}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          R$ {service.price.toFixed(2)}/mês
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -178,8 +184,8 @@ export const ClientOnboardingDialog = ({
             <div>
               <h3 className="font-semibold mb-3">Pacotes de Sessões</h3>
               {isLoading ? (
-                <div className="space-y-2 py-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
               ) : packages.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
@@ -188,19 +194,28 @@ export const ClientOnboardingDialog = ({
               ) : (
                 <div className="space-y-2">
                   {packages.map((pkg) => (
-                    <div key={pkg.id} className="flex items-center space-x-2">
+                    <div
+                      key={pkg.id}
+                      className="flex items-center space-x-2 rounded-md border p-3 hover:bg-accent cursor-pointer"
+                      onClick={() => togglePackage(pkg.id)}
+                    >
                       <Checkbox
                         id={`pkg-${pkg.id}`}
                         checked={selectedPackages.includes(pkg.id)}
                         onCheckedChange={() => togglePackage(pkg.id)}
                       />
-                      <Label
-                        htmlFor={`pkg-${pkg.id}`}
-                        className="cursor-pointer"
-                      >
-                        {pkg.name} ({pkg.session_count} sessões) - R${' '}
-                        {pkg.price.toFixed(2)}
-                      </Label>
+                      <div className="flex-1">
+                        <Label
+                          htmlFor={`pkg-${pkg.id}`}
+                          className="cursor-pointer font-medium"
+                        >
+                          {pkg.name}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          {pkg.session_count} sessões - R${' '}
+                          {pkg.price.toFixed(2)}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>

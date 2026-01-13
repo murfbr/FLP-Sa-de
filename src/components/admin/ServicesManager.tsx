@@ -37,9 +37,9 @@ import {
 import { Service } from '@/types'
 import { useToast } from '@/hooks/use-toast'
 import { PlusCircle, Edit, Trash2, Users } from 'lucide-react'
-import { Badge } from '../ui/badge'
+import { Badge } from '@/components/ui/badge'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const ServicesManager = () => {
   const [services, setServices] = useState<Service[]>([])
@@ -71,6 +71,7 @@ export const ServicesManager = () => {
     if (error) {
       toast({
         title: 'Erro ao salvar serviço',
+        description: 'Não foi possível salvar as alterações. Tente novamente.',
         variant: 'destructive',
       })
     } else {
@@ -105,10 +106,12 @@ export const ServicesManager = () => {
       {services.map((service) => (
         <Card key={service.id}>
           <CardHeader>
-            <CardTitle className="text-base">{service.name}</CardTitle>
-            <Badge variant="outline" className="w-fit">
-              {service.value_type === 'session' ? 'Sessão' : 'Mensal'}
-            </Badge>
+            <CardTitle className="text-base flex justify-between items-center">
+              {service.name}
+              <Badge variant="outline" className="w-fit ml-2">
+                {service.value_type === 'session' ? 'Sessão' : 'Mensal'}
+              </Badge>
+            </CardTitle>
           </CardHeader>
           <CardContent className="text-sm space-y-2">
             <p>
@@ -143,6 +146,10 @@ export const ServicesManager = () => {
                     <AlertDialogTitle>
                       Tem certeza que deseja excluir?
                     </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação não pode ser desfeita. Isso excluirá
+                      permanentemente o serviço.
+                    </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -160,69 +167,80 @@ export const ServicesManager = () => {
   )
 
   const renderDesktopView = () => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Nome</TableHead>
-          <TableHead>Tipo</TableHead>
-          <TableHead>Duração</TableHead>
-          <TableHead>Preço</TableHead>
-          <TableHead>Max. Part.</TableHead>
-          <TableHead className="text-right">Ações</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {services.map((service) => (
-          <TableRow key={service.id}>
-            <TableCell className="font-medium">{service.name}</TableCell>
-            <TableCell>
-              <Badge variant="outline">
-                {service.value_type === 'session' ? 'Sessão' : 'Mensal'}
-              </Badge>
-            </TableCell>
-            <TableCell>{service.duration_minutes} min</TableCell>
-            <TableCell>{formatCurrency(service.price)}</TableCell>
-            <TableCell>{service.max_attendees}</TableCell>
-            <TableCell className="text-right space-x-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  setEditingService(service)
-                  setIsDialogOpen(true)
-                }}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="icon">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Tem certeza que deseja excluir?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação não pode ser desfeita. Isso excluirá
-                      permanentemente o serviço.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleDelete(service.id)}>
-                      Excluir
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </TableCell>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nome</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Duração</TableHead>
+            <TableHead>Preço</TableHead>
+            <TableHead>Max. Part.</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {services.map((service) => (
+            <TableRow key={service.id}>
+              <TableCell className="font-medium">{service.name}</TableCell>
+              <TableCell>
+                <Badge variant="outline">
+                  {service.value_type === 'session' ? 'Sessão' : 'Mensal'}
+                </Badge>
+              </TableCell>
+              <TableCell>{service.duration_minutes} min</TableCell>
+              <TableCell>{formatCurrency(service.price)}</TableCell>
+              <TableCell>{service.max_attendees}</TableCell>
+              <TableCell className="text-right space-x-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    setEditingService(service)
+                    setIsDialogOpen(true)
+                  }}
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="icon">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Tem certeza que deseja excluir?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Isso excluirá
+                        permanentemente o serviço.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(service.id)}
+                      >
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </TableCell>
+            </TableRow>
+          ))}
+          {services.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center h-24">
+                Nenhum serviço cadastrado.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
   )
 
   return (
