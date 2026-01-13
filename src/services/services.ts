@@ -42,3 +42,10 @@ export async function deleteService(
   const { error } = await supabase.from('services').delete().eq('id', serviceId)
   return { error }
 }
+
+export async function getAllServices(): Promise<{
+  data: Service[] | null
+  error: any
+}> {
+  return getServices()
+}
