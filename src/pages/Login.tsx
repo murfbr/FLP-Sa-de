@@ -29,23 +29,17 @@ const Login = () => {
   useEffect(() => {
     if (!loading && user) {
       if (role) {
-        // Smart redirect based on role if 'from' is just generic '/' or login
+        // Smart redirect based on role
         if (from === '/' || from === '/login') {
           if (role === 'admin') navigate('/admin', { replace: true })
           else if (role === 'professional')
             navigate('/profissional', { replace: true })
-          else navigate('/', { replace: true }) // Let Index handle client/others
+          else navigate('/', { replace: true })
         } else {
           navigate(from, { replace: true })
         }
-      } else {
-        // User authenticated but role is missing (fetch failed or no profile)
-        // We could sign them out or let them see an error.
-        // For security/cleanliness, let's just warn and maybe signOut after a delay or let user handle it manually if we provided UI.
-        // But since Login page should disappear, we must ensure we don't end up in white screen.
-        // AuthProvider/ProtectedRoute usually handles this if we wrap Login, but Login is Public.
-        console.warn('Login: User authenticated but role missing.')
       }
+      // If user is authenticated but role is missing, we wait or show error below.
     }
   }, [user, role, loading, navigate, from])
 
@@ -63,12 +57,10 @@ const Login = () => {
           variant: 'destructive',
         })
       } else {
-        toast({
-          title: 'Login bem-sucedido!',
-          description: 'Aguarde o redirecionamento...',
-          className: 'bg-primary text-primary-foreground',
-        })
+        // Successful login
         // The useEffect will handle the redirection once 'user' and 'role' state updates
+        // We don't show success toast to avoid clutter before redirect, or we can:
+        // toast({ title: "Bem-vindo!" })
       }
     } catch (err) {
       console.error(err)
@@ -82,7 +74,7 @@ const Login = () => {
     }
   }
 
-  // If initial auth check is running, show simple loading state
+  // If initial auth check is running or we are processing login
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -91,11 +83,7 @@ const Login = () => {
     )
   }
 
-  // If user is logged in AND role is determined, we render null to avoid flicker before redirect
-  // If role is missing but user is logged in, we stay here so user can see they are logged in or sign out.
-  // Ideally, we should show a specific error state here too, but for now we fallback to the login form
-  // allowing them to sign out via the logic below (which is not present in standard login form).
-  // Actually, standard behavior: if user logged in, we expect redirect. If !role, we probably want to force logout.
+  // If user is logged in AND role is determined, render null while redirect happens
   if (user && role) return null
 
   // Edge case: User logged in but no role found (and loading finished)
@@ -104,9 +92,12 @@ const Login = () => {
       <div className="container flex items-center justify-center min-h-[calc(100vh-112px)] py-12">
         <Card className="w-full max-w-sm border-destructive/50">
           <CardHeader className="text-center">
-            <CardTitle className="text-destructive">Erro de Perfil</CardTitle>
+            <CardTitle className="text-destructive">
+              Perfil não Encontrado
+            </CardTitle>
             <CardDescription>
-              Não foi possível carregar seu perfil de usuário.
+              Não foi possível carregar seu perfil de usuário. Isso pode indicar
+              que seu cadastro ainda não foi inicializado corretamente.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -115,7 +106,6 @@ const Login = () => {
               className="w-full"
               onClick={async () => {
                 await signOut()
-                // window.location.reload() // Optional
               }}
             >
               Sair e Tentar Novamente

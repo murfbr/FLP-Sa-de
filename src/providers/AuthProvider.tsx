@@ -52,6 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   const fetchProfileAndRole = useCallback(async (currentUser: User | null) => {
+    // If no user, we can't fetch profile. Reset role/profId and stop loading.
     if (!currentUser) {
       if (isMounted.current) {
         setRole(null)
@@ -62,28 +63,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      console.log('[Auth] Fetching profile for user:', currentUser.id)
-
       // Define the fetch operation
       const fetchOperation = async () => {
-        // 1. Fetch Profile Role
+        // 1. Fetch Profile Role from public.profiles
+        // We use maybeSingle() because RLS might return no rows if policy isn't met, or row might not exist.
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', currentUser.id)
           .maybeSingle()
 
-        if (profileError) throw profileError
+        if (profileError) {
+          // If it's a real database error (not just not found), throw it.
+          // Note: RLS blocking access usually results in data: null, error: null (empty set).
+          console.error('[Auth] Error fetching profile:', profileError)
+          throw profileError
+        }
 
         if (!profileData) {
-          console.warn('[Auth] No profile found for user:', currentUser.id)
+          // Profile document missing or RLS blocked access.
           return { role: null, profId: null }
         }
 
         const userRole = profileData.role
-        console.log('[Auth] Role determined:', userRole)
 
-        // 2. Fetch Professional ID if needed
+        // 2. Fetch Professional ID if needed (for professionals and admins)
         let profId = null
         if (userRole === 'professional' || userRole === 'admin') {
           const { data: profData, error: profError } = await supabase
@@ -100,27 +104,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { role: userRole, profId }
       }
 
-      // Create a timeout promise (10 seconds)
-      const timeoutPromise = new Promise<{
-        role: UserRole | null
-        profId: string | null
-      }>((_, reject) =>
-        setTimeout(() => reject(new Error('Profile fetch timed out')), 10000),
-      )
-
-      // Race the fetch against the timeout
-      const result = await Promise.race([fetchOperation(), timeoutPromise])
+      // Execute fetch
+      const result = await fetchOperation()
 
       if (isMounted.current) {
         setRole(result.role)
         setProfessionalId(result.profId)
-        // Loading will be set to false in finally block
       }
     } catch (error) {
       console.error('[Auth] Unexpected error fetching profile:', error)
-      // We do NOT set role to null here implicitly to avoid flashing,
-      // but if initial load fails, we might end up with !role and !loading
-      // which ProtectedRoute handles as "Profile not found".
       if (isMounted.current) {
         setRole(null)
         setProfessionalId(null)
@@ -164,8 +156,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted.current) return
 
-      console.log('[Auth] Auth state change:', event)
-
       if (event === 'SIGNED_OUT') {
         setSession(null)
         setUser(null)
@@ -180,11 +170,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
 
-        // Only fetch profile if it's a SIGNED_IN event (fresh login) or we don't have a role yet
+        // Only fetch profile if we have a user and (it's a fresh login OR we are missing role)
         // We avoid re-fetching on TOKEN_REFRESHED if role is already present to prevent UI flicker
-        if (event === 'SIGNED_IN' || !role) {
-          setLoading(true)
-          await fetchProfileAndRole(currentSession?.user ?? null)
+        if (
+          currentSession?.user &&
+          (event === 'SIGNED_IN' || !role || event === 'USER_UPDATED')
+        ) {
+          // Ensure we show loading while fetching profile during a Sign In event
+          if (event === 'SIGNED_IN') setLoading(true)
+          await fetchProfileAndRole(currentSession.user)
         }
       }
     })
@@ -192,7 +186,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe()
     }
-  }, [fetchProfileAndRole]) // We keep minimal dependencies to avoid loops
+  }, [fetchProfileAndRole, role])
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`
@@ -217,13 +211,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true)
     }
     const { error } = await supabase.auth.signOut()
-    if (isMounted.current) {
-      setSession(null)
-      setUser(null)
-      setRole(null)
-      setProfessionalId(null)
-      setLoading(false)
-    }
+    // State cleanup is handled by onAuthStateChange('SIGNED_OUT')
     return { error }
   }
 
