@@ -8,35 +8,34 @@ const Index = () => {
   const navigate = useNavigate()
 
   useEffect(() => {
+    // Wait for loading to finish
     if (loading) return
 
+    // If no user, redirect to login
     if (!user) {
-      // Not authenticated, redirect to login
       navigate('/login', { replace: true })
       return
     }
 
+    // If user exists but role is missing, we shouldn't redirect to client-unavailable yet.
+    // The ProtectedRoute wrapping this component handles the "No Profile Found" UI.
+    // However, if we reach here, role *should* be present because of ProtectedRoute checks.
     if (!role) {
-      // Authenticated but no role found (profile missing)
-      // This technically shouldn't happen for valid users, but we handle it.
-      console.warn('[Index] User authenticated but no role found.')
-      // Optionally redirect to a generic error page or stay here to show error
-      // navigate('/login', { replace: true }) // Or logout
+      // Should effectively be unreachable if ProtectedRoute is doing its job
       return
     }
 
     // Role-based Redirection
+    console.log('[Index] Redirecting based on role:', role)
     switch (role) {
       case 'admin':
-        console.log('[Index] Redirecting Admin to Dashboard')
         navigate('/admin', { replace: true })
         break
       case 'professional':
-        console.log('[Index] Redirecting Professional to Area')
         navigate('/profissional', { replace: true })
         break
       case 'client':
-        console.log('[Index] Redirecting Client')
+        // Client area is currently unavailable per requirements
         navigate('/cliente-indisponivel', { replace: true })
         break
       default:
@@ -49,7 +48,7 @@ const Index = () => {
   return (
     <div className="container mx-auto py-8 px-4 flex flex-col items-center justify-center min-h-[50vh]">
       <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-      <p className="text-muted-foreground">Verificando credenciais...</p>
+      <p className="text-muted-foreground">Redirecionando...</p>
     </div>
   )
 }

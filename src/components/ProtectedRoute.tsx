@@ -62,7 +62,7 @@ export const ProtectedRoute = ({
             )}
           </p>
           {showRetryOption && (
-            <div className="flex flex-col gap-2 mt-4 animate-fade-in-up">
+            <div className="flex flex-col gap-2 mt-4 animate-fade-in-up items-center">
               <Button
                 variant="outline"
                 size="sm"

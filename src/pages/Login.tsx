@@ -29,12 +29,13 @@ const Login = () => {
   useEffect(() => {
     if (!loading && user) {
       if (role) {
+        console.log('[Login] Authenticated with role:', role, 'Redirecting...')
         // Smart redirect based on role
         if (from === '/' || from === '/login') {
           if (role === 'admin') navigate('/admin', { replace: true })
           else if (role === 'professional')
             navigate('/profissional', { replace: true })
-          else navigate('/', { replace: true })
+          else navigate('/', { replace: true }) // Will hit Index and redirect
         } else {
           navigate(from, { replace: true })
         }
@@ -56,12 +57,8 @@ const Login = () => {
           description: 'Email ou senha inválidos. Por favor, tente novamente.',
           variant: 'destructive',
         })
-      } else {
-        // Successful login
-        // The useEffect will handle the redirection once 'user' and 'role' state updates
-        // We don't show success toast to avoid clutter before redirect, or we can:
-        // toast({ title: "Bem-vindo!" })
       }
+      // Successful login logic is handled by the useEffect above reacting to auth state changes
     } catch (err) {
       console.error(err)
       toast({
