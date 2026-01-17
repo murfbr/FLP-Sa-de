@@ -24,7 +24,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const PROFILE_FETCH_TIMEOUT_MS = 8000 // Increased timeout for resilience
+const PROFILE_FETCH_TIMEOUT_MS = 15000 // Increased timeout to 15s
+const MAX_RETRIES = 3
+const RETRY_DELAY_MS = 1000
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
@@ -69,7 +71,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return
       }
 
-      // If this is a background refresh and we already have a role, skip fetching to avoid UI flicker/load
       if (isBackgroundRefresh && role) {
         logAuthEvent(
           'ProfileFetch',
@@ -81,87 +82,106 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const logPrefix = `[Auth] fetchProfileAndRole (${currentUser.id.slice(0, 6)}):`
       logAuthEvent('ProfileFetch', 'Starting profile fetch...')
 
-      let resolvedRole: UserRole = 'client'
+      let resolvedRole: UserRole | null = null
       let resolvedProfId: string | null = null
+      let attempt = 0
+      let success = false
 
-      try {
-        const queryStart = performance.now()
+      while (attempt < MAX_RETRIES && !success) {
+        try {
+          attempt++
+          const queryStart = performance.now()
 
-        // TIMEOUT PROMISE
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => {
-            reject(
-              new Error(
-                `Profile fetch timeout exceeded (${PROFILE_FETCH_TIMEOUT_MS}ms)`,
-              ),
-            )
-          }, PROFILE_FETCH_TIMEOUT_MS)
-        })
+          // Timeout promise for this specific attempt
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(
+                new Error(
+                  `Profile fetch timeout exceeded (${PROFILE_FETCH_TIMEOUT_MS}ms)`,
+                ),
+              )
+            }, PROFILE_FETCH_TIMEOUT_MS)
+          })
 
-        // DATA PROMISE - Profile
-        const profileQuery = async () => {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', currentUser.id)
-            .maybeSingle()
+          const profileQuery = async () => {
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', currentUser.id)
+              .maybeSingle()
 
-          if (error) throw error
-          return data
-        }
-
-        const profileData = (await Promise.race([
-          profileQuery(),
-          timeoutPromise,
-        ])) as { role: string } | null
-
-        const queryEnd = performance.now()
-        logAuthEvent(
-          'ProfileFetch',
-          `Finished in ${(queryEnd - queryStart).toFixed(2)}ms`,
-        )
-
-        if (profileData) {
-          resolvedRole = (profileData.role as UserRole) ?? 'client'
-        } else {
-          console.warn(
-            `${logPrefix} No profile record found. Defaulting to 'client'.`,
-          )
-        }
-
-        if (resolvedRole === 'professional' || resolvedRole === 'admin') {
-          const { data: profData, error: profError } = await supabase
-            .from('professionals')
-            .select('id')
-            .eq('user_id', currentUser.id)
-            .maybeSingle()
-
-          if (profError) {
-            console.error(
-              `${logPrefix} Error fetching professional ID:`,
-              profError,
-            )
-          } else if (profData) {
-            resolvedProfId = profData.id
+            if (error) throw error
+            return data
           }
-        }
-      } catch (error: any) {
-        console.error(
-          `${logPrefix} FAILED or TIMED OUT. Using fallback. Error:`,
-          error,
-        )
-      } finally {
-        if (isMounted.current) {
-          setRole(resolvedRole)
-          setProfessionalId(resolvedProfId)
-          // Ensure loading is false after profile resolution
-          if (!isBackgroundRefresh) {
-            setLoading(false)
+
+          const profileData = (await Promise.race([
+            profileQuery(),
+            timeoutPromise,
+          ])) as { role: string } | null
+
+          const queryEnd = performance.now()
+          logAuthEvent(
+            'ProfileFetch',
+            `Attempt ${attempt} finished in ${(queryEnd - queryStart).toFixed(2)}ms`,
+          )
+
+          if (profileData) {
+            resolvedRole = (profileData.role as UserRole) ?? 'client'
+          } else {
+            console.warn(
+              `${logPrefix} No profile record found. Defaulting to 'client'.`,
+            )
+            resolvedRole = 'client'
+          }
+
+          // Fetch Professional ID if needed
+          if (resolvedRole === 'professional' || resolvedRole === 'admin') {
+            const { data: profData, error: profError } = await supabase
+              .from('professionals')
+              .select('id')
+              .eq('user_id', currentUser.id)
+              .maybeSingle()
+
+            if (profError) {
+              console.error(
+                `${logPrefix} Error fetching professional ID:`,
+                profError,
+              )
+              // Don't fail the whole auth for this, but log it
+            } else if (profData) {
+              resolvedProfId = profData.id
+            }
+          }
+
+          success = true
+        } catch (error: any) {
+          console.error(`${logPrefix} Attempt ${attempt} FAILED. Error:`, error)
+
+          if (attempt < MAX_RETRIES) {
+            const delay = RETRY_DELAY_MS * attempt
+            console.log(`${logPrefix} Retrying in ${delay}ms...`)
+            await new Promise((resolve) => setTimeout(resolve, delay))
+          } else {
+            console.error(`${logPrefix} Max retries reached.`)
+            // We do NOT default to client here as per requirements to avoid incorrect redirect.
+            // Role stays null, loading becomes false. ProtectedRoute handles the rest.
           }
         }
       }
+
+      if (isMounted.current) {
+        if (success && resolvedRole) {
+          setRole(resolvedRole)
+          setProfessionalId(resolvedProfId)
+        }
+
+        // Ensure loading is false after attempts are done (success or fail)
+        if (!isBackgroundRefresh) {
+          setLoading(false)
+        }
+      }
     },
-    [role], // Dependency on 'role' to check for existing state
+    [role],
   )
 
   useEffect(() => {
@@ -221,25 +241,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setSession(currentSession)
           setUser(currentSession?.user ?? null)
 
-          // Only blocking load on explicit sign in or user update (not refresh)
-          // Check if we already have a user to avoid flickering if SIGNED_IN fires spuriously
           if (!user || event === 'USER_UPDATED') {
             setLoading(true)
             await fetchProfileAndRole(currentSession?.user ?? null, false)
           } else {
-            // If we already have a user, treat SIGNED_IN like a refresh (rare case)
             await fetchProfileAndRole(currentSession?.user ?? null, true)
           }
         } else if (event === 'TOKEN_REFRESHED') {
-          // BACKGROUND REFRESH - Do not block UI
           logAuthEvent('TokenRefresh', 'Session refreshed successfully.')
           setSession(currentSession)
           setUser(currentSession?.user ?? null)
-          // We can optionally refresh profile, but silently
           fetchProfileAndRole(currentSession?.user ?? null, true)
-        } else if (event === 'INITIAL_SESSION') {
-          // Handled by getSession(), but nice to log
-          logAuthEvent('InitialSession', 'Initial session event received.')
         }
       },
     )
@@ -247,7 +259,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe()
     }
-  }, []) // Remove dependencies to avoid re-subscription loop
+  }, [])
 
   const signUp = async (email: string, password: string) => {
     logAuthEvent('SignUp', `Attempting sign up for ${email}`)
@@ -272,7 +284,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     logAuthEvent('SignOut', 'User initiated sign out.')
 
-    // Immediate state cleanup to unblock UI
     if (isMounted.current) {
       setSession(null)
       setUser(null)

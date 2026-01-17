@@ -27,6 +27,7 @@ import {
   addAppointmentNote,
   markAppointmentAsNoShow,
   completeAppointment,
+  cancelAppointment,
   getAppointmentsByScheduleId,
 } from '@/services/appointments'
 import { Appointment, NoteEntry } from '@/types'
@@ -43,6 +44,7 @@ import {
   Loader2,
   Send,
   Users,
+  Trash2,
 } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { getProfessionalById } from '@/services/professionals'
@@ -68,6 +70,7 @@ export const ProfessionalAppointmentDialog = ({
   const [isSavingNote, setIsSavingNote] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
   const [isMarkingNoShow, setIsMarkingNoShow] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   const [professionalName, setProfessionalName] = useState('')
   const [groupAppointments, setGroupAppointments] = useState<Appointment[]>([])
   const [isLoadingGroup, setIsLoadingGroup] = useState(false)
@@ -80,16 +83,15 @@ export const ProfessionalAppointmentDialog = ({
     }
   }, [professionalId])
 
-  // Reset state when dialog opens/closes or appointment changes
   useEffect(() => {
     if (!isOpen) {
       setNewNote('')
       setIsSavingNote(false)
       setIsCompleting(false)
       setIsMarkingNoShow(false)
+      setIsCancelling(false)
       setGroupAppointments([])
     } else if (appointment) {
-      // Fetch other appointments for the same schedule (group session)
       setIsLoadingGroup(true)
       getAppointmentsByScheduleId(appointment.schedule_id).then(({ data }) => {
         setGroupAppointments(data || [])
@@ -108,7 +110,10 @@ export const ProfessionalAppointmentDialog = ({
 
   const startTime = appointment.schedules.start_time
   const endTime = appointment.schedules.end_time
-  const duration = appointment.services.duration_minutes || 30
+  const maxAttendees = appointment.services.max_attendees || 1
+  const currentAttendees = groupAppointments.filter(
+    (a) => a.status !== 'cancelled',
+  ).length
 
   const handleAddNote = async () => {
     if (!newNote.trim()) return
@@ -133,9 +138,7 @@ export const ProfessionalAppointmentDialog = ({
   }
 
   const handleComplete = async () => {
-    // Check if there are existing notes
     const hasExistingNotes = appointment.notes && appointment.notes.length > 0
-    // Check if there is a new note being typed
     const hasNewNote = newNote.trim().length > 0
 
     if (!hasExistingNotes && !hasNewNote) {
@@ -150,7 +153,6 @@ export const ProfessionalAppointmentDialog = ({
 
     setIsCompleting(true)
 
-    // If there is a new note, save it first
     if (hasNewNote) {
       const noteEntry: NoteEntry = {
         date: new Date().toISOString(),
@@ -202,11 +204,24 @@ export const ProfessionalAppointmentDialog = ({
     setIsMarkingNoShow(false)
   }
 
+  const handleCancel = async () => {
+    setIsCancelling(true)
+    const { error } = await cancelAppointment(appointment.id)
+    if (error) {
+      toast({
+        title: 'Erro ao cancelar agendamento',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } else {
+      toast({ title: 'Agendamento cancelado com sucesso.' })
+      onUpdate()
+      onOpenChange(false)
+    }
+    setIsCancelling(false)
+  }
+
   const canEdit = ['scheduled', 'confirmed'].includes(appointment.status)
-  const maxAttendees = appointment.services.max_attendees || 1
-  const currentAttendees = groupAppointments.filter(
-    (a) => a.status !== 'cancelled',
-  ).length
 
   const DetailItem = ({
     icon: Icon,
@@ -237,7 +252,6 @@ export const ProfessionalAppointmentDialog = ({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Info Section */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <DetailItem
               icon={User}
@@ -275,7 +289,6 @@ export const ProfessionalAppointmentDialog = ({
             )}
           </div>
 
-          {/* Group Session Details */}
           {maxAttendees > 1 &&
             !isLoadingGroup &&
             groupAppointments.length > 0 && (
@@ -307,7 +320,6 @@ export const ProfessionalAppointmentDialog = ({
 
           <Separator />
 
-          {/* Notes Section */}
           <div className="space-y-3">
             <Label>Prontuário / Anotações</Label>
             <ScrollArea className="h-[200px] w-full rounded-md border p-4 bg-muted/20">
@@ -363,15 +375,14 @@ export const ProfessionalAppointmentDialog = ({
             </div>
           </div>
 
-          {/* Actions Section */}
           {canEdit && (
             <div className="border-t pt-4 space-y-3">
               <p className="text-sm font-medium text-muted-foreground">
                 Ações do Agendamento
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
-                  className="flex-1"
+                  className="col-span-2"
                   onClick={handleComplete}
                   disabled={isCompleting}
                 >
@@ -385,7 +396,36 @@ export const ProfessionalAppointmentDialog = ({
 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" className="flex-1">
+                    <Button
+                      variant="outline"
+                      className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Cancelar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancelar Agendamento</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja cancelar este agendamento?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Voltar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleCancel}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Confirmar Cancelamento
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive">
                       <XCircle className="mr-2 h-4 w-4" />
                       Faltou
                     </Button>

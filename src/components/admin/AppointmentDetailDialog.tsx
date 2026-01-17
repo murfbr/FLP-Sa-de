@@ -25,12 +25,14 @@ import {
   XCircle,
   CalendarClock,
   Send,
+  Trash2,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   completeAppointment,
   markAppointmentAsNoShow,
   addAppointmentNote,
+  cancelAppointment,
 } from '@/services/appointments'
 import {
   AlertDialog,
@@ -66,6 +68,7 @@ export const AppointmentDetailDialog = ({
   const { user, professionalId } = useAuth()
   const [isCompleting, setIsCompleting] = useState(false)
   const [isMarkingNoShow, setIsMarkingNoShow] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false)
   const [newNote, setNewNote] = useState('')
   const [isSavingNote, setIsSavingNote] = useState(false)
@@ -110,6 +113,23 @@ export const AppointmentDetailDialog = ({
       onOpenChange(false)
     }
     setIsMarkingNoShow(false)
+  }
+
+  const handleCancel = async () => {
+    setIsCancelling(true)
+    const { error } = await cancelAppointment(appointment.id)
+    if (error) {
+      toast({
+        title: 'Erro ao cancelar agendamento',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } else {
+      toast({ title: 'Agendamento cancelado com sucesso.' })
+      onAppointmentUpdated()
+      onOpenChange(false)
+    }
+    setIsCancelling(false)
   }
 
   const handleRescheduleSuccess = () => {
@@ -272,6 +292,40 @@ export const AppointmentDetailDialog = ({
           <DialogFooter className="flex-col sm:flex-row gap-2">
             {canEdit && (
               <>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full sm:w-auto border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Cancelar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancelar Agendamento</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja cancelar este agendamento? O
+                        horário ficará disponível novamente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Voltar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleCancel}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {isCancelling ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          'Confirmar Cancelamento'
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" className="w-full sm:w-auto">
