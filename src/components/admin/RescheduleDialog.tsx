@@ -14,15 +14,23 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { CalendarIcon, Loader2 } from 'lucide-react'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
-import { Schedule, Client, Service } from '@/types'
+import { Schedule, Client, Service, Professional } from '@/types'
 import { getFilteredAvailableSchedules } from '@/services/schedules'
 import { getAvailableDatesForProfessional } from '@/services/availability'
 import { rescheduleAppointment } from '@/services/appointments'
+import { getProfessionalsByService } from '@/services/professionals'
 import { AvailableSlots } from '@/components/AvailableSlots'
 
 interface RescheduleDialogProps {
@@ -54,22 +62,36 @@ export const RescheduleDialog = ({
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Ensure calendar opens on current month every time dialog opens
+  // Professional selection state
+  const [selectedProfessionalId, setSelectedProfessionalId] =
+    useState<string>(professionalId)
+  const [professionals, setProfessionals] = useState<Professional[]>([])
+  const [isLoadingProfessionals, setIsLoadingProfessionals] = useState(false)
+
+  // Initialize and fetch professionals
   useEffect(() => {
     if (isOpen) {
       setCurrentMonth(new Date())
       setDate(undefined)
       setSelectedSlotTime(null)
       setSchedules([])
-    }
-  }, [isOpen])
+      // Reset professional to the one currently assigned to the appointment
+      setSelectedProfessionalId(professionalId)
 
+      setIsLoadingProfessionals(true)
+      getProfessionalsByService(service.id).then((res) => {
+        setProfessionals(res.data || [])
+        setIsLoadingProfessionals(false)
+      })
+    }
+  }, [isOpen, professionalId, service.id])
+
+  // Fetch available dates when professional or month changes
   useEffect(() => {
-    // Only fetch if isOpen and professionalId is present
-    if (isOpen && professionalId) {
+    if (isOpen && selectedProfessionalId) {
       setIsLoadingDates(true)
       getAvailableDatesForProfessional(
-        professionalId,
+        selectedProfessionalId,
         service.id,
         currentMonth,
       ).then((res) => {
@@ -77,30 +99,33 @@ export const RescheduleDialog = ({
         setIsLoadingDates(false)
       })
     }
-  }, [isOpen, professionalId, service.id, currentMonth])
+  }, [isOpen, selectedProfessionalId, service.id, currentMonth])
 
+  // Fetch schedules when date changes
   useEffect(() => {
-    if (date && professionalId) {
+    if (date && selectedProfessionalId) {
       setIsLoadingSchedules(true)
-      getFilteredAvailableSchedules(professionalId, service.id, date).then(
-        (res) => {
-          setSchedules(res.data || [])
-          setSelectedSlotTime(null)
-          setIsLoadingSchedules(false)
-        },
-      )
+      getFilteredAvailableSchedules(
+        selectedProfessionalId,
+        service.id,
+        date,
+      ).then((res) => {
+        setSchedules(res.data || [])
+        setSelectedSlotTime(null)
+        setIsLoadingSchedules(false)
+      })
     } else {
       setSchedules([])
     }
-  }, [date, professionalId, service.id])
+  }, [date, selectedProfessionalId, service.id])
 
   const handleReschedule = async () => {
-    if (!selectedSlotTime || !date) return
+    if (!selectedSlotTime || !date || !selectedProfessionalId) return
     setIsSubmitting(true)
 
     const { error } = await rescheduleAppointment(
       oldAppointmentId,
-      professionalId,
+      selectedProfessionalId,
       selectedSlotTime,
     )
 
@@ -120,15 +145,39 @@ export const RescheduleDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Remarcar Agendamento</DialogTitle>
           <DialogDescription>
-            Selecione uma nova data e horário para {client.name} ({service.name}
-            ).
+            Selecione um profissional, uma nova data e horário para{' '}
+            {client.name} ({service.name}).
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          <div className="flex flex-col space-y-2">
+            <label className="text-sm font-medium">Profissional</label>
+            <Select
+              value={selectedProfessionalId}
+              onValueChange={(val) => {
+                setSelectedProfessionalId(val)
+                setDate(undefined)
+                setSchedules([])
+              }}
+              disabled={isLoadingProfessionals}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o profissional" />
+              </SelectTrigger>
+              <SelectContent>
+                {professionals.map((prof) => (
+                  <SelectItem key={prof.id} value={prof.id}>
+                    {prof.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex flex-col space-y-2">
             <label className="text-sm font-medium">Nova Data</label>
             <Popover>
@@ -139,6 +188,7 @@ export const RescheduleDialog = ({
                     'w-full pl-3 text-left font-normal',
                     !date && 'text-muted-foreground',
                   )}
+                  disabled={!selectedProfessionalId}
                 >
                   {date ? (
                     format(date, 'PPP', { locale: ptBR })
