@@ -54,16 +54,19 @@ export async function getAppointmentsPaginated(
   const startISO = filters.startDate?.toISOString()
   const endISO = filters.endDate?.toISOString()
 
-  let query = supabase.from('appointments').select(
-    `
+  let query = supabase
+    .from('appointments')
+    .select(
+      `
       id, status, notes, created_at,
       clients (id, name, email),
       professionals (id, name),
       services (id, name, duration_minutes, max_attendees),
       schedules!inner (start_time, end_time)
     `,
-    { count: 'exact' },
-  )
+      { count: 'exact' },
+    )
+    .neq('status', 'cancelled')
 
   if (filters.professionalId && filters.professionalId !== 'all') {
     query = query.eq('professional_id', filters.professionalId)
@@ -106,6 +109,7 @@ export async function getAppointmentsForRange(
     )
     .gte('schedules.start_time', startISO)
     .lte('schedules.start_time', endISO)
+    .neq('status', 'cancelled')
 
   if (professionalId && professionalId !== 'all') {
     query = query.eq('professional_id', professionalId)
@@ -136,6 +140,7 @@ export async function getAppointmentsByProfessional(
     `,
     )
     .eq('professional_id', professionalId)
+    .neq('status', 'cancelled')
     .order('created_at', { ascending: false })
 
   return { data: data as Appointment[] | null, error }
@@ -164,6 +169,7 @@ export async function getAppointmentsByProfessionalForRange(
     .eq('professional_id', professionalId)
     .gte('schedules.start_time', startDate)
     .lte('schedules.start_time', endDate)
+    .neq('status', 'cancelled')
 
   return { data: data as Appointment[] | null, error }
 }
@@ -184,6 +190,7 @@ export async function getAllAppointments(
       schedules (start_time, end_time)
     `,
     )
+    .neq('status', 'cancelled')
     .order('schedules(start_time)', { ascending: false })
 
   if (professionalId && professionalId !== 'all') {
@@ -214,6 +221,7 @@ export async function getUpcomingAppointments(): Promise<{
     `,
     )
     .gte('schedules.start_time', now)
+    .neq('status', 'cancelled')
     .order('schedules(start_time)', { ascending: true })
     .limit(5)
 
@@ -237,6 +245,7 @@ export async function getAppointmentsByClientId(
     `,
     )
     .eq('client_id', clientId)
+    .neq('status', 'cancelled')
     .order('schedules(start_time)', { ascending: false })
 
   return { data: data as Appointment[] | null, error }
@@ -351,6 +360,7 @@ export async function getAppointmentsByScheduleId(
     `,
     )
     .eq('schedule_id', scheduleId)
+    .neq('status', 'cancelled')
 
   return { data: data as Appointment[] | null, error }
 }
