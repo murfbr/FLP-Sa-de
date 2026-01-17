@@ -65,7 +65,8 @@ export const RescheduleDialog = ({
   }, [isOpen])
 
   useEffect(() => {
-    if (isOpen) {
+    // Only fetch if isOpen and professionalId is present
+    if (isOpen && professionalId) {
       setIsLoadingDates(true)
       getAvailableDatesForProfessional(
         professionalId,
@@ -79,7 +80,7 @@ export const RescheduleDialog = ({
   }, [isOpen, professionalId, service.id, currentMonth])
 
   useEffect(() => {
-    if (date) {
+    if (date && professionalId) {
       setIsLoadingSchedules(true)
       getFilteredAvailableSchedules(professionalId, service.id, date).then(
         (res) => {
