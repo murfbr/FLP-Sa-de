@@ -170,21 +170,22 @@ export const AgendaCalendarView = ({
                   </div>
 
                   <div className="mt-1 space-y-1 hidden sm:block">
-                    {dayAppointments.slice(0, 2).map((appt) => (
+                    {dayAppointments.slice(0, 3).map((appt) => (
                       <div
                         key={appt.id}
-                        className="text-xs p-1 bg-secondary text-secondary-foreground rounded truncate cursor-pointer hover:opacity-80"
+                        className="text-[10px] p-1 bg-secondary text-secondary-foreground rounded truncate cursor-pointer hover:opacity-80"
                         onClick={(e) => {
                           e.stopPropagation()
                           onAppointmentClick(appt)
                         }}
+                        title={`${appt.clients.name} - ${appt.services.name}`}
                       >
-                        {appt.clients.name}
+                        {appt.clients.name} - {appt.services.name}
                       </div>
                     ))}
-                    {dayAppointments.length > 2 && (
-                      <div className="text-xs text-muted-foreground pl-1">
-                        + {dayAppointments.length - 2} mais
+                    {dayAppointments.length > 3 && (
+                      <div className="text-[10px] text-muted-foreground pl-1">
+                        + {dayAppointments.length - 3} mais
                       </div>
                     )}
                   </div>

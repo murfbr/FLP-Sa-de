@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   addWeeks,
   subWeeks,
@@ -71,6 +71,18 @@ const getDurationHeight = (startTime: Date, durationMinutes: number) => {
   return height
 }
 
+const getHourFromY = (y: number) => {
+  let currentY = 0
+  for (let h = START_HOUR; h < END_HOUR; h++) {
+    const height = getHourHeight(h)
+    if (y >= currentY && y < currentY + height) {
+      return h
+    }
+    currentY += height
+  }
+  return -1
+}
+
 export const AgendaWeekView = ({
   currentDate,
   onDateChange,
@@ -80,6 +92,10 @@ export const AgendaWeekView = ({
 }: AgendaWeekViewProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [hoveredSlot, setHoveredSlot] = useState<{
+    day: string
+    hour: number
+  } | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -133,6 +149,25 @@ export const AgendaWeekView = ({
     (_, i) => i + START_HOUR,
   )
 
+  const handleMouseMove = (e: React.MouseEvent, day: Date) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const y = e.clientY - rect.top
+    const h = getHourFromY(y)
+    const dayKey = format(day, 'yyyy-MM-dd')
+
+    if (h !== -1) {
+      if (hoveredSlot?.day !== dayKey || hoveredSlot?.hour !== h) {
+        setHoveredSlot({ day: dayKey, hour: h })
+      }
+    } else {
+      setHoveredSlot(null)
+    }
+  }
+
+  const handleMouseLeave = () => {
+    setHoveredSlot(null)
+  }
+
   return (
     <div className="p-4 border rounded-lg flex flex-col h-[800px]">
       <div className="flex justify-between items-center mb-4 shrink-0">
@@ -153,10 +188,10 @@ export const AgendaWeekView = ({
       {isLoading ? (
         <Skeleton className="flex-1 w-full" />
       ) : (
-        <div className="flex-1 overflow-y-auto relative border rounded-md">
+        <div className="flex-1 overflow-y-auto relative border rounded-md bg-white">
           <div className="min-w-[800px] relative">
             {/* Header Row */}
-            <div className="sticky top-0 z-20 flex border-b bg-background">
+            <div className="sticky top-0 z-30 flex border-b bg-background shadow-sm">
               <div className="w-16 shrink-0 border-r bg-muted/30"></div>
               {daysInWeek.map((day) => (
                 <div
@@ -205,34 +240,28 @@ export const AgendaWeekView = ({
                   <div
                     key={day.toString()}
                     className="flex-1 border-r last:border-0 relative bg-background"
+                    onMouseMove={(e) => handleMouseMove(e, day)}
+                    onMouseLeave={handleMouseLeave}
                   >
-                    {/* Grid Lines & Hover Actions */}
-                    {hours.map((h) => (
-                      <div
-                        key={h}
-                        style={{ height: getHourHeight(h) }}
-                        className="border-b group relative hover:bg-muted/30 transition-colors"
-                      >
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-                          <Button
-                            variant="secondary"
-                            size="icon"
-                            className="h-6 w-6 rounded-full pointer-events-auto shadow-sm"
-                            onClick={() => {
-                              const targetTime = new Date(day)
-                              targetTime.setHours(h, 0, 0, 0)
-                              onTimeSlotClick(targetTime, true)
-                            }}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                    {/* 1. Background Grid Lines */}
+                    <div className="absolute inset-0 flex flex-col pointer-events-none z-0">
+                      {hours.map((h) => (
+                        <div
+                          key={h}
+                          style={{ height: getHourHeight(h) }}
+                          className="border-b"
+                        />
+                      ))}
+                    </div>
 
-                    {/* Appointments Layer */}
+                    {/* 2. Appointments Layer */}
                     {dayAppts.map((appt) => {
                       const { top, height, left, width } = appt.layout
+
+                      // We reduce width slightly to ensure there is always a gap to hover/click the slot
+                      // Especially important if single appointment takes full width
+                      const adjustedWidth =
+                        width === 100 ? 'calc(100% - 10px)' : `${width}%`
 
                       return (
                         <div
@@ -241,7 +270,7 @@ export const AgendaWeekView = ({
                             top: top,
                             height: height,
                             left: `${left}%`,
-                            width: `${width}%`,
+                            width: adjustedWidth,
                             position: 'absolute',
                             padding: '1px',
                           }}
@@ -265,7 +294,10 @@ export const AgendaWeekView = ({
                             title={`${appt.clients.name} - ${appt.services.name}`}
                           >
                             <div className="font-semibold truncate leading-none mb-0.5">
-                              {appt.clients.name} - {appt.services.name}
+                              {appt.clients.name}
+                            </div>
+                            <div className="truncate text-[10px] font-medium leading-none mb-0.5">
+                              {appt.services.name}
                             </div>
                             <div className="truncate text-[10px] opacity-80 leading-none">
                               {formatInTimeZone(
@@ -277,6 +309,50 @@ export const AgendaWeekView = ({
                         </div>
                       )
                     })}
+
+                    {/* 3. Interaction Layer (Plus Buttons) */}
+                    {hoveredSlot?.day === dayKey && (
+                      <div
+                        className="absolute w-full z-20 pointer-events-none"
+                        style={{
+                          top: 0,
+                          height: '100%',
+                        }}
+                      >
+                        {/* Only render the button for the hovered hour to save resources */}
+                        {hours.map((h) => {
+                          if (h !== hoveredSlot.hour) return null
+                          let offset = 0
+                          for (let i = START_HOUR; i < h; i++) {
+                            offset += getHourHeight(i)
+                          }
+
+                          return (
+                            <div
+                              key={h}
+                              style={{
+                                top: offset,
+                                height: getHourHeight(h),
+                              }}
+                              className="absolute w-full flex items-center justify-center bg-black/5"
+                            >
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-6 w-6 rounded-full pointer-events-auto shadow-sm animate-in fade-in zoom-in duration-100"
+                                onClick={() => {
+                                  const targetTime = new Date(day)
+                                  targetTime.setHours(h, 0, 0, 0)
+                                  onTimeSlotClick(targetTime, true)
+                                }}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                 )
               })}

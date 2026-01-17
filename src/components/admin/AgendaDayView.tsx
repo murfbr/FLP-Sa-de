@@ -60,6 +60,18 @@ const getDurationHeight = (startTime: Date, durationMinutes: number) => {
   return height
 }
 
+const getHourFromY = (y: number) => {
+  let currentY = 0
+  for (let h = START_HOUR; h < END_HOUR; h++) {
+    const height = getHourHeight(h)
+    if (y >= currentY && y < currentY + height) {
+      return h
+    }
+    currentY += height
+  }
+  return -1
+}
+
 export const AgendaDayView = ({
   currentDate,
   onDateChange,
@@ -69,6 +81,7 @@ export const AgendaDayView = ({
 }: AgendaDayViewProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [hoveredHour, setHoveredHour] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -107,6 +120,21 @@ export const AgendaDayView = ({
     (_, i) => i + START_HOUR,
   )
 
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const y = e.clientY - rect.top
+    const h = getHourFromY(y)
+    if (h !== -1) {
+      if (hoveredHour !== h) setHoveredHour(h)
+    } else {
+      setHoveredHour(null)
+    }
+  }
+
+  const handleMouseLeave = () => {
+    setHoveredHour(null)
+  }
+
   return (
     <div className="p-4 border rounded-lg flex flex-col h-[800px]">
       <div className="flex justify-between items-center mb-4 shrink-0">
@@ -124,10 +152,10 @@ export const AgendaDayView = ({
       {isLoading ? (
         <Skeleton className="flex-1 w-full" />
       ) : (
-        <div className="flex-1 overflow-y-auto relative border rounded-md">
+        <div className="flex-1 overflow-y-auto relative border rounded-md bg-white">
           <div className="flex relative min-h-full">
             {/* Time Column */}
-            <div className="w-20 shrink-0 border-r bg-muted/10 sticky left-0 z-20">
+            <div className="w-20 shrink-0 border-r bg-muted/10 sticky left-0 z-30 bg-background">
               {hours.map((h) => (
                 <div
                   key={h}
@@ -140,34 +168,28 @@ export const AgendaDayView = ({
             </div>
 
             {/* Day Column */}
-            <div className="flex-1 relative bg-background">
-              {/* Grid Lines & Hover Actions */}
-              {hours.map((h) => (
-                <div
-                  key={h}
-                  style={{ height: getHourHeight(h) }}
-                  className="border-b border-dashed group relative hover:bg-muted/30 transition-colors"
-                >
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
-                    <Button
-                      variant="secondary"
-                      className="rounded-full shadow-sm pointer-events-auto"
-                      onClick={() => {
-                        const targetTime = new Date(currentDate)
-                        targetTime.setHours(h, 0, 0, 0)
-                        onTimeSlotClick(targetTime, true)
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Agendar às {h}:00
-                    </Button>
-                  </div>
-                </div>
-              ))}
+            <div
+              className="flex-1 relative bg-background"
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+            >
+              {/* 1. Background Grid Lines */}
+              <div className="absolute inset-0 flex flex-col pointer-events-none z-0">
+                {hours.map((h) => (
+                  <div
+                    key={h}
+                    style={{ height: getHourHeight(h) }}
+                    className="border-b border-dashed"
+                  />
+                ))}
+              </div>
 
-              {/* Appointments */}
+              {/* 2. Appointments */}
               {dayAppointments.map((appt) => {
                 const { top, height, left, width } = appt.layout
+                // Adjust width for gap
+                const adjustedWidth =
+                  width === 100 ? 'calc(100% - 12px)' : `${width}%`
 
                 return (
                   <div
@@ -176,7 +198,7 @@ export const AgendaDayView = ({
                       top: top,
                       height: height,
                       left: `${left}%`,
-                      width: `${width}%`,
+                      width: adjustedWidth,
                       position: 'absolute',
                       padding: '2px', // Gap
                     }}
@@ -198,18 +220,64 @@ export const AgendaDayView = ({
                         onAppointmentClick(appt)
                       }}
                     >
-                      <div className="flex justify-between items-start font-bold">
-                        <span className="truncate">
-                          {appt.clients.name} - {appt.services.name}
-                        </span>
-                        <span className="font-mono text-xs opacity-75 shrink-0 ml-1">
-                          {formatInTimeZone(appt.schedules.start_time, 'HH:mm')}
-                        </span>
+                      <div className="flex flex-col h-full">
+                        <div className="flex justify-between items-start font-bold">
+                          <span className="truncate">{appt.clients.name}</span>
+                          <span className="font-mono text-xs opacity-75 shrink-0 ml-1">
+                            {formatInTimeZone(
+                              appt.schedules.start_time,
+                              'HH:mm',
+                            )}
+                          </span>
+                        </div>
+                        <div className="text-xs opacity-90 truncate mt-0.5">
+                          {appt.services.name}
+                        </div>
                       </div>
                     </div>
                   </div>
                 )
               })}
+
+              {/* 3. Interaction Layer (Plus Buttons) */}
+              {hoveredHour !== null && (
+                <div
+                  className="absolute w-full z-20 pointer-events-none"
+                  style={{ top: 0, height: '100%' }}
+                >
+                  {hours.map((h) => {
+                    if (h !== hoveredHour) return null
+                    let offset = 0
+                    for (let i = START_HOUR; i < h; i++) {
+                      offset += getHourHeight(i)
+                    }
+
+                    return (
+                      <div
+                        key={h}
+                        style={{
+                          top: offset,
+                          height: getHourHeight(h),
+                        }}
+                        className="absolute w-full flex items-center justify-center bg-black/5"
+                      >
+                        <Button
+                          variant="secondary"
+                          className="rounded-full shadow-sm pointer-events-auto animate-in fade-in zoom-in duration-100"
+                          onClick={() => {
+                            const targetTime = new Date(currentDate)
+                            targetTime.setHours(h, 0, 0, 0)
+                            onTimeSlotClick(targetTime, true)
+                          }}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Agendar às {h}:00
+                        </Button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
