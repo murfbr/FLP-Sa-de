@@ -131,7 +131,7 @@ export const AgendaView = () => {
   }
 
   const commonProps = {
-    key: refreshKey,
+    // Removed key from here to avoid spreading it into props which causes runtime error
     currentDate,
     onDateChange: setCurrentDate,
     onViewChange: setViewMode,
@@ -143,15 +143,27 @@ export const AgendaView = () => {
   const renderView = () => {
     switch (viewMode) {
       case 'list':
-        return <AgendaListView {...commonProps} dateRange={dateRange} />
+        return (
+          <AgendaListView
+            key={refreshKey}
+            {...commonProps}
+            dateRange={dateRange}
+          />
+        )
       case 'month':
-        return <AgendaCalendarView {...commonProps} />
+        return <AgendaCalendarView key={refreshKey} {...commonProps} />
       case 'week':
-        return <AgendaWeekView {...commonProps} />
+        return <AgendaWeekView key={refreshKey} {...commonProps} />
       case 'day':
-        return <AgendaDayView {...commonProps} />
+        return <AgendaDayView key={refreshKey} {...commonProps} />
       default:
-        return <AgendaListView {...commonProps} dateRange={dateRange} />
+        return (
+          <AgendaListView
+            key={refreshKey}
+            {...commonProps}
+            dateRange={dateRange}
+          />
+        )
     }
   }
 
