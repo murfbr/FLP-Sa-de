@@ -46,9 +46,7 @@ export const RescheduleDialog = ({
 }: RescheduleDialogProps) => {
   const { toast } = useToast()
   const [date, setDate] = useState<Date | undefined>(undefined)
-  const [selectedScheduleId, setSelectedScheduleId] = useState<string | null>(
-    null,
-  )
+  const [selectedSlotTime, setSelectedSlotTime] = useState<string | null>(null)
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [availableDates, setAvailableDates] = useState<string[] | null>(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -76,7 +74,7 @@ export const RescheduleDialog = ({
       getFilteredAvailableSchedules(professionalId, service.id, date).then(
         (res) => {
           setSchedules(res.data || [])
-          setSelectedScheduleId(null)
+          setSelectedSlotTime(null)
           setIsLoadingSchedules(false)
         },
       )
@@ -86,12 +84,14 @@ export const RescheduleDialog = ({
   }, [date, professionalId, service.id])
 
   const handleReschedule = async () => {
-    if (!selectedScheduleId || !date) return
+    if (!selectedSlotTime || !date) return
     setIsSubmitting(true)
 
+    // Using new reschedule function that takes professionalId and startTime
     const { error } = await rescheduleAppointment(
       oldAppointmentId,
-      selectedScheduleId,
+      professionalId,
+      selectedSlotTime,
     )
 
     if (error) {
@@ -107,8 +107,6 @@ export const RescheduleDialog = ({
     }
     setIsSubmitting(false)
   }
-
-  const selectedSchedule = schedules.find((s) => s.id === selectedScheduleId)
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -167,12 +165,15 @@ export const RescheduleDialog = ({
               <AvailableSlots
                 schedules={schedules}
                 isLoading={isLoadingSchedules}
-                onSlotSelect={(schedule) => setSelectedScheduleId(schedule.id)}
+                selectedSlotTime={selectedSlotTime}
+                onSlotSelect={(schedule) =>
+                  setSelectedSlotTime(schedule.start_time)
+                }
               />
-              {selectedSchedule && (
+              {selectedSlotTime && (
                 <p className="text-sm text-muted-foreground mt-2">
                   Horário selecionado:{' '}
-                  {formatInTimeZone(selectedSchedule.start_time, 'HH:mm')}
+                  {formatInTimeZone(selectedSlotTime, 'HH:mm')}
                 </p>
               )}
             </div>
@@ -181,7 +182,7 @@ export const RescheduleDialog = ({
         <DialogFooter>
           <Button
             onClick={handleReschedule}
-            disabled={!selectedScheduleId || isSubmitting}
+            disabled={!selectedSlotTime || isSubmitting}
           >
             {isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

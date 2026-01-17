@@ -61,9 +61,7 @@ import {
 import { getProfessionalsByService } from '@/services/professionals'
 import {
   getFilteredAvailableSchedules,
-  getAvailableProfessionalsForSlot,
   getAvailableProfessionalsAtSlot,
-  getScheduleIdForSlot,
 } from '@/services/schedules'
 import { getAvailableDatesForProfessional } from '@/services/availability'
 import { getAllServices } from '@/services/services'
@@ -79,7 +77,7 @@ const appointmentSchema = z.object({
   serviceId: z.string().uuid('Selecione um serviço.'),
   professionalId: z.string().uuid('Selecione um profissional.'),
   date: z.date({ required_error: 'Selecione uma data.' }),
-  scheduleId: z.string().uuid('Selecione um horário.'),
+  startTime: z.string().min(1, 'Selecione um horário.'),
   usePackage: z.boolean().default(true),
   packageId: z.string().optional(),
   isRecurring: z.boolean().default(false),
@@ -136,7 +134,7 @@ export const AppointmentFormDialog = ({
       professionalId: preselectedProfessionalId || '',
       date: initialDate || undefined,
       isRecurring: false,
-      scheduleId: '',
+      startTime: '',
       serviceId: '',
       clientId: '',
       forceSingleCharge: false,
@@ -149,6 +147,7 @@ export const AppointmentFormDialog = ({
   const date = form.watch('date')
   const usePackage = form.watch('usePackage')
   const forceSingleCharge = form.watch('forceSingleCharge')
+  const startTime = form.watch('startTime')
 
   // Initialize form: Fetch Clients and Services
   useEffect(() => {
@@ -169,6 +168,9 @@ export const AppointmentFormDialog = ({
         if (initialDate) {
           form.setValue('date', initialDate)
           setCurrentMonth(initialDate)
+          if (isSpecificTimeSlot) {
+            form.setValue('startTime', initialDate.toISOString())
+          }
         }
       }
 
@@ -180,7 +182,7 @@ export const AppointmentFormDialog = ({
         professionalId: preselectedProfessionalId || '',
         date: initialDate || undefined,
         isRecurring: false,
-        scheduleId: '',
+        startTime: '',
         serviceId: '',
         clientId: '',
         forceSingleCharge: false,
@@ -188,7 +190,7 @@ export const AppointmentFormDialog = ({
       setSchedules([])
       setProfessionals([])
     }
-  }, [isOpen, initialDate, form, preselectedProfessionalId])
+  }, [isOpen, initialDate, form, preselectedProfessionalId, isSpecificTimeSlot])
 
   // Fetch Professionals
   useEffect(() => {
@@ -211,19 +213,8 @@ export const AppointmentFormDialog = ({
         availablePros = data || []
       } else {
         // Manual Mode: Fetch all pros for service
-        // 1. Get professionals who perform this service
         const { data: servicePros } = await getProfessionalsByService(serviceId)
         availablePros = servicePros || []
-
-        // 2. Filter by date/time if already selected
-        if (initialDate && !isSpecificTimeSlot) {
-          const { data: timePros } =
-            await getAvailableProfessionalsForSlot(initialDate)
-          if (timePros) {
-            const timeProsIds = new Set(timePros.map((p) => p.id))
-            availablePros = availablePros.filter((p) => timeProsIds.has(p.id))
-          }
-        }
       }
 
       setProfessionals(availablePros)
@@ -238,31 +229,6 @@ export const AppointmentFormDialog = ({
 
     fetchProfessionals()
   }, [serviceId, initialDate, isSpecificTimeSlot, form])
-
-  // Context Mode: Auto-fetch Schedule ID when Professional is selected
-  useEffect(() => {
-    if (isSpecificTimeSlot && initialDate && professionalId) {
-      const lockSchedule = async () => {
-        setIsLoading((prev) => ({ ...prev, schedules: true }))
-        const { data: scheduleId } = await getScheduleIdForSlot(
-          professionalId,
-          initialDate,
-        )
-        if (scheduleId) {
-          form.setValue('scheduleId', scheduleId)
-        } else {
-          toast({
-            title: 'Erro',
-            description: 'Horário não disponível para este profissional.',
-            variant: 'destructive',
-          })
-          form.setValue('scheduleId', '')
-        }
-        setIsLoading((prev) => ({ ...prev, schedules: false }))
-      }
-      lockSchedule()
-    }
-  }, [isSpecificTimeSlot, initialDate, professionalId, form, toast])
 
   // Check entitlements
   useEffect(() => {
@@ -335,7 +301,7 @@ export const AppointmentFormDialog = ({
                 (s) => formatInTimeZone(s.start_time, 'HH:mm') === targetTime,
               )
               if (matchingSlot) {
-                form.setValue('scheduleId', matchingSlot.id)
+                form.setValue('startTime', matchingSlot.start_time)
               }
             }
           }
@@ -383,10 +349,12 @@ export const AppointmentFormDialog = ({
     })
 
     try {
+      // Now booking with startTime instead of scheduleId
       const { error } = await bookAppointment(
-        values.scheduleId,
+        values.professionalId,
         values.clientId,
         values.serviceId,
+        values.startTime,
         packageIdToUse,
         values.isRecurring,
       )
@@ -761,7 +729,7 @@ export const AppointmentFormDialog = ({
                 </div>
                 <FormField
                   control={form.control}
-                  name="scheduleId"
+                  name="startTime"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Horário</FormLabel>
@@ -769,8 +737,9 @@ export const AppointmentFormDialog = ({
                         <AvailableSlots
                           schedules={schedules}
                           isLoading={isLoading.schedules}
+                          selectedSlotTime={field.value}
                           onSlotSelect={(schedule) =>
-                            field.onChange(schedule.id)
+                            field.onChange(schedule.start_time)
                           }
                         />
                       </FormControl>
@@ -789,8 +758,8 @@ export const AppointmentFormDialog = ({
                     !hasActiveSubscription &&
                     !forceSingleCharge) ||
                   form.formState.isSubmitting ||
-                  (!isSpecificTimeSlot && !form.watch('scheduleId')) ||
-                  (isSpecificTimeSlot && !form.watch('scheduleId'))
+                  (!isSpecificTimeSlot && !form.watch('startTime')) ||
+                  (isSpecificTimeSlot && !form.watch('startTime'))
                 }
               >
                 {form.formState.isSubmitting ? (

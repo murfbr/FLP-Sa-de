@@ -148,7 +148,8 @@ export async function getAvailableDatesForProfessional(
   const startDate = format(startOfMonth(month), 'yyyy-MM-dd')
   const endDate = format(endOfMonth(month), 'yyyy-MM-dd')
 
-  const { data, error } = await supabase.rpc('get_available_dates', {
+  // Use Dynamic RPC
+  const { data, error } = await supabase.rpc('get_available_dates_dynamic', {
     p_professional_id: professionalId,
     p_service_id: serviceId,
     p_start_date: startDate,

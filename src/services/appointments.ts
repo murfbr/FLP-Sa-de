@@ -2,22 +2,24 @@ import { supabase } from '@/lib/supabase/client'
 import { Appointment, NoteEntry } from '@/types'
 
 export async function bookAppointment(
-  scheduleId: string,
+  professionalId: string,
   clientId: string,
   serviceId: string,
+  startTime: string,
   clientPackageId?: string,
   isRecurring: boolean = false,
 ): Promise<{ data: { appointment_id: string } | null; error: any }> {
-  console.log('[AppointmentService] bookAppointment called with:', {
-    scheduleId,
+  console.log('[AppointmentService] bookAppointment (dynamic) called with:', {
+    professionalId,
     clientId,
     serviceId,
+    startTime,
     clientPackageId,
     isRecurring,
   })
 
-  // Basic validation before RPC
-  if (!scheduleId || !clientId || !serviceId) {
+  // Basic validation
+  if (!professionalId || !clientId || !serviceId || !startTime) {
     console.error('[AppointmentService] Missing required parameters')
     return {
       data: null,
@@ -25,10 +27,12 @@ export async function bookAppointment(
     }
   }
 
-  const { data, error } = await supabase.rpc('book_appointment', {
-    p_schedule_id: scheduleId,
+  // Call the new Dynamic RPC
+  const { data, error } = await supabase.rpc('book_appointment_dynamic', {
+    p_professional_id: professionalId,
     p_client_id: clientId,
     p_service_id: serviceId,
+    p_start_time: startTime,
     p_client_package_id: clientPackageId || null,
     p_is_recurring: isRecurring,
   })
@@ -40,6 +44,19 @@ export async function bookAppointment(
 
   console.log('[AppointmentService] Booking successful, ID:', data)
   return { data: { appointment_id: data }, error: null }
+}
+
+export async function rescheduleAppointment(
+  appointmentId: string,
+  newProfessionalId: string,
+  newStartTime: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase.rpc('reschedule_appointment_dynamic', {
+    p_appointment_id: appointmentId,
+    p_new_professional_id: newProfessionalId,
+    p_new_start_time: newStartTime,
+  })
+  return { error }
 }
 
 export async function getAppointmentsPaginated(
@@ -326,17 +343,6 @@ export async function cancelAppointment(
 ): Promise<{ error: any }> {
   const { error } = await supabase.rpc('cancel_appointment', {
     p_appointment_id: appointmentId,
-  })
-  return { error }
-}
-
-export async function rescheduleAppointment(
-  appointmentId: string,
-  newScheduleId: string,
-): Promise<{ error: any }> {
-  const { error } = await supabase.rpc('reschedule_appointment', {
-    p_appointment_id: appointmentId,
-    p_new_schedule_id: newScheduleId,
   })
   return { error }
 }

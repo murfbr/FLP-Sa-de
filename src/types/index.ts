@@ -22,7 +22,7 @@ export interface Professional {
 }
 
 export interface Schedule {
-  id: string
+  id?: string // Optional for dynamic slots
   professional_id: string
   start_time: string
   end_time: string
@@ -41,7 +41,7 @@ export interface Client {
   id: string
   user_id?: string | null
   name: string
-  email: string // Now stores CPF as per requirement
+  email: string
   phone?: string | null
   partnership_id?: string | null
   is_active: boolean
