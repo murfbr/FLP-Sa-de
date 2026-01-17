@@ -74,9 +74,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (profileError) {
         console.error('[Auth] Error fetching profile:', profileError)
-        // If error is technical, we might want to keep loading or show error?
-        // For now, we assume no role found if error.
-        throw profileError
+        // If error is technical (network/RLS), log it.
+        // We continue to set loading false at the end so UI can show error state if role is missing.
       }
 
       if (!profileData) {
@@ -85,36 +84,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setRole(null)
           setProfessionalId(null)
         }
-        return
-      }
+      } else {
+        const userRole = profileData.role
+        console.log('[Auth] Profile found. Role:', userRole)
 
-      const userRole = profileData.role
-      console.log('[Auth] Profile found. Role:', userRole)
+        // 2. Fetch Professional ID if needed (for professionals and admins)
+        let profId = null
+        if (userRole === 'professional' || userRole === 'admin') {
+          const { data: profData, error: profError } = await supabase
+            .from('professionals')
+            .select('id')
+            .eq('user_id', currentUser.id)
+            .maybeSingle()
 
-      // 2. Fetch Professional ID if needed (for professionals and admins)
-      let profId = null
-      if (userRole === 'professional' || userRole === 'admin') {
-        const { data: profData, error: profError } = await supabase
-          .from('professionals')
-          .select('id')
-          .eq('user_id', currentUser.id)
-          .maybeSingle()
+          if (profError) {
+            console.error(
+              '[Auth] Error fetching professional record:',
+              profError,
+            )
+          }
 
-        if (profError) {
-          console.error('[Auth] Error fetching professional record:', profError)
+          if (profData) {
+            profId = profData.id
+            console.log('[Auth] Professional ID found:', profId)
+          } else {
+            console.log('[Auth] No professional record linked to this user.')
+          }
         }
 
-        if (profData) {
-          profId = profData.id
-          console.log('[Auth] Professional ID found:', profId)
-        } else {
-          console.log('[Auth] No professional record linked to this user.')
+        if (isMounted.current) {
+          setRole(userRole)
+          setProfessionalId(profId)
         }
-      }
-
-      if (isMounted.current) {
-        setRole(userRole)
-        setProfessionalId(profId)
       }
     } catch (error) {
       console.error('[Auth] Unexpected error fetching profile:', error)
@@ -184,7 +185,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (event === 'TOKEN_REFRESHED') {
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
-        // Usually don't need to refetch profile on token refresh unless needed
       }
     })
 
@@ -212,9 +212,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signOut = async () => {
-    if (isMounted.current) {
-      setLoading(true)
-    }
+    // We do NOT set loading to true here to allow instant UI feedback for logout actions
+    // driven by ProtectedRoute recovery options
+    console.log('[Auth] Signing out...')
     const { error } = await supabase.auth.signOut()
     // State cleanup is handled by onAuthStateChange('SIGNED_OUT')
     return { error }

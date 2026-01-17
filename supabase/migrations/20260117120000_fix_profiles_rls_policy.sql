@@ -1,6 +1,6 @@
 -- Fix RLS policies for profiles table to ensure users can read their own role
 
--- Enable RLS
+-- Enable RLS (idempotent if already enabled)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies to ensure clean state and avoid conflicts
@@ -34,7 +34,6 @@ TO authenticated
 WITH CHECK (auth.uid() = id);
 
 -- Ensure professionals table also has basic RLS allowing users to find their professional record
--- (Only if it exists, skipping detailed implementation if strictly profiles asked, but good for robustness)
 ALTER TABLE public.professionals ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Professionals can view own record" ON public.professionals;

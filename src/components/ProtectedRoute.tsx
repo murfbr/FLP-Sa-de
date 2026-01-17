@@ -30,7 +30,7 @@ export const ProtectedRoute = ({
         setShowLongLoadingMessage(true)
       }, 2000)
 
-      // Show retry button after 7 seconds
+      // Show retry button after 7 seconds (providing early exit option before 10s strict timeout)
       timer2 = setTimeout(() => {
         setShowRetryOption(true)
       }, 7000)
@@ -45,6 +45,12 @@ export const ProtectedRoute = ({
     }
   }, [loading])
 
+  const handleForceLogout = async () => {
+    await signOut()
+    // Optional: Force reload to clear any stuck memory state
+    window.location.href = '/login'
+  }
+
   // 1. Loading State
   if (loading) {
     return (
@@ -53,7 +59,7 @@ export const ProtectedRoute = ({
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-muted-foreground animate-pulse text-sm text-center">
             {showLongLoadingMessage ? (
-              <span className="flex items-center gap-2 text-orange-600">
+              <span className="flex items-center gap-2 text-orange-600 font-medium">
                 <AlertTriangle className="h-4 w-4" />
                 Verificando credenciais...
               </span>
@@ -62,11 +68,12 @@ export const ProtectedRoute = ({
             )}
           </p>
           {showRetryOption && (
-            <div className="flex flex-col gap-2 mt-4 animate-fade-in-up items-center">
+            <div className="flex flex-col gap-3 mt-4 animate-fade-in-up items-center">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => window.location.reload()}
+                className="w-full min-w-[160px]"
               >
                 <RefreshCw className="mr-2 h-3 w-3" />
                 Recarregar Página
@@ -74,8 +81,8 @@ export const ProtectedRoute = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-muted-foreground text-xs"
-                onClick={() => signOut()}
+                className="text-muted-foreground text-xs hover:text-destructive transition-colors"
+                onClick={handleForceLogout}
               >
                 Cancelar e Sair
               </Button>
@@ -109,7 +116,7 @@ export const ProtectedRoute = ({
             <RefreshCw className="mr-2 h-4 w-4" />
             Tentar Novamente
           </Button>
-          <Button variant="outline" onClick={() => signOut()}>
+          <Button variant="outline" onClick={handleForceLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             Sair da Conta
           </Button>
