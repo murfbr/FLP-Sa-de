@@ -61,6 +61,7 @@ const Login = () => {
         })
       }
       // Successful login logic is handled by the useEffect watching auth state
+      // The AuthProvider sets loading=true on success, triggering the loading view
     } catch (err) {
       console.error(err)
       toast({
@@ -69,18 +70,24 @@ const Login = () => {
         variant: 'destructive',
       })
     } finally {
+      // If successful, loading will be true (set by AuthProvider), so this doesn't flash
       setIsSubmitting(false)
     }
   }
 
-  // Loading State
+  // Loading State - Shows while AuthProvider is verifying session/profile
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground animate-pulse">
-          Autenticando...
-        </p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background animate-in fade-in duration-500">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <div className="text-center space-y-2">
+          <p className="text-sm font-medium text-foreground">
+            {user ? 'Verificando perfil...' : 'Autenticando...'}
+          </p>
+          <p className="text-xs text-muted-foreground animate-pulse">
+            Por favor, aguarde um momento.
+          </p>
+        </div>
       </div>
     )
   }
@@ -132,7 +139,7 @@ const Login = () => {
     <div className="container flex items-center justify-center min-h-[calc(100vh-112px)] py-12">
       <Card className="w-full max-w-sm animate-fade-in-up shadow-lg">
         <CardHeader className="text-center">
-          <div className="mx-auto bg-primary text-primary-foreground rounded-full h-16 w-16 flex items-center justify-center mb-4">
+          <div className="mx-auto bg-primary text-primary-foreground rounded-full h-16 w-16 flex items-center justify-center mb-4 shadow-md">
             <LogIn className="h-8 w-8" />
           </div>
           <CardTitle className="text-2xl">Acesse sua Conta</CardTitle>
@@ -152,6 +159,7 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isSubmitting}
+                className="transition-all focus:ring-2"
               />
             </div>
             <div className="space-y-2">
@@ -165,9 +173,15 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isSubmitting}
+                className="transition-all focus:ring-2"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitting}
+              size="lg"
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -177,11 +191,21 @@ const Login = () => {
                 'Entrar'
               )}
             </Button>
-            <p className="text-center text-sm text-muted-foreground mt-4">
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                  Ou
+                </span>
+              </div>
+            </div>
+            <p className="text-center text-sm text-muted-foreground">
               Não tem uma conta?{' '}
               <Link
                 to="/register"
-                className="underline hover:text-primary transition-colors"
+                className="font-medium underline underline-offset-4 hover:text-primary transition-colors"
               >
                 Cadastre-se
               </Link>

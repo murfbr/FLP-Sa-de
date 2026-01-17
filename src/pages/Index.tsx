@@ -48,7 +48,9 @@ const Index = () => {
   return (
     <div className="container mx-auto py-8 px-4 flex flex-col items-center justify-center min-h-[50vh]">
       <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-      <p className="text-muted-foreground">Redirecionando...</p>
+      <p className="text-muted-foreground animate-pulse">
+        Redirecionando para seu painel...
+      </p>
     </div>
   )
 }

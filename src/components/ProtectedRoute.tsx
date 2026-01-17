@@ -2,7 +2,13 @@ import { ReactNode, useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
 import { UserRole } from '@/lib/supabase/types'
-import { Loader2, LogOut, AlertTriangle, RefreshCw } from 'lucide-react'
+import {
+  Loader2,
+  LogOut,
+  AlertTriangle,
+  RefreshCw,
+  WifiOff,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
@@ -31,11 +37,11 @@ export const ProtectedRoute = ({
       // 1. Show "waiting" message after 2 seconds
       timer1 = setTimeout(() => setShowLongLoadingMessage(true), 2000)
 
-      // 2. Show retry/logout buttons after 5 seconds
-      timer2 = setTimeout(() => setShowRetryOption(true), 5000)
+      // 2. Show retry/logout buttons after 6 seconds (slightly increased for retry logic in provider)
+      timer2 = setTimeout(() => setShowRetryOption(true), 6000)
 
-      // 3. Force timeout state after 10 seconds (Fail-safe)
-      timer3 = setTimeout(() => setIsTimedOut(true), 10000)
+      // 3. Force timeout state after 15 seconds (Fail-safe for network issues)
+      timer3 = setTimeout(() => setIsTimedOut(true), 15000)
     } else {
       setShowLongLoadingMessage(false)
       setShowRetryOption(false)
@@ -62,12 +68,11 @@ export const ProtectedRoute = ({
         <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 animate-fade-in">
           <div className="w-full max-w-md space-y-4">
             <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Tempo limite excedido</AlertTitle>
+              <WifiOff className="h-4 w-4" />
+              <AlertTitle>Problema de Conexão</AlertTitle>
               <AlertDescription>
-                Não foi possível carregar seu perfil dentro do tempo esperado.
-                Isso pode ocorrer devido a uma conexão lenta ou instabilidade no
-                servidor.
+                Não foi possível carregar seu perfil. Isso geralmente ocorre
+                devido a instabilidade na internet ou bloqueio de rede.
               </AlertDescription>
             </Alert>
             <div className="flex gap-3 justify-center">
@@ -97,15 +102,15 @@ export const ProtectedRoute = ({
             <p className="text-muted-foreground animate-pulse text-sm">
               {showLongLoadingMessage ? (
                 <span className="flex items-center justify-center gap-2 text-orange-600 font-medium">
-                  Verificando credenciais...
+                  Conectando ao servidor...
                 </span>
               ) : (
-                'Carregando informações...'
+                'Verificando credenciais...'
               )}
             </p>
             {showLongLoadingMessage && (
               <p className="text-xs text-muted-foreground max-w-[250px]">
-                Estamos recuperando suas informações de perfil e permissões.
+                Estamos tentando sincronizar seus dados. Aguarde um momento.
               </p>
             )}
           </div>
@@ -120,18 +125,9 @@ export const ProtectedRoute = ({
                   className="w-full"
                 >
                   <RefreshCw className="mr-2 h-3 w-3" />
-                  Recarregar Página
+                  Recarregar
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground text-xs hover:text-destructive transition-colors w-full"
-                onClick={handleForceLogout}
-              >
-                <LogOut className="mr-2 h-3 w-3" />
-                Cancelar e Sair
-              </Button>
             </div>
           )}
         </div>
@@ -151,10 +147,10 @@ export const ProtectedRoute = ({
         <div className="bg-destructive/10 p-4 rounded-full mb-4">
           <AlertTriangle className="h-10 w-10 text-destructive" />
         </div>
-        <h2 className="text-xl font-bold mb-2">Perfil não Encontrado</h2>
+        <h2 className="text-xl font-bold mb-2">Erro de Perfil</h2>
         <p className="text-muted-foreground mb-6 max-w-md">
-          Não foi possível recuperar suas informações de perfil. Isso pode
-          ocorrer devido a uma falha de conexão ou erro no cadastro.
+          Seu usuário foi autenticado, mas não conseguimos identificar seu nível
+          de acesso.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <Button onClick={() => window.location.reload()}>
@@ -163,7 +159,7 @@ export const ProtectedRoute = ({
           </Button>
           <Button variant="outline" onClick={handleForceLogout}>
             <LogOut className="mr-2 h-4 w-4" />
-            Sair da Conta
+            Sair
           </Button>
         </div>
       </div>

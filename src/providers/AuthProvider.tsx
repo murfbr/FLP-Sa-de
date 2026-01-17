@@ -35,7 +35,8 @@ export const useAuth = () => {
   return context
 }
 
-const PROFILE_FETCH_TIMEOUT_MS = 15000 // 15 seconds max for profile fetch
+const MAX_RETRIES = 3
+const RETRY_DELAY = 1000 // 1 second
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
@@ -63,18 +64,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return
     }
 
-    try {
-      // Create a timeout promise
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error('Profile fetch timeout')),
-          PROFILE_FETCH_TIMEOUT_MS,
-        ),
-      )
+    let attempts = 0
+    let success = false
 
-      // Actual fetch logic
-      const fetchLogic = async () => {
-        console.log('[Auth] Fetching profile for user:', currentUser.id)
+    while (attempts < MAX_RETRIES && !success) {
+      try {
+        console.log(
+          `[Auth] Fetching profile for user: ${currentUser.id} (Attempt ${attempts + 1})`,
+        )
 
         // 1. Fetch Profile Role
         const { data: profileData, error: profileError } = await supabase
@@ -87,11 +84,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (!profileData) {
           console.warn('[Auth] No profile found for user.')
+          // If profile is missing but no error, it might be a sync issue or incomplete signup.
+          // We don't retry in this specific case as it's not a network error.
           if (isMounted.current) {
             setRole(null)
             setProfessionalId(null)
           }
-          return
+          break // Exit loop
         }
 
         const userRole = profileData.role
@@ -106,11 +105,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             .eq('user_id', currentUser.id)
             .maybeSingle()
 
-          if (profError)
+          // If professional fetch fails, we log it but don't block auth entirely if possible,
+          // though for professionals it's critical.
+          if (profError) {
             console.error(
               '[Auth] Error fetching professional record:',
               profError,
             )
+            // We might want to retry if this fails too
+            throw profError
+          }
 
           if (profData) {
             profId = profData.id
@@ -121,23 +125,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (isMounted.current) {
           setRole(userRole)
           setProfessionalId(profId)
+          setLoading(false)
         }
-      }
-
-      // Race against timeout
-      await Promise.race([fetchLogic(), timeoutPromise])
-    } catch (error) {
-      console.error('[Auth] Error fetching profile:', error)
-      if (isMounted.current) {
-        // Don't clear role if it was a timeout but we might have partial data?
-        // Better to fail safe.
-        // If we fail to fetch profile, we can't determine role, so user effectively has no role.
-        setRole(null)
-        setProfessionalId(null)
-      }
-    } finally {
-      if (isMounted.current) {
-        setLoading(false)
+        success = true
+      } catch (error: any) {
+        console.error('[Auth] Error fetching profile:', error)
+        attempts++
+        if (attempts < MAX_RETRIES) {
+          // Wait before retrying
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY))
+        } else {
+          // Final failure
+          if (isMounted.current) {
+            // Keep user logged in but with limited access (role null)
+            // Or strictly fail. Here we set loaded to false so UI can show error or retry
+            setLoading(false)
+          }
+        }
       }
     }
   }, [])
@@ -156,6 +160,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (initialSession) {
           setSession(initialSession)
           setUser(initialSession.user)
+          // Don't set loading false yet, fetch profile first
           await fetchProfileAndRole(initialSession.user)
         } else {
           setSession(null)
@@ -179,26 +184,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('[Auth] Auth state change:', event)
 
       if (event === 'SIGNED_OUT') {
+        // Clear everything
         setSession(null)
         setUser(null)
         setRole(null)
         setProfessionalId(null)
         setLoading(false)
-      } else if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-        // Only trigger fetch if we have a user and we are not already loading or if session changed
+        // Clear local storage just in case
+        localStorage.removeItem('sb-fpl-saude-auth-token')
+      } else if (
+        event === 'SIGNED_IN' ||
+        event === 'USER_UPDATED' ||
+        event === 'TOKEN_REFRESHED'
+      ) {
+        // Handle session update
+        const prevUser = user?.id
+        const nextUser = currentSession?.user?.id
+
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
-        setLoading(true) // Ensure loading is true while we fetch profile
-        if (currentSession?.user) {
-          await fetchProfileAndRole(currentSession.user)
-        } else {
+
+        // Only fetch profile if user CHANGED or if we don't have a role yet (and have a user)
+        // TOKEN_REFRESHED usually doesn't change role, but safe to check if we are missing role.
+        if (nextUser && (prevUser !== nextUser || !role)) {
+          setLoading(true)
+          await fetchProfileAndRole(currentSession!.user)
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Just refreshing token, no need to reload full profile if we have it
+          // But ensure loading is false
+          if (loading) setLoading(false)
+        } else if (!nextUser) {
+          // Should be covered by SIGNED_OUT but just in case
           setLoading(false)
         }
-      } else if (event === 'TOKEN_REFRESHED') {
-        setSession(currentSession)
-        setUser(currentSession?.user ?? null)
-        // Usually mostly redundant to re-fetch profile on token refresh unless claims change
-        // But safe to leave loading state as is (false)
       }
     })
 
@@ -206,7 +224,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [fetchProfileAndRole])
+  }, [fetchProfileAndRole, role, user?.id, loading])
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`
@@ -224,24 +242,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email,
       password,
     })
-    if (error) setLoading(false)
+    if (error) {
+      setLoading(false)
+    }
+    // If success, onAuthStateChange will handle the rest
     return { error }
   }
 
   const signOut = async () => {
     console.log('[Auth] Signing out...')
-
-    // Explicitly clear local state immediately
-    if (isMounted.current) {
-      setSession(null)
-      setUser(null)
-      setRole(null)
-      setProfessionalId(null)
-      setLoading(false)
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+    } catch (e) {
+      console.error('[Auth] Error signing out:', e)
+      // Force local cleanup anyway
+      if (isMounted.current) {
+        setSession(null)
+        setUser(null)
+        setRole(null)
+        setProfessionalId(null)
+        setLoading(false)
+      }
     }
-
-    const { error } = await supabase.auth.signOut()
-    return { error }
+    return { error: null }
   }
 
   const value = {
