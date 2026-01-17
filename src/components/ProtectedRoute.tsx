@@ -1,7 +1,7 @@
-import { ReactNode, useEffect, useState, useRef } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
-import { UserRole } from '@/types'
+import { UserRole } from '@/lib/supabase/types' // Correct import for Role if needed
 import { Loader2, LogOut, AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -58,16 +58,15 @@ export const ProtectedRoute = ({
   }
 
   // 3. Role Integrity Check
-  // If we have a user but no role (and not loading), it means fetching profile failed.
-  // We cannot allow access to protected routes without a known role.
+  // If we have a user but no role (and not loading), it means fetching profile failed or profile missing.
   if (!role) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 text-center">
         <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
-        <h2 className="text-xl font-bold mb-2">Erro de Perfil</h2>
+        <h2 className="text-xl font-bold mb-2">Perfil não Encontrado</h2>
         <p className="text-muted-foreground mb-6 max-w-md">
-          Não foi possível carregar as informações do seu perfil. Isso pode
-          ocorrer devido a uma falha de conexão.
+          Não foi possível identificar o seu nível de acesso. Entre em contato
+          com o suporte.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <Button onClick={() => window.location.reload()}>

@@ -18,25 +18,27 @@ const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { signIn, user, loading } = useAuth()
+  const { signIn, user, loading, role } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
 
   const from = location.state?.from?.pathname || '/'
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated and role is loaded
   useEffect(() => {
-    if (!loading && user) {
-      // Avoid redirecting to login page itself
-      const destination = from === '/login' ? '/' : from
-      console.log(
-        '[AuthDebug] Login: User already authenticated, redirecting to:',
-        destination,
-      )
-      navigate(destination, { replace: true })
+    if (!loading && user && role) {
+      // Smart redirect based on role if 'from' is just generic '/' or login
+      if (from === '/' || from === '/login') {
+        if (role === 'admin') navigate('/admin', { replace: true })
+        else if (role === 'professional')
+          navigate('/profissional', { replace: true })
+        else navigate('/', { replace: true }) // Let Index handle client/others
+      } else {
+        navigate(from, { replace: true })
+      }
     }
-  }, [user, loading, navigate, from])
+  }, [user, role, loading, navigate, from])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,10 +56,10 @@ const Login = () => {
       } else {
         toast({
           title: 'Login bem-sucedido!',
-          description: 'Entrando no sistema...',
+          description: 'Aguarde o redirecionamento...',
           className: 'bg-primary text-primary-foreground',
         })
-        // The useEffect will handle the redirection once 'user' state updates
+        // The useEffect will handle the redirection once 'user' and 'role' state updates
       }
     } catch (err) {
       console.error(err)
@@ -71,7 +73,7 @@ const Login = () => {
     }
   }
 
-  // If initial auth check is running, show simple loading state or nothing
+  // If initial auth check is running, show simple loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -80,7 +82,7 @@ const Login = () => {
     )
   }
 
-  // If already logged in, we are redirecting, so rendering null avoids flicker
+  // If user is logged in, we render null to avoid flicker before redirect
   if (user) return null
 
   return (

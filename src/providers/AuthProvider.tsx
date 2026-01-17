@@ -7,9 +7,12 @@ import {
   useCallback,
   useRef,
 } from 'react'
-import { User, Session, AuthChangeEvent } from '@supabase/supabase-js'
+import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
-import { UserRole } from '@/types'
+import { Database } from '@/lib/supabase/types'
+
+// Derive UserRole from Supabase types to ensure consistency with DB
+export type UserRole = Database['public']['Enums']['user_role']
 
 interface AuthContextType {
   user: User | null
@@ -48,73 +51,73 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [])
 
-  const fetchProfileAndRole = useCallback(
-    async (currentUser: User | null, forceRefresh = false) => {
-      if (!currentUser) {
-        if (isMounted.current) {
-          setRole(null)
-          setProfessionalId(null)
-          setLoading(false)
-        }
-        return
+  const fetchProfileAndRole = useCallback(async (currentUser: User | null) => {
+    if (!currentUser) {
+      if (isMounted.current) {
+        setRole(null)
+        setProfessionalId(null)
+        setLoading(false)
       }
+      return
+    }
 
-      // If we already have a role and not forcing refresh, skip to avoid redundant fetches
-      if (role && !forceRefresh) {
+    try {
+      console.log('[Auth] Fetching profile for user:', currentUser.id)
+
+      // 1. Fetch Profile Role
+      // strictly faithful to public.profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .maybeSingle()
+
+      if (profileError) {
+        console.error('[Auth] Error fetching profile:', profileError)
+        // Don't set loading false yet if we want to retry or handle error,
+        // but for now we stop loading to prevent infinite spinner.
         if (isMounted.current) setLoading(false)
         return
       }
 
-      try {
-        // Optimized: Fetch role directly.
-        // Using maybeSingle() avoids errors if no row exists (returns null).
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', currentUser.id)
-          .maybeSingle()
-
-        if (profileError) {
-          console.error('[Auth] Error fetching profile:', profileError)
-          // If there's an error (e.g. network), we DO NOT default to client.
-          // We stop loading but leave role as null/current.
-          // ProtectedRoute will handle the missing role gracefully (e.g. show error/retry).
-          if (isMounted.current) setLoading(false)
-          return
-        }
-
-        // Default to 'client' ONLY if no profile row is found (e.g. new user before trigger runs)
-        // This ensures admins with missing profiles don't get "client" access if the DB is consistent.
-        // Assuming valid admins ALWAYS have a profile row.
-        const userRole = (profileData?.role as UserRole) || 'client'
-
-        let profId = null
-        if (userRole === 'professional' || userRole === 'admin') {
-          const { data: profData } = await supabase
-            .from('professionals')
-            .select('id')
-            .eq('user_id', currentUser.id)
-            .maybeSingle()
-
-          if (profData) {
-            profId = profData.id
-          }
-        }
-
+      if (!profileData) {
+        console.warn('[Auth] No profile found for user:', currentUser.id)
+        // Strictly do NOT default to 'client' if profile is missing.
+        // This prevents admins with missing profiles from becoming clients.
         if (isMounted.current) {
-          setRole(userRole)
-          setProfessionalId(profId)
-        }
-      } catch (error) {
-        console.error('[Auth] Unexpected error fetching profile:', error)
-      } finally {
-        if (isMounted.current) {
+          setRole(null)
           setLoading(false)
         }
+        return
       }
-    },
-    [role],
-  )
+
+      const userRole = profileData.role
+      console.log('[Auth] Role determined:', userRole)
+
+      // 2. Fetch Professional ID if needed
+      let profId = null
+      if (userRole === 'professional' || userRole === 'admin') {
+        const { data: profData, error: profError } = await supabase
+          .from('professionals')
+          .select('id')
+          .eq('user_id', currentUser.id)
+          .maybeSingle()
+
+        if (!profError && profData) {
+          profId = profData.id
+        }
+      }
+
+      if (isMounted.current) {
+        setRole(userRole)
+        setProfessionalId(profId)
+        setLoading(false)
+      }
+    } catch (error) {
+      console.error('[Auth] Unexpected error fetching profile:', error)
+      if (isMounted.current) setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -128,8 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (initialSession) {
             setSession(initialSession)
             setUser(initialSession.user)
-            // Fetch profile immediately
-            await fetchProfileAndRole(initialSession.user, true)
+            await fetchProfileAndRole(initialSession.user)
           } else {
             setLoading(false)
           }
@@ -148,6 +150,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!isMounted.current) return
 
+      console.log('[Auth] Auth state change:', event)
+
       if (event === 'SIGNED_OUT') {
         setSession(null)
         setUser(null)
@@ -162,11 +166,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
 
-        // Force fetch on login or if user update might change role
-        // For token refresh, only fetch if we somehow lost the role
-        if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || !role) {
+        // Only fetch profile if not already loaded or if signed in explicitly
+        if (event === 'SIGNED_IN' || !role) {
           setLoading(true)
-          await fetchProfileAndRole(currentSession?.user ?? null, true)
+          await fetchProfileAndRole(currentSession?.user ?? null)
         }
       }
     })
@@ -174,7 +177,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe()
     }
-  }, []) // Empty dependency array to run once on mount
+  }, [fetchProfileAndRole, role])
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`
@@ -196,13 +199,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     if (isMounted.current) {
+      setLoading(true)
+    }
+    const { error } = await supabase.auth.signOut()
+    if (isMounted.current) {
       setSession(null)
       setUser(null)
       setRole(null)
       setProfessionalId(null)
       setLoading(false)
     }
-    const { error } = await supabase.auth.signOut()
     return { error }
   }
 
