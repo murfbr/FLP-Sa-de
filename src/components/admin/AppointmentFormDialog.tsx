@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
+import { useNavigate } from 'react-router-dom'
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,7 @@ import {
   AlertCircle,
   Repeat,
   Loader2,
+  ExternalLink,
 } from 'lucide-react'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -68,7 +70,9 @@ import { getAllServices } from '@/services/services'
 import { bookAppointment } from '@/services/appointments'
 import { AvailableSlots } from '../AvailableSlots'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { useAuth } from '@/providers/AuthProvider'
 
 const appointmentSchema = z.object({
   clientId: z.string().uuid('Selecione um cliente.'),
@@ -79,6 +83,7 @@ const appointmentSchema = z.object({
   usePackage: z.boolean().default(true),
   packageId: z.string().optional(),
   isRecurring: z.boolean().default(false),
+  forceSingleCharge: z.boolean().default(false),
 })
 
 type AppointmentFormValues = z.infer<typeof appointmentSchema>
@@ -101,6 +106,8 @@ export const AppointmentFormDialog = ({
   preselectedProfessionalId,
 }: AppointmentFormDialogProps) => {
   const { toast } = useToast()
+  const navigate = useNavigate()
+  const { role } = useAuth()
   const [clients, setClients] = useState<Client[]>([])
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [services, setServices] = useState<Service[]>([])
@@ -132,6 +139,7 @@ export const AppointmentFormDialog = ({
       scheduleId: '',
       serviceId: '',
       clientId: '',
+      forceSingleCharge: false,
     },
   })
 
@@ -140,6 +148,7 @@ export const AppointmentFormDialog = ({
   const professionalId = form.watch('professionalId')
   const date = form.watch('date')
   const usePackage = form.watch('usePackage')
+  const forceSingleCharge = form.watch('forceSingleCharge')
 
   // Initialize form: Fetch Clients and Services
   useEffect(() => {
@@ -174,6 +183,7 @@ export const AppointmentFormDialog = ({
         scheduleId: '',
         serviceId: '',
         clientId: '',
+        forceSingleCharge: false,
       })
       setSchedules([])
       setProfessionals([])
@@ -257,6 +267,9 @@ export const AppointmentFormDialog = ({
   // Check entitlements
   useEffect(() => {
     const checkEntitlements = async () => {
+      // Reset forceSingleCharge when dependencies change
+      form.setValue('forceSingleCharge', false)
+
       if (!clientId || !serviceId) {
         setAvailablePackages([])
         setHasActiveSubscription(false)
@@ -336,8 +349,20 @@ export const AppointmentFormDialog = ({
 
   const selectedService = services.find((s) => s.id === serviceId)
 
+  const handleNavigateToProfile = () => {
+    if (!clientId) return
+    onOpenChange(false)
+    const basePath =
+      role === 'admin' ? '/admin/pacientes' : '/profissional/pacientes'
+    navigate(`${basePath}/${clientId}`)
+  }
+
   const onSubmit = async (values: AppointmentFormValues) => {
-    if (selectedService?.value_type === 'monthly' && !hasActiveSubscription) {
+    if (
+      selectedService?.value_type === 'monthly' &&
+      !hasActiveSubscription &&
+      !values.forceSingleCharge
+    ) {
       toast({
         title: 'Agendamento Bloqueado',
         description:
@@ -529,16 +554,54 @@ export const AppointmentFormDialog = ({
                           <span>Assinatura Ativa Confirmada</span>
                         </div>
                       ) : (
-                        <Alert variant="destructive" className="py-2">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertTitle className="text-sm font-semibold">
-                            Assinatura Necessária
-                          </AlertTitle>
-                          <AlertDescription className="text-xs">
-                            O cliente não possui uma assinatura ativa para este
-                            serviço.
-                          </AlertDescription>
-                        </Alert>
+                        <div className="space-y-4">
+                          {!forceSingleCharge && (
+                            <Alert variant="destructive" className="py-2">
+                              <AlertCircle className="h-4 w-4" />
+                              <div className="ml-2 w-full">
+                                <AlertTitle className="text-sm font-semibold">
+                                  Assinatura Necessária
+                                </AlertTitle>
+                                <AlertDescription className="text-xs">
+                                  O cliente não possui uma assinatura ativa para
+                                  este serviço.
+                                </AlertDescription>
+                                <Button
+                                  variant="link"
+                                  className="p-0 h-auto text-xs text-destructive underline mt-1 flex items-center gap-1"
+                                  onClick={handleNavigateToProfile}
+                                  type="button"
+                                >
+                                  Ir para Perfil{' '}
+                                  <ExternalLink className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </Alert>
+                          )}
+
+                          <FormField
+                            control={form.control}
+                            name="forceSingleCharge"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-background">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">
+                                    Cobrança Única
+                                  </FormLabel>
+                                  <FormDescription className="text-xs">
+                                    Permitir agendamento avulso sem assinatura.
+                                  </FormDescription>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                       )}
                     </div>
                   ) : (
@@ -723,7 +786,8 @@ export const AppointmentFormDialog = ({
                 type="submit"
                 disabled={
                   (selectedService?.value_type === 'monthly' &&
-                    !hasActiveSubscription) ||
+                    !hasActiveSubscription &&
+                    !forceSingleCharge) ||
                   form.formState.isSubmitting ||
                   (!isSpecificTimeSlot && !form.watch('scheduleId')) ||
                   (isSpecificTimeSlot && !form.watch('scheduleId'))
