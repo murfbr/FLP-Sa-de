@@ -35,6 +35,8 @@ export const useAuth = () => {
   return context
 }
 
+const PROFILE_FETCH_TIMEOUT_MS = 15000 // 15 seconds max for profile fetch
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
@@ -62,32 +64,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      console.log('[Auth] Fetching profile for user:', currentUser.id)
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Profile fetch timeout')),
+          PROFILE_FETCH_TIMEOUT_MS,
+        ),
+      )
 
-      // 1. Fetch Profile Role from public.profiles
-      // Using maybeSingle() to handle 0 or 1 row gracefully
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', currentUser.id)
-        .maybeSingle()
+      // Actual fetch logic
+      const fetchLogic = async () => {
+        console.log('[Auth] Fetching profile for user:', currentUser.id)
 
-      if (profileError) {
-        console.error('[Auth] Error fetching profile:', profileError)
-        // Do not return here, we must finish loading state even if error
-      }
+        // 1. Fetch Profile Role
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', currentUser.id)
+          .maybeSingle()
 
-      if (!profileData) {
-        console.warn('[Auth] No profile found for user (RLS or missing row).')
-        if (isMounted.current) {
-          setRole(null)
-          setProfessionalId(null)
+        if (profileError) throw profileError
+
+        if (!profileData) {
+          console.warn('[Auth] No profile found for user.')
+          if (isMounted.current) {
+            setRole(null)
+            setProfessionalId(null)
+          }
+          return
         }
-      } else {
+
         const userRole = profileData.role
         console.log('[Auth] Profile found. Role:', userRole)
 
-        // 2. Fetch Professional ID if needed (for professionals and admins)
+        // 2. Fetch Professional ID if applicable
         let profId = null
         if (userRole === 'professional' || userRole === 'admin') {
           const { data: profData, error: profError } = await supabase
@@ -96,18 +106,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             .eq('user_id', currentUser.id)
             .maybeSingle()
 
-          if (profError) {
+          if (profError)
             console.error(
               '[Auth] Error fetching professional record:',
               profError,
             )
-          }
 
           if (profData) {
             profId = profData.id
             console.log('[Auth] Professional ID found:', profId)
-          } else {
-            console.log('[Auth] No professional record linked to this user.')
           }
         }
 
@@ -116,9 +123,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfessionalId(profId)
         }
       }
+
+      // Race against timeout
+      await Promise.race([fetchLogic(), timeoutPromise])
     } catch (error) {
-      console.error('[Auth] Unexpected error fetching profile:', error)
+      console.error('[Auth] Error fetching profile:', error)
       if (isMounted.current) {
+        // Don't clear role if it was a timeout but we might have partial data?
+        // Better to fail safe.
+        // If we fail to fetch profile, we can't determine role, so user effectively has no role.
         setRole(null)
         setProfessionalId(null)
       }
@@ -130,56 +143,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   useEffect(() => {
+    let mounted = true
+
     const initializeAuth = async () => {
       try {
-        // 1. Get initial session
         const {
           data: { session: initialSession },
         } = await supabase.auth.getSession()
 
-        if (isMounted.current) {
-          if (initialSession) {
-            setSession(initialSession)
-            setUser(initialSession.user)
-            // Fetch profile immediately for initial session
-            await fetchProfileAndRole(initialSession.user)
-          } else {
-            setSession(null)
-            setUser(null)
-            setRole(null)
-            setProfessionalId(null)
-            setLoading(false)
-          }
+        if (!mounted) return
+
+        if (initialSession) {
+          setSession(initialSession)
+          setUser(initialSession.user)
+          await fetchProfileAndRole(initialSession.user)
+        } else {
+          setSession(null)
+          setUser(null)
+          setRole(null)
+          setProfessionalId(null)
+          setLoading(false)
         }
       } catch (error) {
         console.error('[Auth] Initialization error:', error)
-        if (isMounted.current) setLoading(false)
+        if (mounted) setLoading(false)
       }
     }
 
     initializeAuth()
 
-    // 2. Listen for changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      if (!isMounted.current) return
-
+      if (!mounted) return
       console.log('[Auth] Auth state change:', event)
 
       if (event === 'SIGNED_OUT') {
-        // Clear all state immediately
         setSession(null)
         setUser(null)
         setRole(null)
         setProfessionalId(null)
         setLoading(false)
       } else if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-        // When signing in, set loading to true until profile is fetched
-        setLoading(true)
+        // Only trigger fetch if we have a user and we are not already loading or if session changed
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
-
+        setLoading(true) // Ensure loading is true while we fetch profile
         if (currentSession?.user) {
           await fetchProfileAndRole(currentSession.user)
         } else {
@@ -188,11 +197,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (event === 'TOKEN_REFRESHED') {
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
-        // Usually don't need to refetch profile on token refresh unless claims change
+        // Usually mostly redundant to re-fetch profile on token refresh unless claims change
+        // But safe to leave loading state as is (false)
       }
     })
 
     return () => {
+      mounted = false
       subscription.unsubscribe()
     }
   }, [fetchProfileAndRole])
@@ -208,19 +219,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signIn = async (email: string, password: string) => {
-    setLoading(true) // Optimistic loading
+    setLoading(true)
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
-    if (error) setLoading(false) // Reset if error
+    if (error) setLoading(false)
     return { error }
   }
 
   const signOut = async () => {
     console.log('[Auth] Signing out...')
 
-    // Explicitly clear local state immediately to update UI
+    // Explicitly clear local state immediately
     if (isMounted.current) {
       setSession(null)
       setUser(null)
@@ -229,9 +240,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false)
     }
 
-    // Then call Supabase signOut
     const { error } = await supabase.auth.signOut()
-
     return { error }
   }
 

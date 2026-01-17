@@ -12,7 +12,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { LogIn, Loader2 } from 'lucide-react'
+import { LogIn, Loader2, AlertTriangle } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -27,6 +28,7 @@ const Login = () => {
 
   // Redirect if already authenticated and role is loaded
   useEffect(() => {
+    // Only redirect if loading is finished and user exists
     if (!loading && user) {
       if (role) {
         console.log('[Login] Authenticated with role:', role, 'Redirecting...')
@@ -40,7 +42,7 @@ const Login = () => {
           navigate(from, { replace: true })
         }
       }
-      // If user is authenticated but role is missing, we wait or show error below.
+      // Note: If user is authenticated but role is missing, we render the error UI below.
     }
   }, [user, role, loading, navigate, from])
 
@@ -58,7 +60,7 @@ const Login = () => {
           variant: 'destructive',
         })
       }
-      // Successful login logic is handled by the useEffect above reacting to auth state changes
+      // Successful login logic is handled by the useEffect watching auth state
     } catch (err) {
       console.error(err)
       toast({
@@ -71,33 +73,45 @@ const Login = () => {
     }
   }
 
-  // If initial auth check is running or we are processing login
+  // Loading State
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground animate-pulse">
+          Autenticando...
+        </p>
       </div>
     )
   }
 
-  // If user is logged in AND role is determined, render null while redirect happens
+  // Valid Auth State - Render nothing while redirecting (handled by useEffect)
   if (user && role) return null
 
-  // Edge case: User logged in but no role found (and loading finished)
+  // Error State: User logged in but no role found
   if (user && !role) {
     return (
-      <div className="container flex items-center justify-center min-h-[calc(100vh-112px)] py-12">
+      <div className="container flex items-center justify-center min-h-screen py-12">
         <Card className="w-full max-w-sm border-destructive/50">
           <CardHeader className="text-center">
+            <div className="mx-auto bg-destructive/10 text-destructive rounded-full p-3 w-fit mb-4">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
             <CardTitle className="text-destructive">
-              Perfil não Encontrado
+              Perfil Incompleto
             </CardTitle>
             <CardDescription>
-              Não foi possível carregar seu perfil de usuário. Isso pode indicar
-              que seu cadastro ainda não foi inicializado corretamente.
+              Não foi possível carregar as informações do seu perfil.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <Alert variant="destructive">
+              <AlertTitle>Atenção</AlertTitle>
+              <AlertDescription>
+                Seu usuário foi autenticado, mas o registro de perfil
+                correspondente não foi encontrado no banco de dados.
+              </AlertDescription>
+            </Alert>
             <Button
               variant="outline"
               className="w-full"
@@ -113,6 +127,7 @@ const Login = () => {
     )
   }
 
+  // Default Login Form
   return (
     <div className="container flex items-center justify-center min-h-[calc(100vh-112px)] py-12">
       <Card className="w-full max-w-sm animate-fade-in-up shadow-lg">
