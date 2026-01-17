@@ -60,6 +60,11 @@ export async function updateProfessional(
   return { data, error }
 }
 
+export async function deleteProfessional(id: string): Promise<{ error: any }> {
+  const { error } = await supabase.from('professionals').delete().eq('id', id)
+  return { error }
+}
+
 export async function getServicesByProfessional(
   professionalId: string,
 ): Promise<{ data: Service[] | null; error: any }> {

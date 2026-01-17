@@ -18,6 +18,7 @@ export interface Professional {
   specialty: string | null
   bio: string | null
   avatar_url: string | null
+  is_active: boolean
 }
 
 export interface Schedule {

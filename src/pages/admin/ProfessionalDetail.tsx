@@ -19,6 +19,7 @@ import { ProfessionalEditDialog } from '@/components/admin/ProfessionalEditDialo
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AvailabilitySettings } from '@/components/professional/AvailabilitySettings'
 import { AvailabilityOverridesManager } from '@/components/admin/AvailabilityOverridesManager'
+import { Badge } from '@/components/ui/badge'
 
 const ProfessionalDetail = () => {
   const { id } = useParams<{ id: string }>()
@@ -91,7 +92,14 @@ const ProfessionalDetail = () => {
                     {getInitials(professional.name)}
                   </AvatarFallback>
                 </Avatar>
-                <CardTitle className="text-2xl">{professional.name}</CardTitle>
+                <div className="space-y-2">
+                  <CardTitle className="text-2xl">
+                    {professional.name}
+                  </CardTitle>
+                  {!professional.is_active && (
+                    <Badge variant="destructive">Inativo</Badge>
+                  )}
+                </div>
                 <CardDescription>{professional.specialty}</CardDescription>
               </CardHeader>
               <CardContent>
