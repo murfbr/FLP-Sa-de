@@ -17,83 +17,82 @@ interface ProtectedRouteProps {
   allowedRoles?: UserRole[]
 }
 
+const TIMEOUT_MS = 10000 // 10 seconds timeout as per acceptance criteria
+
 export const ProtectedRoute = ({
   children,
   allowedRoles,
 }: ProtectedRouteProps) => {
-  const { user, role, loading, signOut } = useAuth()
+  const { user, role, loading, error, signOut, refreshProfile } = useAuth()
   const location = useLocation()
 
   const [showLongLoadingMessage, setShowLongLoadingMessage] = useState(false)
-  const [showRetryOption, setShowRetryOption] = useState(false)
   const [isTimedOut, setIsTimedOut] = useState(false)
 
   useEffect(() => {
     let timer1: NodeJS.Timeout
     let timer2: NodeJS.Timeout
-    let timer3: NodeJS.Timeout
 
     if (loading) {
-      // 1. Show "waiting" message after 2 seconds
-      timer1 = setTimeout(() => setShowLongLoadingMessage(true), 2000)
+      // 1. Show "waiting" message after 3 seconds
+      timer1 = setTimeout(() => setShowLongLoadingMessage(true), 3000)
 
-      // 2. Show retry/logout buttons after 6 seconds (slightly increased for retry logic in provider)
-      timer2 = setTimeout(() => setShowRetryOption(true), 6000)
-
-      // 3. Force timeout state after 15 seconds (Fail-safe for network issues)
-      timer3 = setTimeout(() => setIsTimedOut(true), 15000)
+      // 2. Force timeout state after 10 seconds
+      timer2 = setTimeout(() => setIsTimedOut(true), TIMEOUT_MS)
     } else {
       setShowLongLoadingMessage(false)
-      setShowRetryOption(false)
       setIsTimedOut(false)
     }
 
     return () => {
       clearTimeout(timer1)
       clearTimeout(timer2)
-      clearTimeout(timer3)
     }
   }, [loading])
 
   const handleForceLogout = async () => {
     await signOut()
+    // Explicitly redirect to login
     window.location.href = '/login'
   }
 
-  // 1. Loading State (and Timeout Handling)
-  if (loading || isTimedOut) {
-    // If timed out, show error instead of spinner
-    if (isTimedOut) {
-      return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 animate-fade-in">
-          <div className="w-full max-w-md space-y-4">
-            <Alert variant="destructive">
-              <WifiOff className="h-4 w-4" />
-              <AlertTitle>Problema de Conexão</AlertTitle>
-              <AlertDescription>
-                Não foi possível carregar seu perfil. Isso geralmente ocorre
-                devido a instabilidade na internet ou bloqueio de rede.
-              </AlertDescription>
-            </Alert>
-            <div className="flex gap-3 justify-center">
-              <Button
-                onClick={() => window.location.reload()}
-                variant="outline"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Tentar Novamente
-              </Button>
-              <Button onClick={handleForceLogout} variant="destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                Sair
-              </Button>
-            </div>
+  // 1. Error State (from AuthProvider or Timeout)
+  if (error || isTimedOut) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 animate-fade-in">
+        <div className="w-full max-w-md space-y-4">
+          <Alert variant="destructive">
+            <WifiOff className="h-4 w-4" />
+            <AlertTitle>Erro de Conexão</AlertTitle>
+            <AlertDescription>
+              {error
+                ? error.message
+                : 'Erro ao carregar perfil. Verifique sua conexão ou tente novamente.'}
+            </AlertDescription>
+          </Alert>
+          <div className="flex gap-3 justify-center">
+            <Button
+              onClick={() => {
+                setIsTimedOut(false)
+                refreshProfile()
+              }}
+              variant="outline"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Tentar Novamente
+            </Button>
+            <Button onClick={handleForceLogout} variant="destructive">
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair
+            </Button>
           </div>
         </div>
-      )
-    }
+      </div>
+    )
+  }
 
-    // Normal loading spinner
+  // 2. Loading State
+  if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background space-y-6 p-4">
         <div className="flex flex-col items-center space-y-4 text-center">
@@ -102,45 +101,30 @@ export const ProtectedRoute = ({
             <p className="text-muted-foreground animate-pulse text-sm">
               {showLongLoadingMessage ? (
                 <span className="flex items-center justify-center gap-2 text-orange-600 font-medium">
-                  Conectando ao servidor...
+                  Sincronizando dados...
                 </span>
               ) : (
-                'Verificando credenciais...'
+                'Verificando perfil...'
               )}
             </p>
             {showLongLoadingMessage && (
               <p className="text-xs text-muted-foreground max-w-[250px]">
-                Estamos tentando sincronizar seus dados. Aguarde um momento.
+                Isso está demorando um pouco mais que o normal.
               </p>
             )}
           </div>
-
-          {(showLongLoadingMessage || showRetryOption) && (
-            <div className="flex flex-col gap-3 mt-4 animate-fade-in-up items-center min-w-[200px]">
-              {showRetryOption && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.location.reload()}
-                  className="w-full"
-                >
-                  <RefreshCw className="mr-2 h-3 w-3" />
-                  Recarregar
-                </Button>
-              )}
-            </div>
-          )}
         </div>
       </div>
     )
   }
 
-  // 2. Authentication Check
+  // 3. Authentication Check
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // 3. Role Integrity Check
+  // 4. Role Integrity Check
+  // If user exists but role is missing (and not loading/error), it's a data consistency issue
   if (!role) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 text-center">
@@ -149,15 +133,15 @@ export const ProtectedRoute = ({
         </div>
         <h2 className="text-xl font-bold mb-2">Erro de Perfil</h2>
         <p className="text-muted-foreground mb-6 max-w-md">
-          Seu usuário foi autenticado, mas não conseguimos identificar seu nível
-          de acesso.
+          Não foi possível identificar seu nível de acesso. Por favor, entre em
+          contato com o suporte.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Button onClick={() => window.location.reload()}>
+        <div className="flex gap-4">
+          <Button onClick={() => window.location.reload()} variant="outline">
             <RefreshCw className="mr-2 h-4 w-4" />
-            Tentar Novamente
+            Recarregar
           </Button>
-          <Button variant="outline" onClick={handleForceLogout}>
+          <Button onClick={handleForceLogout} variant="destructive">
             <LogOut className="mr-2 h-4 w-4" />
             Sair
           </Button>
@@ -166,11 +150,11 @@ export const ProtectedRoute = ({
     )
   }
 
-  // 4. Role Authorization Check
+  // 5. Role Authorization Check
   if (allowedRoles && !allowedRoles.includes(role)) {
     return <Navigate to="/access-denied" replace />
   }
 
-  // 5. Render Authorized Content
+  // 6. Render Authorized Content
   return <>{children}</>
 }

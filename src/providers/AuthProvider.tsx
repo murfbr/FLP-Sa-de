@@ -23,6 +23,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<{ error: any }>
   loading: boolean
+  error: Error | null
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -35,8 +37,8 @@ export const useAuth = () => {
   return context
 }
 
-const MAX_RETRIES = 3
-const RETRY_DELAY = 1000 // 1 second
+const MAX_RETRIES = 2
+const RETRY_DELAY = 500 // ms
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
@@ -44,6 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role, setRole] = useState<UserRole | null>(null)
   const [professionalId, setProfessionalId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
   const isMounted = useRef(true)
 
@@ -60,14 +63,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setRole(null)
         setProfessionalId(null)
         setLoading(false)
+        setError(null)
       }
       return
     }
 
     let attempts = 0
     let success = false
+    let lastError: any = null
 
-    while (attempts < MAX_RETRIES && !success) {
+    while (attempts <= MAX_RETRIES && !success) {
       try {
         console.log(
           `[Auth] Fetching profile for user: ${currentUser.id} (Attempt ${attempts + 1})`,
@@ -84,13 +89,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (!profileData) {
           console.warn('[Auth] No profile found for user.')
-          // If profile is missing but no error, it might be a sync issue or incomplete signup.
-          // We don't retry in this specific case as it's not a network error.
-          if (isMounted.current) {
-            setRole(null)
-            setProfessionalId(null)
-          }
-          break // Exit loop
+          // This is critical - user exists in Auth but not in DB (profiles).
+          // We treat this as an error state so the UI can handle it (Sign out option)
+          throw new Error('Perfil de usuário não encontrado no sistema.')
         }
 
         const userRole = profileData.role
@@ -105,15 +106,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             .eq('user_id', currentUser.id)
             .maybeSingle()
 
-          // If professional fetch fails, we log it but don't block auth entirely if possible,
-          // though for professionals it's critical.
+          // For professionals, this is critical. For admins, maybe optional but good to have.
           if (profError) {
             console.error(
               '[Auth] Error fetching professional record:',
               profError,
             )
-            // We might want to retry if this fails too
-            throw profError
+            // We don't block login if professional record is missing for admin,
+            // but for 'professional' role it might be important.
+            // For now, we log and proceed, unless it's a network error which the catch block handles.
           }
 
           if (profData) {
@@ -125,106 +126,104 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (isMounted.current) {
           setRole(userRole)
           setProfessionalId(profId)
+          setError(null)
+          // We set loading to false only at the very end of the successful flow
           setLoading(false)
         }
         success = true
-      } catch (error: any) {
-        console.error('[Auth] Error fetching profile:', error)
+      } catch (err: any) {
+        console.error(`[Auth] Attempt ${attempts + 1} failed:`, err)
+        lastError = err
         attempts++
-        if (attempts < MAX_RETRIES) {
-          // Wait before retrying
+        if (attempts <= MAX_RETRIES) {
           await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY))
-        } else {
-          // Final failure
-          if (isMounted.current) {
-            // Keep user logged in but with limited access (role null)
-            // Or strictly fail. Here we set loaded to false so UI can show error or retry
-            setLoading(false)
-          }
         }
       }
+    }
+
+    if (!success && isMounted.current) {
+      console.error('[Auth] All attempts to fetch profile failed.')
+      setError(lastError || new Error('Falha ao carregar perfil.'))
+      setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    let mounted = true
+    // Set up auth state listener FIRST
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      console.log('[Auth] Auth state change:', event)
 
-    const initializeAuth = async () => {
-      try {
-        const {
-          data: { session: initialSession },
-        } = await supabase.auth.getSession()
-
-        if (!mounted) return
-
-        if (initialSession) {
-          setSession(initialSession)
-          setUser(initialSession.user)
-          // Don't set loading false yet, fetch profile first
-          await fetchProfileAndRole(initialSession.user)
-        } else {
+      if (event === 'SIGNED_OUT') {
+        if (isMounted.current) {
           setSession(null)
           setUser(null)
           setRole(null)
           setProfessionalId(null)
+          setError(null)
           setLoading(false)
         }
-      } catch (error) {
-        console.error('[Auth] Initialization error:', error)
-        if (mounted) setLoading(false)
-      }
-    }
-
-    initializeAuth()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      if (!mounted) return
-      console.log('[Auth] Auth state change:', event)
-
-      if (event === 'SIGNED_OUT') {
-        // Clear everything
-        setSession(null)
-        setUser(null)
-        setRole(null)
-        setProfessionalId(null)
-        setLoading(false)
-        // Clear local storage just in case
         localStorage.removeItem('sb-fpl-saude-auth-token')
       } else if (
         event === 'SIGNED_IN' ||
-        event === 'USER_UPDATED' ||
-        event === 'TOKEN_REFRESHED'
+        event === 'TOKEN_REFRESHED' ||
+        event === 'INITIAL_SESSION'
       ) {
-        // Handle session update
-        const prevUser = user?.id
-        const nextUser = currentSession?.user?.id
+        // Only trigger update if something changed or we are missing data
+        if (isMounted.current) {
+          const newUser = currentSession?.user ?? null
+          setSession(currentSession)
+          setUser(newUser)
 
-        setSession(currentSession)
-        setUser(currentSession?.user ?? null)
+          // If we have a user but no role (or user changed), fetch profile
+          // We check 'loading' to avoid double-fetching if initializeAuth is already running
+          // But 'TOKEN_REFRESHED' might happen while active, so we double check.
+          if (newUser) {
+            // If we already have the role for this user, don't re-fetch on simple token refresh
+            // unless we want to keep role in sync.
+            // We use a simple check: if role is missing, or if user ID changed.
+            if (!role || user?.id !== newUser.id) {
+              // Ensure loading is true while we fetch
+              setLoading(true)
+              fetchProfileAndRole(newUser)
+            } else {
+              // We have user and role, ensure loading is false
+              setLoading(false)
+            }
+          } else {
+            // No user in session
+            setLoading(false)
+          }
+        }
+      } else if (event === 'USER_UPDATED') {
+        if (isMounted.current && currentSession?.user) {
+          setSession(currentSession)
+          setUser(currentSession.user)
+          fetchProfileAndRole(currentSession.user)
+        }
+      }
+    })
 
-        // Only fetch profile if user CHANGED or if we don't have a role yet (and have a user)
-        // TOKEN_REFRESHED usually doesn't change role, but safe to check if we are missing role.
-        if (nextUser && (prevUser !== nextUser || !role)) {
-          setLoading(true)
-          await fetchProfileAndRole(currentSession!.user)
-        } else if (event === 'TOKEN_REFRESHED') {
-          // Just refreshing token, no need to reload full profile if we have it
-          // But ensure loading is false
-          if (loading) setLoading(false)
-        } else if (!nextUser) {
-          // Should be covered by SIGNED_OUT but just in case
+    // Check for existing session immediately on mount
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (isMounted.current) {
+        if (initialSession) {
+          setSession(initialSession)
+          setUser(initialSession.user)
+          // Fetch profile immediately
+          fetchProfileAndRole(initialSession.user)
+        } else {
+          // No session, stop loading
           setLoading(false)
         }
       }
     })
 
     return () => {
-      mounted = false
       subscription.unsubscribe()
     }
-  }, [fetchProfileAndRole, role, user?.id, loading])
+  }, [fetchProfileAndRole, role, user?.id])
 
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`
@@ -238,12 +237,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     setLoading(true)
+    setError(null)
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
     if (error) {
       setLoading(false)
+      setError(error)
     }
     // If success, onAuthStateChange will handle the rest
     return { error }
@@ -252,20 +253,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     console.log('[Auth] Signing out...')
     try {
+      setLoading(true)
       const { error } = await supabase.auth.signOut()
       if (error) throw error
-    } catch (e) {
+    } catch (e: any) {
       console.error('[Auth] Error signing out:', e)
-      // Force local cleanup anyway
+      setError(e)
+    } finally {
       if (isMounted.current) {
         setSession(null)
         setUser(null)
         setRole(null)
         setProfessionalId(null)
+        setError(null)
         setLoading(false)
       }
     }
     return { error: null }
+  }
+
+  const refreshProfile = async () => {
+    if (user) {
+      setLoading(true)
+      await fetchProfileAndRole(user)
+    }
   }
 
   const value = {
@@ -277,6 +288,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signIn,
     signOut,
     loading,
+    error,
+    refreshProfile,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
