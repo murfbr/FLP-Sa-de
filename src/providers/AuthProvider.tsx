@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('[Auth] Fetching profile for user:', currentUser.id)
 
       // 1. Fetch Profile Role from public.profiles
-      // Using maybeSingle() handles 0 or 1 row. RLS should allow reading own row.
+      // Using maybeSingle() to handle 0 or 1 row gracefully
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -74,8 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (profileError) {
         console.error('[Auth] Error fetching profile:', profileError)
-        // If error is technical (network/RLS), log it.
-        // We continue to set loading false at the end so UI can show error state if role is missing.
+        // Do not return here, we must finish loading state even if error
       }
 
       if (!profileData) {
@@ -145,6 +144,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Fetch profile immediately for initial session
             await fetchProfileAndRole(initialSession.user)
           } else {
+            setSession(null)
+            setUser(null)
+            setRole(null)
+            setProfessionalId(null)
             setLoading(false)
           }
         }
@@ -165,14 +168,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('[Auth] Auth state change:', event)
 
       if (event === 'SIGNED_OUT') {
+        // Clear all state immediately
         setSession(null)
         setUser(null)
         setRole(null)
         setProfessionalId(null)
         setLoading(false)
       } else if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-        // When signing in, we set loading to true to prevent premature redirects
-        // until profile is fetched
+        // When signing in, set loading to true until profile is fetched
         setLoading(true)
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
@@ -185,6 +188,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else if (event === 'TOKEN_REFRESHED') {
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
+        // Usually don't need to refetch profile on token refresh unless claims change
       }
     })
 
@@ -204,19 +208,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signIn = async (email: string, password: string) => {
+    setLoading(true) // Optimistic loading
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
+    if (error) setLoading(false) // Reset if error
     return { error }
   }
 
   const signOut = async () => {
-    // We do NOT set loading to true here to allow instant UI feedback for logout actions
-    // driven by ProtectedRoute recovery options
     console.log('[Auth] Signing out...')
+
+    // Explicitly clear local state immediately to update UI
+    if (isMounted.current) {
+      setSession(null)
+      setUser(null)
+      setRole(null)
+      setProfessionalId(null)
+      setLoading(false)
+    }
+
+    // Then call Supabase signOut
     const { error } = await supabase.auth.signOut()
-    // State cleanup is handled by onAuthStateChange('SIGNED_OUT')
+
     return { error }
   }
 

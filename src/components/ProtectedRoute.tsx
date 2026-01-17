@@ -30,10 +30,10 @@ export const ProtectedRoute = ({
         setShowLongLoadingMessage(true)
       }, 2000)
 
-      // Show retry button after 7 seconds (providing early exit option before 10s strict timeout)
+      // Show retry/logout buttons after 5 seconds (reduced from 7s for better UX)
       timer2 = setTimeout(() => {
         setShowRetryOption(true)
-      }, 7000)
+      }, 5000)
     } else {
       setShowLongLoadingMessage(false)
       setShowRetryOption(false)
@@ -47,7 +47,8 @@ export const ProtectedRoute = ({
 
   const handleForceLogout = async () => {
     await signOut()
-    // Optional: Force reload to clear any stuck memory state
+    // Force redirect to login
+    // Using window.location.href to ensure a full refresh and clear any app state
     window.location.href = '/login'
   }
 
@@ -67,23 +68,28 @@ export const ProtectedRoute = ({
               'Carregando informações...'
             )}
           </p>
-          {showRetryOption && (
+
+          {/* Always show cancel button if loading takes more than 2s, but highlight options after 5s */}
+          {(showLongLoadingMessage || showRetryOption) && (
             <div className="flex flex-col gap-3 mt-4 animate-fade-in-up items-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.location.reload()}
-                className="w-full min-w-[160px]"
-              >
-                <RefreshCw className="mr-2 h-3 w-3" />
-                Recarregar Página
-              </Button>
+              {showRetryOption && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.location.reload()}
+                  className="w-full min-w-[160px]"
+                >
+                  <RefreshCw className="mr-2 h-3 w-3" />
+                  Recarregar Página
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
                 className="text-muted-foreground text-xs hover:text-destructive transition-colors"
                 onClick={handleForceLogout}
               >
+                <LogOut className="mr-2 h-3 w-3" />
                 Cancelar e Sair
               </Button>
             </div>
