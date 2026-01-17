@@ -18,7 +18,7 @@ const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { signIn, user, loading, role } = useAuth()
+  const { signIn, user, loading, role, signOut } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
@@ -27,15 +27,24 @@ const Login = () => {
 
   // Redirect if already authenticated and role is loaded
   useEffect(() => {
-    if (!loading && user && role) {
-      // Smart redirect based on role if 'from' is just generic '/' or login
-      if (from === '/' || from === '/login') {
-        if (role === 'admin') navigate('/admin', { replace: true })
-        else if (role === 'professional')
-          navigate('/profissional', { replace: true })
-        else navigate('/', { replace: true }) // Let Index handle client/others
+    if (!loading && user) {
+      if (role) {
+        // Smart redirect based on role if 'from' is just generic '/' or login
+        if (from === '/' || from === '/login') {
+          if (role === 'admin') navigate('/admin', { replace: true })
+          else if (role === 'professional')
+            navigate('/profissional', { replace: true })
+          else navigate('/', { replace: true }) // Let Index handle client/others
+        } else {
+          navigate(from, { replace: true })
+        }
       } else {
-        navigate(from, { replace: true })
+        // User authenticated but role is missing (fetch failed or no profile)
+        // We could sign them out or let them see an error.
+        // For security/cleanliness, let's just warn and maybe signOut after a delay or let user handle it manually if we provided UI.
+        // But since Login page should disappear, we must ensure we don't end up in white screen.
+        // AuthProvider/ProtectedRoute usually handles this if we wrap Login, but Login is Public.
+        console.warn('Login: User authenticated but role missing.')
       }
     }
   }, [user, role, loading, navigate, from])
@@ -82,8 +91,40 @@ const Login = () => {
     )
   }
 
-  // If user is logged in, we render null to avoid flicker before redirect
-  if (user) return null
+  // If user is logged in AND role is determined, we render null to avoid flicker before redirect
+  // If role is missing but user is logged in, we stay here so user can see they are logged in or sign out.
+  // Ideally, we should show a specific error state here too, but for now we fallback to the login form
+  // allowing them to sign out via the logic below (which is not present in standard login form).
+  // Actually, standard behavior: if user logged in, we expect redirect. If !role, we probably want to force logout.
+  if (user && role) return null
+
+  // Edge case: User logged in but no role found (and loading finished)
+  if (user && !role) {
+    return (
+      <div className="container flex items-center justify-center min-h-[calc(100vh-112px)] py-12">
+        <Card className="w-full max-w-sm border-destructive/50">
+          <CardHeader className="text-center">
+            <CardTitle className="text-destructive">Erro de Perfil</CardTitle>
+            <CardDescription>
+              Não foi possível carregar seu perfil de usuário.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={async () => {
+                await signOut()
+                // window.location.reload() // Optional
+              }}
+            >
+              Sair e Tentar Novamente
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="container flex items-center justify-center min-h-[calc(100vh-112px)] py-12">

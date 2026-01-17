@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
-import { UserRole } from '@/lib/supabase/types' // Correct import for Role if needed
+import { UserRole } from '@/lib/supabase/types'
 import { Loader2, LogOut, AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -18,17 +18,31 @@ export const ProtectedRoute = ({
   const location = useLocation()
 
   const [showLongLoadingMessage, setShowLongLoadingMessage] = useState(false)
+  const [showRetryOption, setShowRetryOption] = useState(false)
 
   useEffect(() => {
-    let timer: NodeJS.Timeout
+    let timer1: NodeJS.Timeout
+    let timer2: NodeJS.Timeout
+
     if (loading) {
-      timer = setTimeout(() => {
+      // Show "waiting" message after 2 seconds
+      timer1 = setTimeout(() => {
         setShowLongLoadingMessage(true)
       }, 2000)
+
+      // Show retry button after 7 seconds
+      timer2 = setTimeout(() => {
+        setShowRetryOption(true)
+      }, 7000)
     } else {
       setShowLongLoadingMessage(false)
+      setShowRetryOption(false)
     }
-    return () => clearTimeout(timer)
+
+    return () => {
+      clearTimeout(timer1)
+      clearTimeout(timer2)
+    }
   }, [loading])
 
   // 1. Loading State
@@ -40,13 +54,33 @@ export const ProtectedRoute = ({
           <p className="text-muted-foreground animate-pulse text-sm text-center">
             {showLongLoadingMessage ? (
               <span className="flex items-center gap-2 text-orange-600">
-                <AlertTriangle className="h-4 w-4" />A conexão está lenta,
-                aguarde...
+                <AlertTriangle className="h-4 w-4" />
+                Verificando credenciais...
               </span>
             ) : (
               'Carregando informações...'
             )}
           </p>
+          {showRetryOption && (
+            <div className="flex flex-col gap-2 mt-4 animate-fade-in-up">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.reload()}
+              >
+                <RefreshCw className="mr-2 h-3 w-3" />
+                Recarregar Página
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground text-xs"
+                onClick={() => signOut()}
+              >
+                Cancelar e Sair
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -62,11 +96,13 @@ export const ProtectedRoute = ({
   if (!role) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 text-center">
-        <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
+        <div className="bg-destructive/10 p-4 rounded-full mb-4">
+          <AlertTriangle className="h-10 w-10 text-destructive" />
+        </div>
         <h2 className="text-xl font-bold mb-2">Perfil não Encontrado</h2>
         <p className="text-muted-foreground mb-6 max-w-md">
-          Não foi possível identificar o seu nível de acesso. Entre em contato
-          com o suporte.
+          Não foi possível recuperar suas informações de perfil. Isso pode
+          ocorrer devido a uma falha de conexão ou erro no cadastro.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <Button onClick={() => window.location.reload()}>
@@ -75,7 +111,7 @@ export const ProtectedRoute = ({
           </Button>
           <Button variant="outline" onClick={() => signOut()}>
             <LogOut className="mr-2 h-4 w-4" />
-            Sair
+            Sair da Conta
           </Button>
         </div>
       </div>
