@@ -24,7 +24,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const PROFILE_FETCH_TIMEOUT_MS = 5000
+const PROFILE_FETCH_TIMEOUT_MS = 8000 // Increased timeout for resilience
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
@@ -41,8 +41,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [professionalId, setProfessionalId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Use a ref to track mounting to avoid state updates on unmounted component
-  // in complex async flows
   const isMounted = useRef(true)
 
   useEffect(() => {
@@ -52,17 +50,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [])
 
+  const logAuthEvent = (event: string, details?: any) => {
+    const timestamp = new Date().toISOString()
+    console.log(`[Auth] ${timestamp} | ${event}`, details || '')
+  }
+
   const fetchProfileAndRole = useCallback(
-    async (currentUser: User | null): Promise<void> => {
-      const startTime = performance.now()
-      const logPrefix = `[AuthDebug] fetchProfileAndRole (${currentUser?.id?.slice(0, 6)}):`
-
-      console.log(
-        `${logPrefix} Starting profile fetch at ${new Date().toISOString()}`,
-      )
-
+    async (
+      currentUser: User | null,
+      isBackgroundRefresh = false,
+    ): Promise<void> => {
       if (!currentUser) {
-        console.log(`${logPrefix} No user provided. Clearing role.`)
+        logAuthEvent('ProfileFetch', 'No user provided. Clearing role.')
         if (isMounted.current) {
           setRole(null)
           setProfessionalId(null)
@@ -70,12 +69,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return
       }
 
-      // Default safe fallback
+      // If this is a background refresh and we already have a role, skip fetching to avoid UI flicker/load
+      if (isBackgroundRefresh && role) {
+        logAuthEvent(
+          'ProfileFetch',
+          'Background refresh with existing role. Skipping DB fetch.',
+        )
+        return
+      }
+
+      const logPrefix = `[Auth] fetchProfileAndRole (${currentUser.id.slice(0, 6)}):`
+      logAuthEvent('ProfileFetch', 'Starting profile fetch...')
+
       let resolvedRole: UserRole = 'client'
       let resolvedProfId: string | null = null
 
       try {
-        console.log(`${logPrefix} Initiating DB query for profile...`)
         const queryStart = performance.now()
 
         // TIMEOUT PROMISE
@@ -101,30 +110,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return data
         }
 
-        // RACE: Profile Query vs Timeout
         const profileData = (await Promise.race([
           profileQuery(),
           timeoutPromise,
         ])) as { role: string } | null
 
         const queryEnd = performance.now()
-        console.log(
-          `${logPrefix} Profile Query finished in ${(queryEnd - queryStart).toFixed(2)}ms`,
+        logAuthEvent(
+          'ProfileFetch',
+          `Finished in ${(queryEnd - queryStart).toFixed(2)}ms`,
         )
 
         if (profileData) {
           resolvedRole = (profileData.role as UserRole) ?? 'client'
-          console.log(`${logPrefix} Role resolved to: ${resolvedRole}`)
         } else {
           console.warn(
             `${logPrefix} No profile record found. Defaulting to 'client'.`,
           )
         }
 
-        // Secondary fetch for professional ID if needed
-        // Only run if we are still within reasonable time (simplification: just run it, but catch errors)
         if (resolvedRole === 'professional' || resolvedRole === 'admin') {
-          console.log(`${logPrefix} Fetching professional ID...`)
           const { data: profData, error: profError } = await supabase
             .from('professionals')
             .select('id')
@@ -138,70 +143,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             )
           } else if (profData) {
             resolvedProfId = profData.id
-            console.log(`${logPrefix} Professional ID found: ${profData.id}`)
-          } else {
-            console.warn(
-              `${logPrefix} No professional record found for role ${resolvedRole}`,
-            )
           }
         }
       } catch (error: any) {
-        const errorTime = performance.now()
         console.error(
-          `${logPrefix} FAILED or TIMED OUT after ${(errorTime - startTime).toFixed(2)}ms. Using fallback. Error:`,
+          `${logPrefix} FAILED or TIMED OUT. Using fallback. Error:`,
           error,
         )
-        // resolvedRole remains 'client' (fallback)
       } finally {
-        const endTime = performance.now()
-        console.log(
-          `${logPrefix} Completed total flow in ${(endTime - startTime).toFixed(2)}ms`,
-        )
-
         if (isMounted.current) {
           setRole(resolvedRole)
           setProfessionalId(resolvedProfId)
+          // Ensure loading is false after profile resolution
+          if (!isBackgroundRefresh) {
+            setLoading(false)
+          }
         }
       }
     },
-    [],
+    [role], // Dependency on 'role' to check for existing state
   )
 
   useEffect(() => {
-    console.log('[AuthDebug] AuthProvider: Initializing...')
+    logAuthEvent('Initialization', 'AuthProvider initializing...')
 
     const initializeAuth = async () => {
       try {
         const {
           data: { session: initialSession },
+          error,
         } = await supabase.auth.getSession()
+
+        if (error) {
+          console.error('[Auth] Error getting session:', error)
+        }
 
         if (isMounted.current) {
           if (initialSession) {
-            console.log('[AuthDebug] AuthProvider: Initial session found.')
+            logAuthEvent(
+              'Initialization',
+              `Session found for ${initialSession.user.email}`,
+            )
             setSession(initialSession)
             setUser(initialSession.user)
-            await fetchProfileAndRole(initialSession.user)
+            await fetchProfileAndRole(initialSession.user, false)
           } else {
-            console.log('[AuthDebug] AuthProvider: No initial session.')
+            logAuthEvent('Initialization', 'No initial session found.')
             setSession(null)
             setUser(null)
             setRole(null)
             setProfessionalId(null)
+            setLoading(false)
           }
         }
       } catch (error) {
-        console.error(
-          '[AuthDebug] AuthProvider: Critical initialization error:',
-          error,
-        )
-      } finally {
-        if (isMounted.current) {
-          console.log(
-            '[AuthDebug] AuthProvider: Initialization done. Setting loading=false.',
-          )
-          setLoading(false)
-        }
+        console.error('[Auth] Critical initialization error:', error)
+        if (isMounted.current) setLoading(false)
       }
     }
 
@@ -212,7 +209,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, currentSession) => {
         if (!isMounted.current) return
-        console.log(`[AuthDebug] AuthProvider: Auth event '${event}'`)
+        logAuthEvent('AuthStateChange', `Event: ${event}`)
 
         if (event === 'SIGNED_OUT') {
           setSession(null)
@@ -224,21 +221,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setSession(currentSession)
           setUser(currentSession?.user ?? null)
 
-          // Only show loading if we are actually switching users or signing in
-          setLoading(true)
-          try {
-            await fetchProfileAndRole(currentSession?.user ?? null)
-          } catch (err) {
-            console.error(
-              '[AuthDebug] Error updating profile on auth change:',
-              err,
-            )
-          } finally {
-            if (isMounted.current) setLoading(false)
+          // Only blocking load on explicit sign in or user update (not refresh)
+          // Check if we already have a user to avoid flickering if SIGNED_IN fires spuriously
+          if (!user || event === 'USER_UPDATED') {
+            setLoading(true)
+            await fetchProfileAndRole(currentSession?.user ?? null, false)
+          } else {
+            // If we already have a user, treat SIGNED_IN like a refresh (rare case)
+            await fetchProfileAndRole(currentSession?.user ?? null, true)
           }
         } else if (event === 'TOKEN_REFRESHED') {
+          // BACKGROUND REFRESH - Do not block UI
+          logAuthEvent('TokenRefresh', 'Session refreshed successfully.')
           setSession(currentSession)
           setUser(currentSession?.user ?? null)
+          // We can optionally refresh profile, but silently
+          fetchProfileAndRole(currentSession?.user ?? null, true)
+        } else if (event === 'INITIAL_SESSION') {
+          // Handled by getSession(), but nice to log
+          logAuthEvent('InitialSession', 'Initial session event received.')
         }
       },
     )
@@ -246,9 +247,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe()
     }
-  }, [fetchProfileAndRole])
+  }, []) // Remove dependencies to avoid re-subscription loop
 
   const signUp = async (email: string, password: string) => {
+    logAuthEvent('SignUp', `Attempting sign up for ${email}`)
     const redirectUrl = `${window.location.origin}/`
     const { error } = await supabase.auth.signUp({
       email,
@@ -259,7 +261,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signIn = async (email: string, password: string) => {
-    console.log('[AuthDebug] signIn: Attempting login...')
+    logAuthEvent('SignIn', `Attempting login for ${email}`)
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -268,7 +270,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signOut = async () => {
-    console.log('[AuthDebug] signOut: Immediate cleanup requested.')
+    logAuthEvent('SignOut', 'User initiated sign out.')
 
     // Immediate state cleanup to unblock UI
     if (isMounted.current) {
@@ -281,11 +283,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const { error } = await supabase.auth.signOut()
-      if (error)
-        console.error('[AuthDebug] signOut: Supabase error:', error.message)
+      if (error) console.error('[Auth] SignOut error:', error.message)
       return { error }
     } catch (e) {
-      console.error('[AuthDebug] signOut: Exception:', e)
+      console.error('[Auth] SignOut exception:', e)
       return { error: e }
     }
   }

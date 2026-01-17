@@ -1,8 +1,8 @@
-import { ReactNode, useEffect, useState } from 'react'
+import { ReactNode, useEffect, useState, useRef } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
 import { UserRole } from '@/types'
-import { Loader2, LogOut, AlertTriangle } from 'lucide-react'
+import { Loader2, LogOut, AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ProtectedRouteProps {
@@ -10,15 +10,23 @@ interface ProtectedRouteProps {
   allowedRoles?: UserRole[]
 }
 
+const REDIRECT_GRACE_PERIOD_MS = 1500 // Time to wait before redirecting if user appears missing (grace period for refresh)
+
 export const ProtectedRoute = ({
   children,
   allowedRoles,
 }: ProtectedRouteProps) => {
   const { user, role, loading, signOut } = useAuth()
   const location = useLocation()
-  const [showLongLoadingMessage, setShowLongLoadingMessage] = useState(false)
 
-  // Failsafe timer for visual feedback if loading takes > 2 seconds
+  // States for graceful handling
+  const [showLongLoadingMessage, setShowLongLoadingMessage] = useState(false)
+  const [isVerifyingSession, setIsVerifyingSession] = useState(false)
+  const [shouldRedirect, setShouldRedirect] = useState(false)
+
+  const graceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Long loading timer (visual feedback)
   useEffect(() => {
     let timer: NodeJS.Timeout
     if (loading) {
@@ -31,44 +39,77 @@ export const ProtectedRoute = ({
     return () => clearTimeout(timer)
   }, [loading])
 
+  // Graceful Redirect Logic
+  // If loading is false, but user is null, wait a bit before hard redirecting
+  // This handles split-second states where token might be refreshing or network glitches
+  useEffect(() => {
+    if (!loading && !user) {
+      // Start grace period
+      setIsVerifyingSession(true)
+      if (graceTimerRef.current) clearTimeout(graceTimerRef.current)
+
+      graceTimerRef.current = setTimeout(() => {
+        console.log('[AuthDebug] Grace period expired. Redirecting to login.')
+        setShouldRedirect(true)
+        setIsVerifyingSession(false)
+      }, REDIRECT_GRACE_PERIOD_MS)
+    } else if (user) {
+      // User is present, cancel any pending redirect
+      if (graceTimerRef.current) clearTimeout(graceTimerRef.current)
+      setIsVerifyingSession(false)
+      setShouldRedirect(false)
+    }
+
+    return () => {
+      if (graceTimerRef.current) clearTimeout(graceTimerRef.current)
+    }
+  }, [loading, user])
+
+  // Debug Logging
   useEffect(() => {
     if (loading) {
-      // Just logging, waiting for loading to finish
-    } else if (!user) {
+      // Waiting
+    } else if (!user && !isVerifyingSession && shouldRedirect) {
       console.log(
-        '[AuthDebug] ProtectedRoute: No user found, redirecting to login. Location:',
+        '[AuthDebug] Redirecting: No user found for',
         location.pathname,
       )
-    } else if (allowedRoles && role && !allowedRoles.includes(role)) {
+    } else if (user && allowedRoles && role && !allowedRoles.includes(role)) {
       console.log(
-        `[AuthDebug] ProtectedRoute: Access denied for role ${role} at ${location.pathname}`,
-      )
-    } else {
-      console.log(
-        `[AuthDebug] ProtectedRoute: Access granted to ${location.pathname} for ${user?.email} (${role})`,
+        `[AuthDebug] Access denied: Role ${role} not in [${allowedRoles.join(', ')}]`,
       )
     }
-  }, [loading, user, role, location, allowedRoles])
+  }, [
+    loading,
+    user,
+    role,
+    location,
+    allowedRoles,
+    isVerifyingSession,
+    shouldRedirect,
+  ])
 
-  // 1. Loading State
-  if (loading) {
+  // 1. Loading State or Verifying Session (Grace Period)
+  if (loading || isVerifyingSession) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background space-y-6 p-4">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-muted-foreground animate-pulse text-sm text-center">
-            {showLongLoadingMessage ? (
+            {isVerifyingSession ? (
+              'Verificando sessão...'
+            ) : showLongLoadingMessage ? (
               <span className="flex items-center gap-2 text-orange-600">
                 <AlertTriangle className="h-4 w-4" />A conexão está lenta,
                 aguarde...
               </span>
             ) : (
-              'Verificando credenciais e carregando perfil...'
+              'Carregando informações...'
             )}
           </p>
         </div>
 
-        {/* Global Emergency Logout - Functional even during loading */}
+        {/* Global Emergency Logout */}
         <div className="mt-8">
           <Button
             variant="ghost"
@@ -77,15 +118,15 @@ export const ProtectedRoute = ({
             className="text-muted-foreground hover:text-destructive gap-2"
           >
             <LogOut className="h-4 w-4" />
-            Cancelar e Sair
+            Cancelar
           </Button>
         </div>
       </div>
     )
   }
 
-  // 2. Authentication Check
-  if (!user) {
+  // 2. Authentication Check (after grace period)
+  if (!user || shouldRedirect) {
     // Redirect to login, preserving the attempted URL
     return <Navigate to="/login" state={{ from: location }} replace />
   }
