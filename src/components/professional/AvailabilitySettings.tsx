@@ -27,10 +27,13 @@ import {
   setRecurringAvailability,
 } from '@/services/availability'
 import { getServicesByProfessional } from '@/services/professionals'
-import { generateSchedules } from '@/services/system'
-import { Skeleton } from '../ui/skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Service } from '@/types'
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import {
   Command,
   CommandEmpty,
@@ -38,7 +41,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '../ui/command'
+} from '@/components/ui/command'
 import { cn } from '@/lib/utils'
 
 const timeSlotSchema = z.object({
@@ -148,32 +151,13 @@ export const AvailabilitySettings = ({
         description: 'Não foi possível atualizar sua disponibilidade.',
         variant: 'destructive',
       })
-      setIsProcessing(false)
     } else {
-      // Trigger schedule generation to update calendar immediately
       toast({
         title: 'Disponibilidade salva',
-        description: 'Atualizando a agenda...',
+        description: 'Seus novos horários foram atualizados.',
       })
-
-      // Pass professionalId to optimize generation
-      const { error: genError } = await generateSchedules(professionalId)
-
-      if (genError) {
-        toast({
-          title: 'Aviso',
-          description:
-            'Disponibilidade salva, mas houve um erro ao atualizar a agenda visual. As alterações podem demorar a aparecer.',
-          variant: 'destructive',
-        })
-      } else {
-        toast({
-          title: 'Agenda Atualizada',
-          description: 'Seus novos horários já estão refletidos no calendário.',
-        })
-      }
-      setIsProcessing(false)
     }
+    setIsProcessing(false)
   }
 
   if (isLoading) return <Skeleton className="h-96 w-full" />

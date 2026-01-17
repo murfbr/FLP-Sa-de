@@ -54,6 +54,16 @@ export const RescheduleDialog = ({
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Ensure calendar opens on current month every time dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentMonth(new Date())
+      setDate(undefined)
+      setSelectedSlotTime(null)
+      setSchedules([])
+    }
+  }, [isOpen])
+
   useEffect(() => {
     if (isOpen) {
       setIsLoadingDates(true)
@@ -87,7 +97,6 @@ export const RescheduleDialog = ({
     if (!selectedSlotTime || !date) return
     setIsSubmitting(true)
 
-    // Using new reschedule function that takes professionalId and startTime
     const { error } = await rescheduleAppointment(
       oldAppointmentId,
       professionalId,

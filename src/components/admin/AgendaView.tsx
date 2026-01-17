@@ -1,19 +1,11 @@
 import { useState, useEffect } from 'react'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import {
-  List,
-  Calendar,
-  View,
-  Columns,
-  RefreshCw,
-  PlayCircle,
-  Loader2,
-} from 'lucide-react'
+import { List, Calendar, View, Columns, RefreshCw } from 'lucide-react'
 import { AgendaListView } from './AgendaListView'
 import { AgendaCalendarView } from './AgendaCalendarView'
 import { AgendaWeekView } from './AgendaWeekView'
 import { AgendaDayView } from './AgendaDayView'
-import { Button } from '../ui/button'
+import { Button } from '@/components/ui/button'
 import { AppointmentFormDialog } from './AppointmentFormDialog'
 import { Appointment, Professional } from '@/types'
 import { AppointmentDetailDialog } from './AppointmentDetailDialog'
@@ -24,21 +16,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../ui/select'
-import { generateSchedules } from '@/services/system'
+} from '@/components/ui/select'
 import { getAllProfessionals } from '@/services/professionals'
-import { useToast } from '@/hooks/use-toast'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { DateRange } from 'react-day-picker'
 import { startOfMonth, endOfMonth } from 'date-fns'
@@ -52,7 +31,6 @@ export const AgendaView = () => {
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
-  const [isGenerating, setIsGenerating] = useState(false)
 
   // Lifted State
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -72,7 +50,6 @@ export const AgendaView = () => {
   const [isSpecificTimeSlot, setIsSpecificTimeSlot] = useState(false)
 
   const isMobile = useIsMobile()
-  const { toast } = useToast()
 
   useEffect(() => {
     getAllProfessionals().then(({ data }) => {
@@ -103,35 +80,7 @@ export const AgendaView = () => {
     }
   }
 
-  const handleGenerateSchedules = async () => {
-    setIsGenerating(true)
-    toast({
-      title: 'Iniciando geração de horários...',
-      description: 'Este processo pode levar alguns minutos.',
-    })
-
-    const { data, error } = await generateSchedules(
-      selectedProfessional !== 'all' ? selectedProfessional : undefined,
-    )
-
-    if (error) {
-      toast({
-        title: 'Erro ao gerar horários',
-        description: error.message,
-        variant: 'destructive',
-      })
-    } else {
-      toast({
-        title: 'Geração de horários concluída!',
-        description: data.message,
-      })
-      handleDataRefresh()
-    }
-    setIsGenerating(false)
-  }
-
   const commonProps = {
-    // Removed key from here to avoid spreading it into props which causes runtime error
     currentDate,
     onDateChange: setCurrentDate,
     onViewChange: setViewMode,
@@ -237,44 +186,6 @@ export const AgendaView = () => {
                 className="w-full sm:w-auto"
               />
             )}
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="flex-1 sm:flex-none"
-                  disabled={isGenerating}
-                >
-                  {isGenerating ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <PlayCircle className="mr-2 h-4 w-4" />
-                  )}
-                  Gerar Horários
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>
-                    Gerar Horários Disponíveis
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Isso criará os horários na agenda para{' '}
-                    {selectedProfessional === 'all'
-                      ? 'todos os profissionais'
-                      : 'o profissional selecionado'}{' '}
-                    com base em suas configurações de disponibilidade até o fim
-                    do próximo ano. Deseja continuar?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleGenerateSchedules}>
-                    Confirmar
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
 
             <Button
               variant="ghost"
