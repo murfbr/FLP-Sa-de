@@ -46,6 +46,51 @@ export async function bookAppointment(
   return { data: { appointment_id: data }, error: null }
 }
 
+export async function bookRecurringAppointments(
+  professionalId: string,
+  clientId: string,
+  serviceId: string,
+  startTime: string,
+  weeks: number,
+  clientPackageId?: string,
+): Promise<{ error: any }> {
+  console.log('[AppointmentService] bookRecurringAppointments called with:', {
+    professionalId,
+    clientId,
+    serviceId,
+    startTime,
+    weeks,
+    clientPackageId,
+  })
+
+  if (weeks < 2) {
+    // If only 1 week, use standard booking
+    return bookAppointment(
+      professionalId,
+      clientId,
+      serviceId,
+      startTime,
+      clientPackageId,
+      true,
+    )
+  }
+
+  const { error } = await supabase.rpc('book_recurring_appointment_series', {
+    p_professional_id: professionalId,
+    p_client_id: clientId,
+    p_service_id: serviceId,
+    p_start_time: startTime,
+    p_client_package_id: clientPackageId || null,
+    p_occurrences: weeks,
+  })
+
+  if (error) {
+    console.error('[AppointmentService] Recurring RPC Error:', error)
+  }
+
+  return { error }
+}
+
 export async function rescheduleAppointment(
   appointmentId: string,
   newProfessionalId: string,

@@ -12,6 +12,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Form,
   FormControl,
@@ -65,24 +66,45 @@ import {
 } from '@/services/schedules'
 import { getAvailableDatesForProfessional } from '@/services/availability'
 import { getAllServices } from '@/services/services'
-import { bookAppointment } from '@/services/appointments'
+import {
+  bookAppointment,
+  bookRecurringAppointments,
+} from '@/services/appointments'
 import { AvailableSlots } from '../AvailableSlots'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useAuth } from '@/providers/AuthProvider'
 
-const appointmentSchema = z.object({
-  clientId: z.string().uuid('Selecione um cliente.'),
-  serviceId: z.string().uuid('Selecione um serviço.'),
-  professionalId: z.string().uuid('Selecione um profissional.'),
-  date: z.date({ required_error: 'Selecione uma data.' }),
-  startTime: z.string().min(1, 'Selecione um horário.'),
-  usePackage: z.boolean().default(true),
-  packageId: z.string().optional(),
-  isRecurring: z.boolean().default(false),
-  forceSingleCharge: z.boolean().default(false),
-})
+const appointmentSchema = z
+  .object({
+    clientId: z.string().uuid('Selecione um cliente.'),
+    serviceId: z.string().uuid('Selecione um serviço.'),
+    professionalId: z.string().uuid('Selecione um profissional.'),
+    date: z.date({ required_error: 'Selecione uma data.' }),
+    startTime: z.string().min(1, 'Selecione um horário.'),
+    usePackage: z.boolean().default(true),
+    packageId: z.string().optional(),
+    isRecurring: z.boolean().default(false),
+    recurrenceWeeks: z.coerce
+      .number()
+      .min(2, 'Mínimo de 2 semanas para recorrência')
+      .max(52, 'Máximo de 52 semanas (1 ano)')
+      .optional(),
+    forceSingleCharge: z.boolean().default(false),
+  })
+  .refine(
+    (data) => {
+      if (data.isRecurring) {
+        return !!data.recurrenceWeeks && data.recurrenceWeeks >= 2
+      }
+      return true
+    },
+    {
+      message: 'Defina a duração da recorrência (mínimo 2 semanas).',
+      path: ['recurrenceWeeks'],
+    },
+  )
 
 type AppointmentFormValues = z.infer<typeof appointmentSchema>
 
@@ -134,6 +156,7 @@ export const AppointmentFormDialog = ({
       professionalId: preselectedProfessionalId || '',
       date: initialDate || undefined,
       isRecurring: false,
+      recurrenceWeeks: 4,
       startTime: '',
       serviceId: '',
       clientId: '',
@@ -146,6 +169,7 @@ export const AppointmentFormDialog = ({
   const professionalId = form.watch('professionalId')
   const date = form.watch('date')
   const usePackage = form.watch('usePackage')
+  const isRecurring = form.watch('isRecurring')
   const forceSingleCharge = form.watch('forceSingleCharge')
   const startTime = form.watch('startTime')
 
@@ -182,6 +206,7 @@ export const AppointmentFormDialog = ({
         professionalId: preselectedProfessionalId || '',
         date: initialDate || undefined,
         isRecurring: false,
+        recurrenceWeeks: 4,
         startTime: '',
         serviceId: '',
         clientId: '',
@@ -349,25 +374,44 @@ export const AppointmentFormDialog = ({
     })
 
     try {
-      // Now booking with startTime instead of scheduleId
-      const { error } = await bookAppointment(
-        values.professionalId,
-        values.clientId,
-        values.serviceId,
-        values.startTime,
-        packageIdToUse,
-        values.isRecurring,
-      )
+      let result
 
-      if (error) {
-        console.error('[AppointmentForm] Error during booking:', error)
+      if (
+        values.isRecurring &&
+        values.recurrenceWeeks &&
+        values.recurrenceWeeks >= 2
+      ) {
+        // Bulk Recurring Booking
+        result = await bookRecurringAppointments(
+          values.professionalId,
+          values.clientId,
+          values.serviceId,
+          values.startTime,
+          values.recurrenceWeeks,
+          packageIdToUse,
+        )
+      } else {
+        // Single Booking
+        result = await bookAppointment(
+          values.professionalId,
+          values.clientId,
+          values.serviceId,
+          values.startTime,
+          packageIdToUse,
+          values.isRecurring,
+        )
+      }
+
+      if (result.error) {
+        console.error('[AppointmentForm] Error during booking:', result.error)
         toast({
           title: 'Erro ao agendar',
-          description: error.message || 'Falha ao processar agendamento.',
+          description:
+            result.error.message || 'Falha ao processar agendamento.',
           variant: 'destructive',
         })
       } else {
-        toast({ title: 'Agendamento criado com sucesso!' })
+        toast({ title: 'Agendamento(s) criado(s) com sucesso!' })
         onAppointmentCreated()
         onOpenChange(false)
         form.reset()
@@ -641,29 +685,60 @@ export const AppointmentFormDialog = ({
               )}
 
             {/* Recurring Option */}
-            <FormField
-              control={form.control}
-              name="isRecurring"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel className="flex items-center gap-2">
-                      <Repeat className="w-4 h-4 text-primary" />
-                      Repetir toda semana
-                    </FormLabel>
-                    <FormDescription>
-                      O agendamento será repetido automaticamente neste horário.
-                    </FormDescription>
-                  </div>
-                </FormItem>
+            <div className="space-y-2">
+              <FormField
+                control={form.control}
+                name="isRecurring"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none w-full">
+                      <FormLabel className="flex items-center gap-2">
+                        <Repeat className="w-4 h-4 text-primary" />
+                        Repetir semanalmente
+                      </FormLabel>
+                      <FormDescription>
+                        O agendamento será repetido automaticamente neste
+                        horário.
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              {isRecurring && (
+                <FormField
+                  control={form.control}
+                  name="recurrenceWeeks"
+                  render={({ field }) => (
+                    <FormItem className="animate-in fade-in slide-in-from-top-2">
+                      <FormLabel>Duração da Repetição (Semanas)</FormLabel>
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={2}
+                            max={52}
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value)}
+                          />
+                        </FormControl>
+                      </div>
+                      <FormDescription>
+                        Quantas semanas este agendamento deve se repetir (Max:
+                        52).
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               )}
-            />
+            </div>
 
             {/* Manual Date and Time Selection (Only if NOT in Context Mode) */}
             {!isSpecificTimeSlot && (
