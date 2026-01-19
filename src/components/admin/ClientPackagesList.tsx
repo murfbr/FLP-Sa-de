@@ -85,9 +85,16 @@ export const ClientPackagesList = ({ clientId }: ClientPackagesListProps) => {
                         })}
                       </p>
                     </div>
-                    <span className="text-sm font-medium text-right">
-                      {remainingSessions}/{totalSessions} sessões restantes
-                    </span>
+                    <div className="text-right">
+                      <span className="text-sm font-medium block">
+                        {remainingSessions}/{totalSessions} sessões restantes
+                      </span>
+                      {remainingSessions <= 1 && (
+                        <span className="text-xs font-semibold text-destructive">
+                          Renovação Necessária
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <Progress value={progress} className="h-2" />
                 </div>

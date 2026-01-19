@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import { Client, ClientPackageWithDetails, ClientSubscription } from '@/types'
-import { format } from 'date-fns'
+import { format, startOfMonth, endOfMonth } from 'date-fns'
 
 export async function getClientsByProfessional(
   professionalId: string,
@@ -96,7 +96,7 @@ export async function getClientPackages(
     .select('*, packages(*)')
     .eq('client_id', clientId)
     .gt('sessions_remaining', 0)
-    .order('purchase_date', { ascending: true }) // Ascending to prioritize oldest packages
+    .order('purchase_date', { ascending: true })
 
   return { data: data as ClientPackageWithDetails[] | null, error }
 }
@@ -194,4 +194,38 @@ export async function getClientsWithBirthdayThisWeek(
   )
 
   return { data, error }
+}
+
+export async function getMonthlyClientUsage(
+  clientId: string,
+  serviceId: string,
+): Promise<{ count: number; error: any }> {
+  const start = startOfMonth(new Date()).toISOString()
+  const end = endOfMonth(new Date()).toISOString()
+
+  const { count, error } = await supabase
+    .from('appointments')
+    .select('*', { count: 'exact', head: true })
+    .eq('client_id', clientId)
+    .eq('service_id', serviceId)
+    .eq('status', 'completed')
+    .gte('schedules.start_time', start)
+    .lte('schedules.start_time', end)
+
+  // Note: We need to join with schedules to filter by date accurately if we were selecting data,
+  // but for simple count with basic filtering we can rely on appointment time if available directly,
+  // however appointment table doesn't have start_time column, it's in schedules.
+  // Supabase count doesn't support deep filtering easily without embedded resources in the query string which 'head: true' might not support fully in all SDK versions.
+  // A safer way is to use a regular select with count.
+
+  const { count: safeCount, error: safeError } = await supabase
+    .from('appointments')
+    .select('id, schedules!inner(start_time)', { count: 'exact', head: true })
+    .eq('client_id', clientId)
+    .eq('service_id', serviceId)
+    .eq('status', 'completed')
+    .gte('schedules.start_time', start)
+    .lte('schedules.start_time', end)
+
+  return { count: safeCount || 0, error: safeError }
 }

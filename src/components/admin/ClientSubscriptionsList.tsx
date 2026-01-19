@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   getClientSubscriptions,
   cancelClientSubscription,
+  getMonthlyClientUsage,
 } from '@/services/clients'
 import { ClientSubscription } from '@/types'
 import {
@@ -40,6 +41,7 @@ export const ClientSubscriptionsList = ({
 }: ClientSubscriptionsListProps) => {
   const { toast } = useToast()
   const [subscriptions, setSubscriptions] = useState<ClientSubscription[]>([])
+  const [usageData, setUsageData] = useState<Record<string, number>>({})
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
@@ -47,6 +49,22 @@ export const ClientSubscriptionsList = ({
     setIsLoading(true)
     const { data } = await getClientSubscriptions(clientId)
     setSubscriptions(data || [])
+
+    // Fetch usage for each active subscription
+    if (data) {
+      const usageMap: Record<string, number> = {}
+      await Promise.all(
+        data.map(async (sub) => {
+          const { count } = await getMonthlyClientUsage(
+            clientId,
+            sub.service_id,
+          )
+          usageMap[sub.id] = count
+        }),
+      )
+      setUsageData(usageMap)
+    }
+
     setIsLoading(false)
   }
 
@@ -113,8 +131,9 @@ export const ClientSubscriptionsList = ({
                     {format(new Date(sub.start_date), 'dd/MM/yyyy', {
                       locale: ptBR,
                     })}
-                    {sub.end_date &&
-                      ` - Término: ${format(new Date(sub.end_date), 'dd/MM/yyyy', { locale: ptBR })}`}
+                  </p>
+                  <p className="text-sm font-medium text-primary">
+                    Sessões este mês: {usageData[sub.id] || 0}
                   </p>
                 </div>
                 <AlertDialog>
