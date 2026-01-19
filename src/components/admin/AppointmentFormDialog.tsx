@@ -75,6 +75,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useAuth } from '@/providers/AuthProvider'
+import { ClientSelector } from './ClientSelector'
 
 const appointmentSchema = z
   .object({
@@ -440,36 +441,28 @@ export const AppointmentFormDialog = ({
           )}
           <DialogDescription>
             {isSpecificTimeSlot
-              ? 'Selecione o serviço e o profissional para este horário.'
+              ? 'Selecione o cliente e serviço para este horário.'
               : 'Selecione o serviço e o profissional para confirmar o horário.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* 1. Client Selection */}
+            {/* 1. Client Selection - Searchable */}
             <FormField
               control={form.control}
               name="clientId"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Cliente</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o cliente" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {clients.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <ClientSelector
+                      clients={clients}
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isLoading.clients}
+                      isLoading={isLoading.clients}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -690,7 +683,7 @@ export const AppointmentFormDialog = ({
                 control={form.control}
                 name="isRecurring"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-muted/20">
                     <FormControl>
                       <Checkbox
                         checked={field.value}
@@ -703,8 +696,7 @@ export const AppointmentFormDialog = ({
                         Repetir semanalmente
                       </FormLabel>
                       <FormDescription>
-                        O agendamento será repetido automaticamente neste
-                        horário.
+                        Agendar automaticamente para as próximas semanas.
                       </FormDescription>
                     </div>
                   </FormItem>
@@ -716,22 +708,31 @@ export const AppointmentFormDialog = ({
                   control={form.control}
                   name="recurrenceWeeks"
                   render={({ field }) => (
-                    <FormItem className="animate-in fade-in slide-in-from-top-2">
-                      <FormLabel>Duração da Repetição (Semanas)</FormLabel>
-                      <div className="flex gap-2">
+                    <FormItem className="animate-in fade-in slide-in-from-top-2 border rounded-md p-4 bg-muted/10">
+                      <FormLabel className="flex justify-between">
+                        Duração da Recorrência
+                        <span className="text-xs text-muted-foreground font-normal">
+                          Max: 52 semanas
+                        </span>
+                      </FormLabel>
+                      <div className="flex gap-2 items-center">
                         <FormControl>
                           <Input
                             type="number"
                             min={2}
                             max={52}
+                            className="w-24"
                             {...field}
                             onChange={(e) => field.onChange(e.target.value)}
                           />
                         </FormControl>
+                        <span className="text-sm text-muted-foreground">
+                          semanas
+                        </span>
                       </div>
                       <FormDescription>
-                        Quantas semanas este agendamento deve se repetir (Max:
-                        52).
+                        O agendamento será repetido por {field.value} semanas a
+                        partir da data selecionada.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
