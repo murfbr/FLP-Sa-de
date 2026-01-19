@@ -42,7 +42,7 @@ import {
 } from '@/services/professionals'
 import { uploadFile, getPublicUrl } from '@/services/storage'
 import { useAuth } from '@/providers/AuthProvider'
-import { AlertTriangle, Trash2 } from 'lucide-react'
+import { AlertTriangle, Trash2, Loader2 } from 'lucide-react'
 
 const professionalSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
@@ -71,6 +71,7 @@ export const ProfessionalEditDialog = ({
   const navigate = useNavigate()
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
 
   const isAdmin = role === 'admin'
@@ -120,21 +121,25 @@ export const ProfessionalEditDialog = ({
   }
 
   const handleDelete = async () => {
-    setIsSubmitting(true)
+    setIsDeleting(true)
     const { error } = await deleteProfessional(professional.id)
+
     if (error) {
+      console.error('Delete professional error:', error)
       toast({
         title: 'Erro ao excluir profissional',
-        description: 'Verifique se existem agendamentos ou vínculos pendentes.',
+        description:
+          error.message || 'Ocorreu um erro ao tentar excluir o profissional.',
         variant: 'destructive',
       })
-      setIsSubmitting(false)
+      setIsDeleting(false)
       setShowDeleteAlert(false)
     } else {
-      toast({ title: 'Profissional excluído com sucesso.' })
+      toast({ title: 'Profissional e dados associados excluídos com sucesso.' })
       setShowDeleteAlert(false)
       onOpenChange(false)
-      navigate('/admin')
+      // Redirect to the professionals list tab
+      navigate('/admin?tab=professionals')
     }
   }
 
@@ -242,8 +247,15 @@ export const ProfessionalEditDialog = ({
               )}
 
               <DialogFooter>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
+                <Button type="submit" disabled={isSubmitting || isDeleting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    'Salvar Alterações'
+                  )}
                 </Button>
               </DialogFooter>
             </form>
@@ -258,14 +270,27 @@ export const ProfessionalEditDialog = ({
               <AlertTriangle className="h-5 w-5" />
               Excluir Profissional
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o profissional{' '}
-              <span className="font-semibold">{professional.name}</span>? Esta
-              ação não pode ser desfeita e removerá todos os dados associados.
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Tem certeza que deseja excluir o profissional{' '}
+                <span className="font-semibold text-foreground">
+                  {professional.name}
+                </span>
+                ?
+              </p>
+              <p className="font-medium text-destructive">
+                Atenção: Esta ação é irreversível e excluirá automaticamente:
+              </p>
+              <ul className="list-disc pl-5 text-sm">
+                <li>Todos os agendamentos (passados e futuros)</li>
+                <li>Registros financeiros associados</li>
+                <li>Configurações de disponibilidade e horários</li>
+                <li>Vínculos com serviços</li>
+              </ul>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSubmitting}>
+            <AlertDialogCancel disabled={isDeleting}>
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
@@ -274,9 +299,16 @@ export const ProfessionalEditDialog = ({
                 handleDelete()
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isSubmitting}
+              disabled={isDeleting}
             >
-              {isSubmitting ? 'Excluindo...' : 'Sim, excluir'}
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Sim, excluir permanentemente'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
