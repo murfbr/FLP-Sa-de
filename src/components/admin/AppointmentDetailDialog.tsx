@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Appointment, NoteEntry } from '@/types'
-import { format, isValid } from 'date-fns'
+import { format, isValid, addMinutes } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   User,
@@ -56,6 +56,14 @@ interface AppointmentDetailDialogProps {
   isOpen: boolean
   onOpenChange: (isOpen: boolean) => void
   onAppointmentUpdated: () => void
+}
+
+const statusMap: Record<string, string> = {
+  scheduled: 'Agendado',
+  confirmed: 'Confirmado',
+  completed: 'Concluído',
+  cancelled: 'Cancelado',
+  no_show: 'Faltou',
 }
 
 export const AppointmentDetailDialog = ({
@@ -160,8 +168,10 @@ export const AppointmentDetailDialog = ({
   }
 
   const startTime = appointment.schedules.start_time
-  const endTime = appointment.schedules.end_time
   const duration = appointment.services.duration_minutes || 30
+  // Calculate end time dynamically based on the service duration
+  const calculatedEndTime = addMinutes(new Date(startTime), duration)
+
   const canEdit = ['scheduled', 'confirmed'].includes(appointment.status)
 
   const DetailItem = ({
@@ -223,12 +233,16 @@ export const AppointmentDetailDialog = ({
               <DetailItem
                 icon={Clock}
                 label="Horário"
-                value={`${formatInTimeZone(startTime, 'HH:mm')} - ${formatInTimeZone(endTime, 'HH:mm')} (${duration} min)`}
+                value={`${formatInTimeZone(startTime, 'HH:mm')} - ${formatInTimeZone(calculatedEndTime, 'HH:mm')} (${duration} min)`}
               />
               <DetailItem
                 icon={FileText}
                 label="Status"
-                value={<Badge>{appointment.status}</Badge>}
+                value={
+                  <Badge>
+                    {statusMap[appointment.status] || appointment.status}
+                  </Badge>
+                }
               />
             </div>
 
