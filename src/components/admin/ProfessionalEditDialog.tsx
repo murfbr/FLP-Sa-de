@@ -36,13 +36,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
-import {
-  updateProfessional,
-  deleteProfessional,
-} from '@/services/professionals'
+import { updateProfessional } from '@/services/professionals'
 import { uploadFile, getPublicUrl } from '@/services/storage'
 import { useAuth } from '@/providers/AuthProvider'
-import { AlertTriangle, Trash2, Loader2 } from 'lucide-react'
+import { Ban, CheckCircle, Loader2 } from 'lucide-react'
 
 const professionalSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
@@ -68,11 +65,10 @@ export const ProfessionalEditDialog = ({
 }: ProfessionalEditDialogProps) => {
   const { toast } = useToast()
   const { role } = useAuth()
-  const navigate = useNavigate()
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [showDeleteAlert, setShowDeleteAlert] = useState(false)
+  const [isProcessingStatus, setIsProcessingStatus] = useState(false)
+  const [showInactivateAlert, setShowInactivateAlert] = useState(false)
 
   const isAdmin = role === 'admin'
 
@@ -120,27 +116,32 @@ export const ProfessionalEditDialog = ({
     setIsSubmitting(false)
   }
 
-  const handleDelete = async () => {
-    setIsDeleting(true)
-    const { error } = await deleteProfessional(professional.id)
+  const handleToggleStatus = async () => {
+    setIsProcessingStatus(true)
+    const newStatus = !professional.is_active
+
+    const { data, error } = await updateProfessional(professional.id, {
+      is_active: newStatus,
+    })
 
     if (error) {
-      console.error('Delete professional error:', error)
       toast({
-        title: 'Erro ao excluir profissional',
-        description:
-          error.message || 'Ocorreu um erro ao tentar excluir o profissional.',
+        title: `Erro ao ${newStatus ? 'ativar' : 'inativar'} profissional`,
+        description: error.message,
         variant: 'destructive',
       })
-      setIsDeleting(false)
-      setShowDeleteAlert(false)
-    } else {
-      toast({ title: 'Profissional e dados associados excluídos com sucesso.' })
-      setShowDeleteAlert(false)
+    } else if (data) {
+      toast({
+        title: `Profissional ${newStatus ? 'ativado' : 'inativado'} com sucesso`,
+        description: newStatus
+          ? 'O profissional agora tem acesso ao sistema.'
+          : 'O profissional não aparecerá para novos agendamentos.',
+      })
+      onProfessionalUpdate(data)
+      setShowInactivateAlert(false)
       onOpenChange(false)
-      // Redirect to the professionals list tab
-      navigate('/admin?tab=professionals')
     }
+    setIsProcessingStatus(false)
   }
 
   return (
@@ -209,45 +210,62 @@ export const ProfessionalEditDialog = ({
 
               {isAdmin && (
                 <div className="space-y-4 pt-4 border-t">
-                  <FormField
-                    control={form.control}
-                    name="is_active"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
-                        <div className="space-y-0.5">
-                          <FormLabel className="text-base">
-                            Status do Profissional
-                          </FormLabel>
-                          <FormDescription>
-                            Define se o profissional está ativo na plataforma.
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm bg-muted/20">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">
+                          Status da Conta
+                        </FormLabel>
+                        <FormDescription>
+                          {professional.is_active
+                            ? 'Profissional ativo e visível para agendamentos.'
+                            : 'Profissional inativo. Histórico preservado.'}
+                        </FormDescription>
+                      </div>
+                      <div className="flex items-center">
+                        {professional.is_active ? (
+                          <Badge variant="default" className="bg-green-600">
+                            Ativo
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive">Inativo</Badge>
+                        )}
+                      </div>
+                    </div>
 
-                  <div className="flex justify-end pt-2">
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setShowDeleteAlert(true)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Excluir Profissional
-                    </Button>
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        type="button"
+                        variant={
+                          professional.is_active ? 'destructive' : 'outline'
+                        }
+                        size="sm"
+                        onClick={() => setShowInactivateAlert(true)}
+                        className={
+                          !professional.is_active
+                            ? 'border-green-600 text-green-600 hover:text-green-700 hover:bg-green-50'
+                            : ''
+                        }
+                      >
+                        {professional.is_active ? (
+                          <>
+                            <Ban className="mr-2 h-4 w-4" />
+                            Inativar Profissional
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Reativar Profissional
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
 
               <DialogFooter>
-                <Button type="submit" disabled={isSubmitting || isDeleting}>
+                <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -263,51 +281,91 @@ export const ProfessionalEditDialog = ({
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+      <AlertDialog
+        open={showInactivateAlert}
+        onOpenChange={setShowInactivateAlert}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Excluir Profissional
+            <AlertDialogTitle className="flex items-center gap-2">
+              {professional.is_active ? (
+                <>
+                  <Ban className="h-5 w-5 text-destructive" />
+                  <span className="text-destructive">
+                    Inativar Profissional
+                  </span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="text-green-600">Reativar Profissional</span>
+                </>
+              )}
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>
-                Tem certeza que deseja excluir o profissional{' '}
-                <span className="font-semibold text-foreground">
-                  {professional.name}
-                </span>
-                ?
-              </p>
-              <p className="font-medium text-destructive">
-                Atenção: Esta ação é irreversível e excluirá automaticamente:
-              </p>
-              <ul className="list-disc pl-5 text-sm">
-                <li>Todos os agendamentos (passados e futuros)</li>
-                <li>Registros financeiros associados</li>
-                <li>Configurações de disponibilidade e horários</li>
-                <li>Vínculos com serviços</li>
-              </ul>
+            <AlertDialogDescription className="space-y-3 pt-2">
+              {professional.is_active ? (
+                <>
+                  <p>
+                    Tem certeza que deseja inativar{' '}
+                    <span className="font-semibold text-foreground">
+                      {professional.name}
+                    </span>
+                    ?
+                  </p>
+                  <p>Isso fará com que:</p>
+                  <ul className="list-disc pl-5 text-sm space-y-1">
+                    <li>
+                      O profissional não aparecerá para novos agendamentos.
+                    </li>
+                    <li>O acesso ao sistema será revogado.</li>
+                    <li>
+                      Todo o histórico de agendamentos e financeiro{' '}
+                      <span className="font-bold">será preservado</span>.
+                    </li>
+                  </ul>
+                </>
+              ) : (
+                <>
+                  <p>
+                    Tem certeza que deseja reativar{' '}
+                    <span className="font-semibold text-foreground">
+                      {professional.name}
+                    </span>
+                    ?
+                  </p>
+                  <p>
+                    O profissional voltará a aparecer na lista e poderá receber
+                    novos agendamentos.
+                  </p>
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>
+            <AlertDialogCancel disabled={isProcessingStatus}>
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault()
-                handleDelete()
+                handleToggleStatus()
               }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isDeleting}
+              className={
+                professional.is_active
+                  ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }
+              disabled={isProcessingStatus}
             >
-              {isDeleting ? (
+              {isProcessingStatus ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Excluindo...
+                  Processando...
                 </>
+              ) : professional.is_active ? (
+                'Sim, inativar'
               ) : (
-                'Sim, excluir permanentemente'
+                'Sim, reativar'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

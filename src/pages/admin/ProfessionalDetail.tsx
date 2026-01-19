@@ -81,9 +81,11 @@ const ProfessionalDetail = () => {
         </Button>
         <div className="grid md:grid-cols-3 gap-6">
           <div className="md:col-span-1 space-y-6">
-            <Card>
+            <Card className={!professional.is_active ? 'border-dashed' : ''}>
               <CardHeader className="items-center text-center">
-                <Avatar className="w-24 h-24 mb-4">
+                <Avatar
+                  className={`w-24 h-24 mb-4 ${!professional.is_active ? 'grayscale' : ''}`}
+                >
                   <AvatarImage
                     src={professional.avatar_url || ''}
                     alt={professional.name}
@@ -98,6 +100,14 @@ const ProfessionalDetail = () => {
                   </CardTitle>
                   {!professional.is_active && (
                     <Badge variant="destructive">Inativo</Badge>
+                  )}
+                  {professional.is_active && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-100 text-green-800 hover:bg-green-200"
+                    >
+                      Ativo
+                    </Badge>
                   )}
                 </div>
                 <CardDescription>{professional.specialty}</CardDescription>
