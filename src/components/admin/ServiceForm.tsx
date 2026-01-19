@@ -3,7 +3,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Form,
@@ -24,7 +23,7 @@ const serviceSchema = z.object({
     .number()
     .int()
     .positive('A duração deve ser um número positivo.'),
-  price: z.coerce.number().positive('O preço deve ser um número positivo.'),
+  price: z.coerce.number().min(0, 'O preço não pode ser negativo.'),
   value_type: z.enum(['session', 'monthly']),
   max_attendees: z.coerce
     .number()
@@ -57,6 +56,8 @@ export const ServiceForm = ({
       max_attendees: defaultValues?.max_attendees || 1,
     },
   })
+
+  const priceValue = form.watch('price')
 
   return (
     <Form {...form}>
@@ -144,10 +145,15 @@ export const ServiceForm = ({
             name="price"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Preço (R$)</FormLabel>
+                <FormLabel>Preço Avulso (R$)</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" {...field} />
                 </FormControl>
+                <FormDescription>
+                  {priceValue === 0
+                    ? 'Preço 0 indica venda exclusiva por pacotes.'
+                    : 'Valor cobrado por sessão avulsa.'}
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

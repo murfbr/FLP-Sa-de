@@ -9,6 +9,7 @@ export interface Service {
   price: number
   value_type: 'session' | 'monthly'
   max_attendees: number
+  packages?: Package[] | null
 }
 
 export interface Professional {

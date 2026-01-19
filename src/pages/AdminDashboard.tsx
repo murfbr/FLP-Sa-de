@@ -13,7 +13,6 @@ import {
   LayoutDashboard,
   Handshake,
   PlusCircle,
-  Package,
   Search,
 } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
@@ -38,7 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { PackagesManager } from '@/components/admin/PackagesManager'
 import { BirthdaysList } from '@/components/admin/BirthdaysList'
 import { ClientOnboardingDialog } from '@/components/admin/ClientOnboardingDialog'
 
@@ -137,7 +135,7 @@ const AdminDashboard = () => {
               </TabsTrigger>
               <TabsTrigger value="services">
                 <Stethoscope className="w-4 h-4 mr-2" />
-                Serviços
+                Serviços e Pacotes
               </TabsTrigger>
               <TabsTrigger value="partnerships">
                 <Handshake className="w-4 h-4 mr-2" />
@@ -281,40 +279,14 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="services">
-            <Tabs defaultValue="single-services" className="w-full">
-              <TabsList className="mb-4 w-full sm:w-auto grid grid-cols-2 sm:inline-flex">
-                <TabsTrigger value="single-services">
-                  <Stethoscope className="w-4 h-4 mr-2" />
-                  Serviços Avulsos
-                </TabsTrigger>
-                <TabsTrigger value="packages">
-                  <Package className="w-4 h-4 mr-2" />
-                  Pacotes
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="single-services" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Gerenciar Serviços Avulsos</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ServicesManager />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="packages" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Gerenciar Pacotes de Serviços</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <PackagesManager />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+            <Card>
+              <CardHeader>
+                <CardTitle>Gerenciar Serviços e Pacotes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ServicesManager />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="partnerships">

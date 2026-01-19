@@ -40,12 +40,14 @@ interface PackageFormProps {
   onSubmit: (values: PackageFormValues) => void
   defaultValues?: Partial<Package>
   isSubmitting: boolean
+  fixedServiceId?: string
 }
 
 export const PackageForm = ({
   onSubmit,
   defaultValues,
   isSubmitting,
+  fixedServiceId,
 }: PackageFormProps) => {
   const [services, setServices] = useState<Service[]>([])
 
@@ -54,7 +56,7 @@ export const PackageForm = ({
     defaultValues: {
       name: defaultValues?.name || '',
       description: defaultValues?.description || '',
-      service_id: defaultValues?.service_id || '',
+      service_id: fixedServiceId || defaultValues?.service_id || '',
       session_count: defaultValues?.session_count || 1,
       price: defaultValues?.price || 0,
     },
@@ -68,6 +70,12 @@ export const PackageForm = ({
       setServices(sessionServices)
     })
   }, [])
+
+  useEffect(() => {
+    if (fixedServiceId) {
+      form.setValue('service_id', fixedServiceId)
+    }
+  }, [fixedServiceId, form])
 
   return (
     <Form {...form}>
@@ -108,7 +116,12 @@ export const PackageForm = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Serviço Associado</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                value={field.value}
+                disabled={!!fixedServiceId}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um serviço" />
