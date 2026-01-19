@@ -15,6 +15,8 @@ import {
   BarChart,
   Users,
   Handshake,
+  Ticket,
+  UserCheck,
 } from 'lucide-react'
 import { DateRange } from 'react-day-picker'
 import { startOfMonth } from 'date-fns'
@@ -39,6 +41,17 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { cn } from '@/lib/utils'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { getAllProfessionals } from '@/services/professionals'
+import { getAllServices } from '@/services/services'
+import { getAllPartnerships } from '@/services/partnerships'
+import { Professional, Service, Partnership } from '@/types'
 
 const formatCurrency = (value: number | null | undefined) => {
   if (value === null || value === undefined) return 'R$ 0,00'
@@ -135,22 +148,56 @@ export const KpiDashboard = () => {
     from: startOfMonth(new Date()),
     to: new Date(),
   })
+
+  // Filters State
+  const [selectedProfessional, setSelectedProfessional] = useState('all')
+  const [selectedService, setSelectedService] = useState('all')
+  const [selectedPartnership, setSelectedPartnership] = useState('all')
+
+  // Lists State
+  const [professionals, setProfessionals] = useState<Professional[]>([])
+  const [services, setServices] = useState<Service[]>([])
+  const [partnerships, setPartnerships] = useState<Partnership[]>([])
+
+  // Data State
   const [kpis, setKpis] = useState<any>(null)
   const [serviceData, setServiceData] = useState<any[]>([])
   const [partnershipData, setPartnershipData] = useState<any[]>([])
   const [annualData, setAnnualData] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
+  // Fetch filter options
+  useEffect(() => {
+    const fetchOptions = async () => {
+      const [profRes, servRes, partRes] = await Promise.all([
+        getAllProfessionals(),
+        getAllServices(),
+        getAllPartnerships(),
+      ])
+      if (profRes.data) setProfessionals(profRes.data)
+      if (servRes.data) setServices(servRes.data)
+      if (partRes.data) setPartnerships(partRes.data)
+    }
+    fetchOptions()
+  }, [])
+
   useEffect(() => {
     const fetchKpis = async () => {
       if (!dateRange?.from || !dateRange?.to) return
       setIsLoading(true)
+
+      const filters = {
+        professionalId: selectedProfessional,
+        serviceId: selectedService,
+        partnershipId: selectedPartnership,
+      }
+
       const [kpiRes, serviceRes, partnershipRes, annualRes] = await Promise.all(
         [
-          getKpiMetrics(dateRange.from, dateRange.to),
-          getServicePerformance(dateRange.from, dateRange.to),
-          getPartnershipPerformance(dateRange.from, dateRange.to),
-          getAnnualComparative(),
+          getKpiMetrics(dateRange.from, dateRange.to, filters),
+          getServicePerformance(dateRange.from, dateRange.to, filters),
+          getPartnershipPerformance(dateRange.from, dateRange.to, filters),
+          getAnnualComparative(filters),
         ],
       )
 
@@ -161,7 +208,7 @@ export const KpiDashboard = () => {
       setIsLoading(false)
     }
     fetchKpis()
-  }, [dateRange])
+  }, [dateRange, selectedProfessional, selectedService, selectedPartnership])
 
   const revenueComparison =
     kpis && kpis.prev_total_revenue > 0
@@ -181,44 +228,142 @@ export const KpiDashboard = () => {
         ? 100
         : 0
 
+  const ticketComparison =
+    kpis && kpis.prev_average_ticket > 0
+      ? ((kpis.average_ticket - kpis.prev_average_ticket) /
+          kpis.prev_average_ticket) *
+        100
+      : kpis?.average_ticket > 0
+        ? 100
+        : 0
+
+  const retentionComparison =
+    kpis && kpis.prev_retention_rate > 0
+      ? kpis.retention_rate - kpis.prev_retention_rate // Percentage point diff
+      : 0
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <DateRangePicker date={dateRange} onDateChange={setDateRange} />
+      {/* Filters Bar */}
+      <div className="flex flex-col xl:flex-row gap-4 items-end xl:items-center justify-between bg-muted/20 p-4 rounded-lg border">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+          <Select
+            value={selectedProfessional}
+            onValueChange={setSelectedProfessional}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Profissional" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Profissionais</SelectItem>
+              {professionals.map((prof) => (
+                <SelectItem key={prof.id} value={prof.id}>
+                  {prof.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedService} onValueChange={setSelectedService}>
+            <SelectTrigger>
+              <SelectValue placeholder="Serviço" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Serviços</SelectItem>
+              {services.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={selectedPartnership}
+            onValueChange={setSelectedPartnership}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Parceria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Parcerias</SelectItem>
+              {partnerships.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <DateRangePicker
+            date={dateRange}
+            onDateChange={setDateRange}
+            className="w-full"
+          />
+        </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
-          title="Faturamento no Período"
-          value={formatCurrency(kpis?.total_revenue)}
-          comparison={revenueComparison}
-          icon={DollarSign}
-          isLoading={isLoading}
-        />
-        <KpiCard
-          title="Sessões Realizadas"
-          value={kpis?.completed_appointments ?? 0}
-          comparison={appointmentsComparison}
-          icon={CalendarCheck}
-          isLoading={isLoading}
-        />
-        <KpiCard
-          title="Taxa de Cancelamento"
-          value={formatPercentage(kpis?.cancellation_rate)}
-          comparison={
-            kpis
-              ? kpis.cancellation_rate - kpis.prev_cancellation_rate
-              : undefined
-          }
-          icon={TrendingDown}
-          isLoading={isLoading}
-        />
-        <KpiCard
-          title="Total de Agendamentos"
-          value={kpis?.total_appointments ?? 0}
-          icon={Users}
-          isLoading={isLoading}
-        />
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="xl:col-span-2">
+          <KpiCard
+            title="Faturamento"
+            value={formatCurrency(kpis?.total_revenue)}
+            comparison={revenueComparison}
+            icon={DollarSign}
+            isLoading={isLoading}
+          />
+        </div>
+        <div className="xl:col-span-2">
+          <KpiCard
+            title="Sessões Realizadas"
+            value={kpis?.completed_appointments ?? 0}
+            comparison={appointmentsComparison}
+            icon={CalendarCheck}
+            isLoading={isLoading}
+          />
+        </div>
+        <div className="xl:col-span-2">
+          <KpiCard
+            title="Agendamentos Totais"
+            value={kpis?.total_appointments ?? 0}
+            icon={Users}
+            isLoading={isLoading}
+          />
+        </div>
+
+        <div className="xl:col-span-2">
+          <KpiCard
+            title="Ticket Médio"
+            value={formatCurrency(kpis?.average_ticket)}
+            comparison={ticketComparison}
+            icon={Ticket}
+            isLoading={isLoading}
+          />
+        </div>
+        <div className="xl:col-span-2">
+          <KpiCard
+            title="Taxa de Retenção"
+            value={formatPercentage(kpis?.retention_rate)}
+            comparison={retentionComparison}
+            icon={UserCheck}
+            isLoading={isLoading}
+          />
+        </div>
+        <div className="xl:col-span-2">
+          <KpiCard
+            title="Cancelamentos"
+            value={formatPercentage(kpis?.cancellation_rate)}
+            comparison={
+              kpis
+                ? kpis.cancellation_rate - kpis.prev_cancellation_rate
+                : undefined
+            }
+            icon={TrendingDown}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>

@@ -43,6 +43,7 @@ import {
   ChevronUp,
   Package as PackageIcon,
   Tag,
+  Plus,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -276,12 +277,15 @@ export const ServicesManager = () => {
                         <CardDescription className="flex items-center gap-3 mt-1">
                           <span className="flex items-center gap-1">
                             <Tag className="w-3 h-3" />
-                            {service.price > 0 ? (
-                              formatCurrency(service.price)
-                            ) : (
-                              <span className="text-orange-600 font-medium text-xs bg-orange-100 px-1 rounded">
-                                Venda por Pacotes
+                            {service.value_type === 'session' &&
+                            (service.price <= 0.01 ||
+                              (service.packages &&
+                                service.packages.length > 0)) ? (
+                              <span className="text-blue-600 font-medium text-xs bg-blue-100 px-1 rounded">
+                                Venda por Pacote
                               </span>
+                            ) : (
+                              formatCurrency(service.price)
                             )}
                           </span>
                           <span className="flex items-center gap-1">
@@ -302,8 +306,8 @@ export const ServicesManager = () => {
                           }
                           className="hidden sm:flex"
                         >
-                          <PackageIcon className="mr-2 h-3.5 w-3.5" />
-                          Add Pacote
+                          <Plus className="mr-2 h-3.5 w-3.5" />
+                          Adicionar Pacote
                         </Button>
                       )}
                       <Button
@@ -362,7 +366,7 @@ export const ServicesManager = () => {
                             }
                             className="sm:hidden h-auto p-0"
                           >
-                            + Add Pacote
+                            + Adicionar Pacote
                           </Button>
                         )}
                       </div>
