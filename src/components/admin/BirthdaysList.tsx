@@ -12,6 +12,7 @@ import { getClientsWithBirthdayThisWeek } from '@/services/clients'
 import { startOfWeek, endOfWeek, format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Cake } from 'lucide-react'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 export const BirthdaysList = () => {
   const [birthdays, setBirthdays] = useState<Client[]>([])
@@ -21,7 +22,6 @@ export const BirthdaysList = () => {
     const fetchBirthdays = async () => {
       setIsLoading(true)
       const today = new Date()
-      // Use ptBR locale to respect local week start (usually Sunday or Monday depending on config)
       const startDate = startOfWeek(today, { locale: ptBR })
       const endDate = endOfWeek(today, { locale: ptBR })
 
@@ -36,7 +36,7 @@ export const BirthdaysList = () => {
     <Card className="mt-6">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Cake className="w-5 h-5" />
+          <Cake className="w-5 h-5 text-pink-500" />
           Aniversariantes da Semana
         </CardTitle>
         <CardDescription>
@@ -55,25 +55,44 @@ export const BirthdaysList = () => {
             Nenhum aniversariante nesta semana.
           </p>
         ) : (
-          <ul className="space-y-3">
-            {birthdays.map((client) => {
-              if (!client.birth_date) return null
-              const birthDate = parseISO(client.birth_date)
-              // We need to display Day and Month.
-              // We can use the birthDate object but since year is different, just formatting 'dd 'de' MMMM' works fine.
-              return (
-                <li
-                  key={client.id}
-                  className="flex items-center justify-between border-b last:border-0 pb-2 last:pb-0"
-                >
-                  <span className="font-medium">{client.name}</span>
-                  <span className="text-sm text-muted-foreground capitalize">
-                    {format(birthDate, "dd 'de' MMMM", { locale: ptBR })}
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
+          <ScrollArea className="max-h-[250px] pr-4">
+            <ul className="space-y-3">
+              {birthdays.map((client) => {
+                if (!client.birth_date) return null
+                const birthDate = parseISO(client.birth_date)
+
+                // Determine if today is the birthday
+                const today = new Date()
+                const isToday =
+                  birthDate.getDate() === today.getDate() &&
+                  birthDate.getMonth() === today.getMonth()
+
+                return (
+                  <li
+                    key={client.id}
+                    className="flex items-center justify-between border-b last:border-0 pb-2 last:pb-0"
+                  >
+                    <div className="flex items-center gap-2">
+                      {isToday && (
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+                        </span>
+                      )}
+                      <span
+                        className={`font-medium ${isToday ? 'text-primary' : ''}`}
+                      >
+                        {client.name}
+                      </span>
+                    </div>
+                    <span className="text-sm text-muted-foreground capitalize">
+                      {format(birthDate, "dd 'de' MMMM", { locale: ptBR })}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </ScrollArea>
         )}
       </CardContent>
     </Card>

@@ -24,6 +24,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { createProfessionalUser } from '@/services/professionals'
 import { Loader2 } from 'lucide-react'
+import { getFriendlyErrorMessage } from '@/lib/error-mapping'
 
 const professionalSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
@@ -71,9 +72,17 @@ export const ProfessionalFormDialog = ({
     const { error } = await createProfessionalUser(values)
 
     if (error) {
+      // Use friendly error mapping here
+      const friendlyMessage = getFriendlyErrorMessage(error)
+
+      // Specifically helpful for email duplication
+      if (friendlyMessage.includes('e-mail já está em uso')) {
+        form.setError('email', { message: friendlyMessage })
+      }
+
       toast({
         title: 'Erro ao criar profissional',
-        description: error.message,
+        description: friendlyMessage,
         variant: 'destructive',
       })
     } else {

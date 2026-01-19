@@ -43,7 +43,9 @@ export const UserNav = () => {
 
   return (
     <div className="flex items-center gap-2">
-      {role === 'professional' && <NotificationBell />}
+      {/* Show Notifications for both Professionals and Admins */}
+      {(role === 'professional' || role === 'admin') && <NotificationBell />}
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -79,7 +81,7 @@ export const UserNav = () => {
               <span>Área do Profissional</span>
             </DropdownMenuItem>
           )}
-          {role === 'professional' && (
+          {(role === 'professional' || role === 'admin') && (
             <DropdownMenuItem
               onClick={() => navigate('/profissional/notifications')}
             >
