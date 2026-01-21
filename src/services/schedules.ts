@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import { Schedule, Professional } from '@/types'
+import { format } from 'date-fns'
 
 /**
  * Fetches available schedules for a specific service and date,
@@ -11,15 +12,15 @@ export async function getFilteredAvailableSchedules(
   serviceId: string,
   date: Date,
 ): Promise<{ data: Schedule[] | null; error: any }> {
-  const yyyy = date.getFullYear()
-  const mm = String(date.getMonth() + 1).padStart(2, '0')
-  const dd = String(date.getDate()).padStart(2, '0')
-  const dateStr = `${yyyy}-${mm}-${dd}`
+  // Enforce Sao Paulo timezone for the full day range.
+  // We use the date string (YYYY-MM-DD) which represents the user's selected day,
+  // and append the -03:00 offset to ensure the DB query covers the correct 24h period in Brazil.
+  const dateStr = format(date, 'yyyy-MM-dd')
 
-  // UTC range covering the full day in Brazil time (approx buffer)
-  // Or just passing exact day range, let SQL handle timezone
-  const startDate = `${dateStr}T00:00:00.000Z`
-  const endDate = `${dateStr}T23:59:59.999Z`
+  // Start of day in SP: 00:00:00-03:00
+  const startDate = `${dateStr}T00:00:00-03:00`
+  // End of day in SP: 23:59:59-03:00
+  const endDate = `${dateStr}T23:59:59-03:00`
 
   const { data, error } = await supabase.rpc('get_available_slots_dynamic', {
     p_professional_id: professionalId,

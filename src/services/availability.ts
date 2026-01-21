@@ -148,13 +148,15 @@ export async function getAvailableDatesForProfessional(
   const startDate = format(startOfMonth(month), 'yyyy-MM-dd')
   const endDate = format(endOfMonth(month), 'yyyy-MM-dd')
 
-  // Use Dynamic RPC ensuring all parameters are passed correctly
-  // FIXED: Ensure p_professional_id is passed to the RPC call
+  // Enforce Sao Paulo Timezone for availability query
+  const startDateStr = `${startDate}T00:00:00-03:00`
+  const endDateStr = `${endDate}T23:59:59-03:00`
+
   const { data, error } = await supabase.rpc('get_available_dates_dynamic', {
     p_professional_id: professionalId,
     p_service_id: serviceId,
-    p_start_date: startDate,
-    p_end_date: endDate,
+    p_start_date: startDateStr,
+    p_end_date: endDateStr,
   })
 
   if (error) {
