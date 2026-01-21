@@ -1,6 +1,9 @@
 -- Migration: Enable Capacity-Based Scheduling and Flexible Packages
 -- Description: Updates booking logic to support multi-attendee slots (based on max_attendees) and flexible recurring packages.
 
+-- Drop existing function to allow return type change
+DROP FUNCTION IF EXISTS public.get_available_slots_dynamic(uuid, uuid, timestamp with time zone, timestamp with time zone);
+
 -- 1. Update get_available_slots_dynamic to return slots with capacity info
 CREATE OR REPLACE FUNCTION public.get_available_slots_dynamic(
     p_professional_id UUID,
