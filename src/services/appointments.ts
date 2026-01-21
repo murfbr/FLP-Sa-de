@@ -9,7 +9,7 @@ export async function bookAppointment(
   clientPackageId?: string,
   isRecurring: boolean = false,
 ): Promise<{ data: { appointment_id: string } | null; error: any }> {
-  console.log('[AppointmentService] bookAppointment (dynamic) called with:', {
+  console.log('[AppointmentService] bookAppointment called with:', {
     professionalId,
     clientId,
     serviceId,
@@ -86,6 +86,8 @@ export async function bookRecurringAppointments(
 
   if (error) {
     console.error('[AppointmentService] Recurring RPC Error:', error)
+  } else {
+    console.log('[AppointmentService] Recurring booking successful')
   }
 
   return { error }
@@ -96,11 +98,17 @@ export async function rescheduleAppointment(
   newProfessionalId: string,
   newStartTime: string,
 ): Promise<{ error: any }> {
+  console.log('[AppointmentService] Rescheduling:', {
+    appointmentId,
+    newProfessionalId,
+    newStartTime,
+  })
   const { error } = await supabase.rpc('reschedule_appointment_dynamic', {
     p_appointment_id: appointmentId,
     p_new_professional_id: newProfessionalId,
     p_new_start_time: newStartTime,
   })
+  if (error) console.error('[AppointmentService] Reschedule error:', error)
   return { error }
 }
 
@@ -113,6 +121,7 @@ export async function getAppointmentsPaginated(
     endDate?: Date
   },
 ): Promise<{ data: Appointment[] | null; count: number | null; error: any }> {
+  console.log('[AppointmentService] getAppointmentsPaginated filters:', filters)
   const startISO = filters.startDate?.toISOString()
   const endISO = filters.endDate?.toISOString()
 
@@ -147,6 +156,9 @@ export async function getAppointmentsPaginated(
     .range((page - 1) * pageSize, page * pageSize - 1)
 
   const { data, error, count } = await query
+  if (error)
+    console.error('[AppointmentService] getAppointmentsPaginated error:', error)
+
   return { data: data as Appointment[] | null, count, error }
 }
 
@@ -155,6 +167,11 @@ export async function getAppointmentsForRange(
   endDate: Date,
   professionalId?: string,
 ): Promise<{ data: Appointment[] | null; error: any }> {
+  console.log('[AppointmentService] getAppointmentsForRange:', {
+    startDate,
+    endDate,
+    professionalId,
+  })
   const startISO = startDate.toISOString()
   const endISO = endDate.toISOString()
 
@@ -183,6 +200,15 @@ export async function getAppointmentsForRange(
   })
 
   const { data, error } = await query
+
+  if (error) {
+    console.error('[AppointmentService] getAppointmentsForRange error:', error)
+  } else {
+    console.log(
+      `[AppointmentService] Found ${data?.length} appointments for range`,
+    )
+  }
+
   return { data: data as Appointment[] | null, error }
 }
 

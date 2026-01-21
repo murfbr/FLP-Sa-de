@@ -100,14 +100,27 @@ export const AgendaWeekView = ({
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
-      const start = startOfWeek(currentDate, { locale: ptBR })
-      const end = endOfWeek(currentDate, { locale: ptBR })
+      // Force Sunday as start of week for consistency
+      const start = startOfWeek(currentDate, { locale: ptBR, weekStartsOn: 0 })
+      const end = endOfWeek(currentDate, { locale: ptBR, weekStartsOn: 0 })
 
-      const { data } = await getAppointmentsForRange(
+      console.log('[AgendaWeekView] Fetching range:', {
+        start: format(start, 'yyyy-MM-dd HH:mm'),
+        end: format(end, 'yyyy-MM-dd HH:mm'),
+      })
+
+      const { data, error } = await getAppointmentsForRange(
         start,
         end,
         selectedProfessional,
       )
+
+      if (error) {
+        console.error('[AgendaWeekView] Fetch error:', error)
+      } else {
+        console.log(`[AgendaWeekView] Loaded ${data?.length} appointments`)
+      }
+
       setAppointments(data || [])
       setIsLoading(false)
     }
@@ -115,8 +128,8 @@ export const AgendaWeekView = ({
   }, [selectedProfessional, currentDate])
 
   const daysInWeek = useMemo(() => {
-    const start = startOfWeek(currentDate, { locale: ptBR })
-    const end = endOfWeek(currentDate, { locale: ptBR })
+    const start = startOfWeek(currentDate, { locale: ptBR, weekStartsOn: 0 })
+    const end = endOfWeek(currentDate, { locale: ptBR, weekStartsOn: 0 })
     return eachDayOfInterval({ start, end })
   }, [currentDate])
 
@@ -128,10 +141,17 @@ export const AgendaWeekView = ({
 
     appointments.forEach((appt) => {
       if (!appt.schedules?.start_time) return
+      // Use helper to get Day in Brazil time
       const day = formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd')
       if (!rawMap.has(day)) rawMap.set(day, [])
       rawMap.get(day)?.push(appt)
     })
+
+    // Log for debugging visibility
+    console.log(
+      '[AgendaWeekView] Appointments per day keys:',
+      Array.from(rawMap.keys()),
+    )
 
     // Then compute layout for each day
     rawMap.forEach((appts, day) => {
@@ -175,10 +195,18 @@ export const AgendaWeekView = ({
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <h2 className="text-lg md:text-xl font-semibold capitalize text-center">
-          {format(startOfWeek(currentDate, { locale: ptBR }), 'dd MMM')} -{' '}
-          {format(endOfWeek(currentDate, { locale: ptBR }), 'dd MMM yyyy', {
-            locale: ptBR,
-          })}
+          {format(
+            startOfWeek(currentDate, { locale: ptBR, weekStartsOn: 0 }),
+            'dd MMM',
+          )}{' '}
+          -{' '}
+          {format(
+            endOfWeek(currentDate, { locale: ptBR, weekStartsOn: 0 }),
+            'dd MMM yyyy',
+            {
+              locale: ptBR,
+            },
+          )}
         </h2>
         <Button variant="outline" size="icon" onClick={nextWeek}>
           <ChevronRight className="h-4 w-4" />

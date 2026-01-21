@@ -22,6 +22,14 @@ export async function getFilteredAvailableSchedules(
   // End of day in SP: 23:59:59-03:00
   const endDate = `${dateStr}T23:59:59-03:00`
 
+  console.log('[ScheduleService] Fetching available slots:', {
+    professionalId,
+    serviceId,
+    dateStr,
+    startDate,
+    endDate,
+  })
+
   const { data, error } = await supabase.rpc('get_available_slots_dynamic', {
     p_professional_id: professionalId,
     p_service_id: serviceId,
@@ -30,7 +38,9 @@ export async function getFilteredAvailableSchedules(
   })
 
   if (error) {
-    console.error('Error fetching dynamic schedules:', error)
+    console.error('[ScheduleService] Error fetching dynamic schedules:', error)
+  } else {
+    console.log(`[ScheduleService] Found ${data?.length || 0} slots`)
   }
 
   // Map response to Schedule type including capacity info
@@ -64,6 +74,7 @@ export async function getAvailableProfessionalsAtSlot(
   date: Date,
 ): Promise<{ data: Professional[] | null; error: any }> {
   const timeStr = date.toISOString()
+  console.log('[ScheduleService] Checking pros available at:', timeStr)
 
   const { data, error } = await supabase.rpc(
     'get_available_professionals_at_time_dynamic',
@@ -72,6 +83,12 @@ export async function getAvailableProfessionalsAtSlot(
       p_start_time: timeStr,
     },
   )
+
+  if (error) {
+    console.error('[ScheduleService] Error checking pros:', error)
+  } else {
+    console.log(`[ScheduleService] Found ${data?.length} available pros`)
+  }
 
   return { data: data as Professional[] | null, error }
 }
