@@ -2,6 +2,8 @@
 -- This error occurs because MAX() aggregate function cannot be applied directly to UUID columns
 -- We need to cast to text first, then cast back to UUID in the service conflict check logic
 
+DROP FUNCTION IF EXISTS get_available_slots_dynamic(uuid, uuid, timestamptz, timestamptz);
+
 CREATE OR REPLACE FUNCTION get_available_slots_dynamic(
   p_professional_id UUID,
   p_service_id UUID,
