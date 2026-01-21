@@ -529,11 +529,22 @@ export const AppointmentFormDialog = ({
                             : 'Selecione um serviço primeiro'}
                         </div>
                       ) : (
-                        professionals.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name}
-                          </SelectItem>
-                        ))
+                        professionals.map((p) => {
+                          const spotsLeft =
+                            p.max_capacity && p.max_capacity > 1
+                              ? p.max_capacity - (p.current_occupancy || 0)
+                              : null
+                          return (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name}{' '}
+                              {spotsLeft !== null && (
+                                <span className="text-muted-foreground ml-1">
+                                  ({spotsLeft} vagas restantes)
+                                </span>
+                              )}
+                            </SelectItem>
+                          )
+                        })
                       )}
                     </SelectContent>
                   </Select>

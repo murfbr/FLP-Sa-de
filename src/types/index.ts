@@ -20,6 +20,9 @@ export interface Professional {
   bio: string | null
   avatar_url: string | null
   is_active: boolean
+  // Optional fields for dynamic availability checks
+  current_occupancy?: number
+  max_capacity?: number
 }
 
 export interface Schedule {

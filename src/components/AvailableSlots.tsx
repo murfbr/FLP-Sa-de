@@ -42,10 +42,13 @@ export const AvailableSlots = ({
         const isPartial =
           (schedule.current_count || 0) > 0 &&
           (schedule.current_count || 0) < (schedule.max_capacity || 1)
-        const capacityText =
+
+        const spotsLeft =
           schedule.max_capacity && schedule.max_capacity > 1
-            ? `${schedule.current_count || 0}/${schedule.max_capacity}`
+            ? schedule.max_capacity - (schedule.current_count || 0)
             : null
+
+        const capacityText = spotsLeft !== null ? `${spotsLeft} vagas` : null
 
         return (
           <Button
@@ -69,7 +72,7 @@ export const AvailableSlots = ({
             </span>
             {capacityText && (
               <span className="text-[10px] opacity-80 font-normal">
-                {capacityText} vagas
+                {capacityText}
               </span>
             )}
           </Button>
