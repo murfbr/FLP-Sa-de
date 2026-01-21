@@ -229,18 +229,30 @@ export const AppointmentFormDialog = ({
       setIsLoading((prev) => ({ ...prev, professionals: true }))
 
       let availablePros: Professional[] = []
+      let error = null
 
       if (isSpecificTimeSlot && initialDate) {
         // Context Mode: Fetch available pros for this specific slot
-        const { data } = await getAvailableProfessionalsAtSlot(
+        const result = await getAvailableProfessionalsAtSlot(
           serviceId,
           initialDate,
         )
-        availablePros = data || []
+        availablePros = result.data || []
+        error = result.error
       } else {
         // Manual Mode: Fetch all pros for service
-        const { data: servicePros } = await getProfessionalsByService(serviceId)
-        availablePros = servicePros || []
+        const result = await getProfessionalsByService(serviceId)
+        availablePros = result.data || []
+        error = result.error
+      }
+
+      if (error) {
+        toast({
+          title: 'Erro ao carregar profissionais',
+          description:
+            'Houve um problema ao buscar a lista de profissionais disponíveis. Tente novamente.',
+          variant: 'destructive',
+        })
       }
 
       setProfessionals(availablePros)
@@ -254,7 +266,7 @@ export const AppointmentFormDialog = ({
     }
 
     fetchProfessionals()
-  }, [serviceId, initialDate, isSpecificTimeSlot, form])
+  }, [serviceId, initialDate, isSpecificTimeSlot, form, toast])
 
   // Check entitlements
   useEffect(() => {
