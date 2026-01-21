@@ -1,6 +1,9 @@
 -- Migration: Fix Professional Availability for Capacity-Based Booking
 -- Description: Updates the logic for finding available professionals to respect max_attendees and handle multi-client sessions correctly.
 
+-- Drop the function first to allow return type changes
+DROP FUNCTION IF EXISTS public.get_available_professionals_at_time_dynamic(uuid, timestamp with time zone);
+
 -- Function to find professionals available at a specific time slot
 -- Considers: Service association, Active status, Schedule Availability (Recurring/Overrides), and Current Capacity
 CREATE OR REPLACE FUNCTION public.get_available_professionals_at_time_dynamic(
