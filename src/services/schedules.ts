@@ -32,10 +32,10 @@ export async function getFilteredAvailableSchedules(
     console.error('Error fetching dynamic schedules:', error)
   }
 
-  // Map response to Schedule type
+  // Map response to Schedule type including capacity info
   const mappedData: Schedule[] =
     data?.map((slot: any) => ({
-      id: slot.schedule_id, // Might be null, but compatible with Schedule type if optional
+      id: slot.schedule_id, // Might be null for virtual slots
       professional_id: professionalId,
       start_time: slot.start_time,
       end_time: slot.end_time,
