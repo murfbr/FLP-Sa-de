@@ -29,11 +29,13 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { createClientSubscription } from '@/services/clients'
 import { getServices } from '@/services/services'
-import { Service } from '@/types'
+import { getSubscriptionPlans } from '@/services/subscription-plans'
+import { Service, SubscriptionPlan } from '@/types'
 import { format } from 'date-fns'
 
 const subscriptionSchema = z.object({
   serviceId: z.string().uuid('Selecione um serviço.'),
+  planId: z.string().uuid('Selecione um plano.'),
   startDate: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: 'Data inválida',
   }),
@@ -56,6 +58,8 @@ export const ClientSubscriptionDialog = ({
 }: ClientSubscriptionDialogProps) => {
   const { toast } = useToast()
   const [services, setServices] = useState<Service[]>([])
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([])
+  const [filteredPlans, setFilteredPlans] = useState<SubscriptionPlan[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const form = useForm<SubscriptionFormValues>({
@@ -67,22 +71,37 @@ export const ClientSubscriptionDialog = ({
 
   useEffect(() => {
     if (isOpen) {
-      getServices().then(({ data }) => {
-        // Filter for monthly services only
-        const monthlyServices =
-          data?.filter((s) => s.value_type === 'monthly') || []
-        setServices(monthlyServices)
-      })
+      Promise.all([getServices(), getSubscriptionPlans()]).then(
+        ([servicesRes, plansRes]) => {
+          setServices(servicesRes.data || [])
+          setPlans(plansRes.data || [])
+        },
+      )
     }
   }, [isOpen])
+
+  const selectedServiceId = form.watch('serviceId')
+
+  useEffect(() => {
+    if (selectedServiceId) {
+      const filtered = plans.filter((p) => p.service_id === selectedServiceId)
+      setFilteredPlans(filtered)
+      if (!filtered.some((p) => p.id === form.getValues('planId'))) {
+        form.setValue('planId', '')
+      }
+    } else {
+      setFilteredPlans([])
+    }
+  }, [selectedServiceId, plans, form])
 
   const onSubmit = async (values: SubscriptionFormValues) => {
     setIsSubmitting(true)
     const { error } = await createClientSubscription({
       client_id: clientId,
       service_id: values.serviceId,
+      subscription_plan_id: values.planId,
       start_date: new Date(values.startDate).toISOString(),
-      end_date: null, // Could add field for this later if needed
+      end_date: null,
       status: 'active',
     })
 
@@ -107,7 +126,7 @@ export const ClientSubscriptionDialog = ({
         <DialogHeader>
           <DialogTitle>Nova Assinatura Mensal</DialogTitle>
           <DialogDescription>
-            Ative um serviço mensal para o paciente.
+            Ative um plano mensal para o paciente.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -117,7 +136,7 @@ export const ClientSubscriptionDialog = ({
               name="serviceId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Serviço Mensal</FormLabel>
+                  <FormLabel>Serviço</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
@@ -131,12 +150,12 @@ export const ClientSubscriptionDialog = ({
                       {services.length > 0 ? (
                         services.map((s) => (
                           <SelectItem key={s.id} value={s.id}>
-                            {s.name} - R$ {s.price.toFixed(2)}
+                            {s.name}
                           </SelectItem>
                         ))
                       ) : (
                         <div className="p-2 text-sm text-muted-foreground">
-                          Nenhum serviço mensal cadastrado.
+                          Nenhum serviço cadastrado.
                         </div>
                       )}
                     </SelectContent>
@@ -145,6 +164,44 @@ export const ClientSubscriptionDialog = ({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="planId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Plano</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    disabled={!selectedServiceId}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o plano" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {filteredPlans.length > 0 ? (
+                        filteredPlans.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name} - R$ {p.price.toFixed(2)}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="p-2 text-sm text-muted-foreground">
+                          {selectedServiceId
+                            ? 'Nenhum plano disponível para este serviço.'
+                            : 'Selecione um serviço primeiro.'}
+                        </div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="startDate"
@@ -163,7 +220,10 @@ export const ClientSubscriptionDialog = ({
               )}
             />
             <DialogFooter>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                disabled={isSubmitting || !form.watch('planId')}
+              >
                 {isSubmitting ? 'Salvando...' : 'Ativar Assinatura'}
               </Button>
             </DialogFooter>

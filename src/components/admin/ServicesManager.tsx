@@ -21,6 +21,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { ServiceForm } from './ServiceForm'
 import { PackageFormDialog } from './PackageFormDialog'
+import { SubscriptionPlanFormDialog } from './SubscriptionPlanFormDialog'
 import {
   getServices,
   createService,
@@ -32,7 +33,13 @@ import {
   updatePackage,
   deletePackage,
 } from '@/services/packages'
-import { Service, Package } from '@/types'
+import {
+  getSubscriptionPlans,
+  createSubscriptionPlan,
+  updateSubscriptionPlan,
+  deleteSubscriptionPlan,
+} from '@/services/subscription-plans'
+import { Service, Package, SubscriptionPlan } from '@/types'
 import { useToast } from '@/hooks/use-toast'
 import {
   PlusCircle,
@@ -42,10 +49,9 @@ import {
   ChevronDown,
   ChevronUp,
   Package as PackageIcon,
-  Tag,
+  CalendarRange,
   Plus,
 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import {
   Card,
   CardContent,
@@ -58,9 +64,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export const ServicesManager = () => {
   const [services, setServices] = useState<Service[]>([])
+  const [subscriptionPlans, setSubscriptionPlans] = useState<
+    SubscriptionPlan[]
+  >([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -77,19 +87,29 @@ export const ServicesManager = () => {
     string | undefined
   >(undefined)
 
+  // Plan Dialogs
+  const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false)
+  const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | undefined>(
+    undefined,
+  )
+
   const [expandedServices, setExpandedServices] = useState<string[]>([])
 
   const { toast } = useToast()
 
-  const fetchServices = async () => {
+  const fetchData = async () => {
     setIsLoading(true)
-    const { data } = await getServices()
-    setServices(data || [])
+    const [servicesRes, plansRes] = await Promise.all([
+      getServices(),
+      getSubscriptionPlans(),
+    ])
+    setServices(servicesRes.data || [])
+    setSubscriptionPlans(plansRes.data || [])
     setIsLoading(false)
   }
 
   useEffect(() => {
-    fetchServices()
+    fetchData()
   }, [])
 
   const toggleServiceExpand = (serviceId: string) => {
@@ -121,7 +141,7 @@ export const ServicesManager = () => {
       })
       setIsServiceDialogOpen(false)
       setEditingService(null)
-      fetchServices()
+      fetchData()
     }
     setIsSubmitting(false)
   }
@@ -132,13 +152,13 @@ export const ServicesManager = () => {
       toast({
         title: 'Erro ao excluir serviço',
         description: error.message.includes('foreign key')
-          ? 'Não é possível excluir pois existem pacotes ou agendamentos vinculados.'
+          ? 'Não é possível excluir pois existem vínculos.'
           : error.message,
         variant: 'destructive',
       })
     } else {
       toast({ title: 'Serviço excluído com sucesso!' })
-      fetchServices()
+      fetchData()
     }
   }
 
@@ -171,7 +191,7 @@ export const ServicesManager = () => {
       setIsPackageDialogOpen(false)
       setEditingPackage(undefined)
       setSelectedServiceId(undefined)
-      fetchServices()
+      fetchData()
     }
     setIsSubmitting(false)
   }
@@ -181,14 +201,60 @@ export const ServicesManager = () => {
     if (error) {
       toast({
         title: 'Erro ao excluir pacote',
-        description: error.message.includes('foreign key')
-          ? 'Não é possível excluir pois existem clientes associados.'
-          : error.message,
+        description: error.message,
         variant: 'destructive',
       })
     } else {
       toast({ title: 'Pacote excluído com sucesso!' })
-      fetchServices()
+      fetchData()
+    }
+  }
+
+  // --- Plan Actions ---
+
+  const handleOpenPlanDialog = (
+    serviceId: string,
+    plan?: SubscriptionPlan,
+    e?: React.MouseEvent,
+  ) => {
+    e?.stopPropagation()
+    setSelectedServiceId(serviceId)
+    setEditingPlan(plan)
+    setIsPlanDialogOpen(true)
+  }
+
+  const handlePlanSubmit = async (values: any) => {
+    setIsSubmitting(true)
+    const promise = editingPlan
+      ? updateSubscriptionPlan(editingPlan.id, values)
+      : createSubscriptionPlan(values)
+
+    const { error } = await promise
+    if (error) {
+      toast({ title: 'Erro ao salvar plano', variant: 'destructive' })
+    } else {
+      toast({
+        title: `Plano ${editingPlan ? 'atualizado' : 'criado'} com sucesso!`,
+      })
+      setIsPlanDialogOpen(false)
+      setEditingPlan(undefined)
+      setSelectedServiceId(undefined)
+      fetchData()
+    }
+    setIsSubmitting(false)
+  }
+
+  const handlePlanDelete = async (planId: string) => {
+    const { error } = await deleteSubscriptionPlan(planId)
+    if (error) {
+      toast({
+        title: 'Erro ao excluir plano',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } else {
+      toast({ title: 'Plano excluído com sucesso!' })
+      fetchData()
     }
   }
 
@@ -201,7 +267,7 @@ export const ServicesManager = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Catálogo de Serviços e Pacotes</h3>
+        <h3 className="text-lg font-medium">Catálogo de Serviços</h3>
         <Dialog
           open={isServiceDialogOpen}
           onOpenChange={(open) => {
@@ -234,7 +300,6 @@ export const ServicesManager = () => {
         <div className="space-y-4">
           <Skeleton className="h-24 w-full" />
           <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
         </div>
       ) : services.length === 0 ? (
         <div className="text-center py-12 border border-dashed rounded-lg text-muted-foreground">
@@ -265,28 +330,10 @@ export const ServicesManager = () => {
                       <div>
                         <CardTitle className="text-base flex items-center gap-2">
                           {service.name}
-                          <Badge
-                            variant="secondary"
-                            className="text-xs font-normal"
-                          >
-                            {service.value_type === 'session'
-                              ? 'Sessão'
-                              : 'Mensal'}
-                          </Badge>
                         </CardTitle>
                         <CardDescription className="flex items-center gap-3 mt-1">
                           <span className="flex items-center gap-1">
-                            <Tag className="w-3 h-3" />
-                            {service.value_type === 'session' &&
-                            (service.price <= 0.01 ||
-                              (service.packages &&
-                                service.packages.length > 0)) ? (
-                              <span className="text-blue-600 font-medium text-xs bg-blue-100 px-1 rounded">
-                                Venda por Pacote
-                              </span>
-                            ) : (
-                              formatCurrency(service.price)
-                            )}
+                            Avulso: {formatCurrency(service.price)}
                           </span>
                           <span className="flex items-center gap-1">
                             <Users className="w-3 h-3" />
@@ -297,19 +344,6 @@ export const ServicesManager = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {service.value_type === 'session' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) =>
-                            handleOpenPackageDialog(service.id, undefined, e)
-                          }
-                          className="hidden sm:flex"
-                        >
-                          <Plus className="mr-2 h-3.5 w-3.5" />
-                          Adicionar Pacote
-                        </Button>
-                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -332,8 +366,8 @@ export const ServicesManager = () => {
                               Excluir Serviço?
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              Esta ação não pode ser desfeita. Isso excluirá o
-                              serviço e todos os pacotes associados.
+                              Esta ação excluirá o serviço e todos os
+                              pacotes/planos associados.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -350,104 +384,225 @@ export const ServicesManager = () => {
                   </div>
                 </CardHeader>
                 <CollapsibleContent>
-                  <CardContent className="pt-0 pb-4 pl-16 pr-4 bg-muted/10 border-t">
-                    <div className="pt-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                          <PackageIcon className="w-4 h-4" />
-                          Pacotes Disponíveis
-                        </h4>
-                        {service.value_type === 'session' && (
-                          <Button
-                            variant="link"
-                            size="sm"
-                            onClick={(e) =>
-                              handleOpenPackageDialog(service.id, undefined, e)
-                            }
-                            className="sm:hidden h-auto p-0"
+                  <CardContent className="pt-0 pb-4 pl-0 pr-0 bg-muted/10 border-t">
+                    <div className="p-4">
+                      <Tabs defaultValue="packages" className="w-full">
+                        <TabsList className="w-full justify-start border-b rounded-none p-0 h-auto bg-transparent mb-4">
+                          <TabsTrigger
+                            value="packages"
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
                           >
-                            + Adicionar Pacote
-                          </Button>
-                        )}
-                      </div>
+                            Pacotes de Sessões
+                          </TabsTrigger>
+                          <TabsTrigger
+                            value="plans"
+                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+                          >
+                            Planos Mensais
+                          </TabsTrigger>
+                        </TabsList>
 
-                      {service.packages && service.packages.length > 0 ? (
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                          {service.packages.map((pkg) => (
-                            <div
-                              key={pkg.id}
-                              className="bg-background rounded-md border p-3 shadow-sm flex flex-col justify-between"
+                        <TabsContent value="packages" className="space-y-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                              <PackageIcon className="w-4 h-4" />
+                              Pacotes disponíveis para {service.name}
+                            </h4>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) =>
+                                handleOpenPackageDialog(
+                                  service.id,
+                                  undefined,
+                                  e,
+                                )
+                              }
                             >
-                              <div>
-                                <div className="font-medium text-sm">
-                                  {pkg.name}
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  {pkg.session_count} sessões
-                                </div>
-                              </div>
-                              <div className="flex items-end justify-between mt-3">
-                                <div className="font-semibold text-sm">
-                                  {formatCurrency(pkg.price)}
-                                </div>
-                                <div className="flex gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={(e) =>
-                                      handleOpenPackageDialog(
-                                        service.id,
-                                        pkg,
-                                        e,
-                                      )
-                                    }
-                                  >
-                                    <Edit className="h-3 w-3" />
-                                  </Button>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
+                              <Plus className="mr-2 h-3.5 w-3.5" />
+                              Adicionar Pacote
+                            </Button>
+                          </div>
+                          {service.packages && service.packages.length > 0 ? (
+                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                              {service.packages.map((pkg) => (
+                                <div
+                                  key={pkg.id}
+                                  className="bg-background rounded-md border p-3 shadow-sm flex flex-col justify-between"
+                                >
+                                  <div>
+                                    <div className="font-medium text-sm">
+                                      {pkg.name}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {pkg.session_count} sessões
+                                    </div>
+                                  </div>
+                                  <div className="flex items-end justify-between mt-3">
+                                    <div className="font-semibold text-sm">
+                                      {formatCurrency(pkg.price)}
+                                    </div>
+                                    <div className="flex gap-1">
                                       <Button
                                         variant="ghost"
                                         size="icon"
                                         className="h-6 w-6"
+                                        onClick={(e) =>
+                                          handleOpenPackageDialog(
+                                            service.id,
+                                            pkg,
+                                            e,
+                                          )
+                                        }
                                       >
-                                        <Trash2 className="h-3 w-3 text-destructive" />
+                                        <Edit className="h-3 w-3" />
                                       </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>
-                                          Excluir Pacote?
-                                        </AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Esta ação não pode ser desfeita.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>
-                                          Cancelar
-                                        </AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() =>
-                                            handlePackageDelete(pkg.id)
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6"
+                                          >
+                                            <Trash2 className="h-3 w-3 text-destructive" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>
+                                              Excluir Pacote?
+                                            </AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Esta ação não pode ser desfeita.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>
+                                              Cancelar
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() =>
+                                                handlePackageDelete(pkg.id)
+                                              }
+                                            >
+                                              Excluir
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground italic">
+                              Nenhum pacote configurado.
+                            </p>
+                          )}
+                        </TabsContent>
+
+                        <TabsContent value="plans" className="space-y-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                              <CalendarRange className="w-4 h-4" />
+                              Planos de assinatura para {service.name}
+                            </h4>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) =>
+                                handleOpenPlanDialog(service.id, undefined, e)
+                              }
+                            >
+                              <Plus className="mr-2 h-3.5 w-3.5" />
+                              Adicionar Plano
+                            </Button>
+                          </div>
+                          {subscriptionPlans.filter(
+                            (p) => p.service_id === service.id,
+                          ).length > 0 ? (
+                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                              {subscriptionPlans
+                                .filter((p) => p.service_id === service.id)
+                                .map((plan) => (
+                                  <div
+                                    key={plan.id}
+                                    className="bg-background rounded-md border p-3 shadow-sm flex flex-col justify-between"
+                                  >
+                                    <div>
+                                      <div className="font-medium text-sm">
+                                        {plan.name}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground mt-1">
+                                        {plan.sessions_per_week}x por semana
+                                        (estimado)
+                                      </div>
+                                    </div>
+                                    <div className="flex items-end justify-between mt-3">
+                                      <div className="font-semibold text-sm">
+                                        {formatCurrency(plan.price)} / mês
+                                      </div>
+                                      <div className="flex gap-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6"
+                                          onClick={(e) =>
+                                            handleOpenPlanDialog(
+                                              service.id,
+                                              plan,
+                                              e,
+                                            )
                                           }
                                         >
-                                          Excluir
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </div>
-                              </div>
+                                          <Edit className="h-3 w-3" />
+                                        </Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-6 w-6"
+                                            >
+                                              <Trash2 className="h-3 w-3 text-destructive" />
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>
+                                                Excluir Plano?
+                                              </AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                Esta ação não pode ser desfeita.
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>
+                                                Cancelar
+                                              </AlertDialogCancel>
+                                              <AlertDialogAction
+                                                onClick={() =>
+                                                  handlePlanDelete(plan.id)
+                                                }
+                                              >
+                                                Excluir
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground italic">
-                          Nenhum pacote configurado para este serviço.
-                        </p>
-                      )}
+                          ) : (
+                            <p className="text-sm text-muted-foreground italic">
+                              Nenhum plano mensal configurado.
+                            </p>
+                          )}
+                        </TabsContent>
+                      </Tabs>
                     </div>
                   </CardContent>
                 </CollapsibleContent>
@@ -465,6 +620,17 @@ export const ServicesManager = () => {
         isSubmitting={isSubmitting}
         fixedServiceId={selectedServiceId}
       />
+
+      {selectedServiceId && (
+        <SubscriptionPlanFormDialog
+          isOpen={isPlanDialogOpen}
+          onOpenChange={setIsPlanDialogOpen}
+          onSubmit={handlePlanSubmit}
+          defaultValues={editingPlan}
+          isSubmitting={isSubmitting}
+          fixedServiceId={selectedServiceId}
+        />
+      )}
     </div>
   )
 }

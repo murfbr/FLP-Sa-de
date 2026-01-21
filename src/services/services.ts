@@ -7,13 +7,13 @@ export async function getServices(): Promise<{
 }> {
   const { data, error } = await supabase
     .from('services')
-    .select('*, packages(*)')
+    .select('*, packages(*), subscription_plans(*)')
     .order('name', { ascending: true })
   return { data, error }
 }
 
 export async function createService(
-  service: Omit<Service, 'id' | 'packages'>,
+  service: Omit<Service, 'id' | 'packages' | 'subscription_plans'>,
 ): Promise<{ data: Service | null; error: any }> {
   const { data, error } = await supabase
     .from('services')
@@ -25,7 +25,7 @@ export async function createService(
 
 export async function updateService(
   serviceId: string,
-  service: Partial<Omit<Service, 'id' | 'packages'>>,
+  service: Partial<Omit<Service, 'id' | 'packages' | 'subscription_plans'>>,
 ): Promise<{ data: Service | null; error: any }> {
   const { data, error } = await supabase
     .from('services')

@@ -38,7 +38,6 @@ import {
 import {
   CalendarIcon,
   CheckCircle,
-  AlertCircle,
   Repeat,
   Loader2,
   ExternalLink,
@@ -53,6 +52,7 @@ import {
   Service,
   Schedule,
   ClientPackageWithDetails,
+  ClientSubscription,
 } from '@/types'
 import {
   getAllClients,
@@ -70,10 +70,8 @@ import {
   bookAppointment,
   bookRecurringAppointments,
 } from '@/services/appointments'
-import { AvailableSlots } from '../AvailableSlots'
+import { AvailableSlots } from '@/components/AvailableSlots'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Switch } from '@/components/ui/switch'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useAuth } from '@/providers/AuthProvider'
 import { ClientSelector } from './ClientSelector'
 
@@ -92,7 +90,6 @@ const appointmentSchema = z
       .min(2, 'Mínimo de 2 semanas para recorrência')
       .max(52, 'Máximo de 52 semanas (1 ano)')
       .optional(),
-    forceSingleCharge: z.boolean().default(false),
   })
   .refine(
     (data) => {
@@ -143,11 +140,12 @@ export const AppointmentFormDialog = ({
     dates: false,
   })
 
-  // New states for package/subscription logic
+  // Entitlements
   const [availablePackages, setAvailablePackages] = useState<
     ClientPackageWithDetails[]
   >([])
-  const [hasActiveSubscription, setHasActiveSubscription] = useState(false)
+  const [activeSubscription, setActiveSubscription] =
+    useState<ClientSubscription | null>(null)
   const [checkingEntitlements, setCheckingEntitlements] = useState(false)
 
   const form = useForm<AppointmentFormValues>({
@@ -161,7 +159,6 @@ export const AppointmentFormDialog = ({
       startTime: '',
       serviceId: '',
       clientId: '',
-      forceSingleCharge: false,
     },
   })
 
@@ -171,23 +168,16 @@ export const AppointmentFormDialog = ({
   const date = form.watch('date')
   const usePackage = form.watch('usePackage')
   const isRecurring = form.watch('isRecurring')
-  const forceSingleCharge = form.watch('forceSingleCharge')
-  const startTime = form.watch('startTime')
 
-  // Initialize form: Fetch Clients and Services
+  // Initialize form
   useEffect(() => {
     if (isOpen) {
       const initializeForm = async () => {
         setIsLoading((prev) => ({ ...prev, clients: true, services: true }))
-
-        // Fetch Clients
         const { data: clientsData } = await getAllClients({ status: 'active' })
         setClients(clientsData || [])
-
-        // Fetch Services
         const { data: servicesData } = await getAllServices()
         setServices(servicesData || [])
-
         setIsLoading((prev) => ({ ...prev, clients: false, services: false }))
 
         if (initialDate) {
@@ -198,10 +188,8 @@ export const AppointmentFormDialog = ({
           }
         }
       }
-
       initializeForm()
     } else {
-      // Reset logic
       form.reset({
         usePackage: true,
         professionalId: preselectedProfessionalId || '',
@@ -211,10 +199,11 @@ export const AppointmentFormDialog = ({
         startTime: '',
         serviceId: '',
         clientId: '',
-        forceSingleCharge: false,
       })
       setSchedules([])
       setProfessionals([])
+      setAvailablePackages([])
+      setActiveSubscription(null)
     }
   }, [isOpen, initialDate, form, preselectedProfessionalId, isSpecificTimeSlot])
 
@@ -225,122 +214,96 @@ export const AppointmentFormDialog = ({
         setProfessionals([])
         return
       }
-
       setIsLoading((prev) => ({ ...prev, professionals: true }))
 
       let availablePros: Professional[] = []
-      let error = null
-
       if (isSpecificTimeSlot && initialDate) {
-        // Context Mode: Fetch available pros for this specific slot
         const result = await getAvailableProfessionalsAtSlot(
           serviceId,
           initialDate,
         )
         availablePros = result.data || []
-        error = result.error
       } else {
-        // Manual Mode: Fetch all pros for service
         const result = await getProfessionalsByService(serviceId)
         availablePros = result.data || []
-        error = result.error
-      }
-
-      if (error) {
-        toast({
-          title: 'Erro ao carregar profissionais',
-          description:
-            'Houve um problema ao buscar a lista de profissionais disponíveis. Tente novamente.',
-          variant: 'destructive',
-        })
       }
 
       setProfessionals(availablePros)
       setIsLoading((prev) => ({ ...prev, professionals: false }))
 
-      // Logic to preserve or reset professional selection
       const currentProfId = form.getValues('professionalId')
       if (currentProfId && !availablePros.find((p) => p.id === currentProfId)) {
         form.setValue('professionalId', '')
       }
     }
-
     fetchProfessionals()
-  }, [serviceId, initialDate, isSpecificTimeSlot, form, toast])
+  }, [serviceId, initialDate, isSpecificTimeSlot, form])
 
-  // Check entitlements
+  // Check entitlements (Subscriptions & Packages)
   useEffect(() => {
     const checkEntitlements = async () => {
-      // Reset forceSingleCharge when dependencies change
-      form.setValue('forceSingleCharge', false)
-
       if (!clientId || !serviceId) {
         setAvailablePackages([])
-        setHasActiveSubscription(false)
+        setActiveSubscription(null)
         return
       }
 
       setCheckingEntitlements(true)
-      const selectedService = services.find((s) => s.id === serviceId)
 
-      if (selectedService?.value_type === 'session') {
-        const { data } = await getClientPackages(clientId)
-        const matchingPackages =
-          data?.filter((pkg) => pkg.packages.service_id === serviceId) || []
-        setAvailablePackages(matchingPackages)
-        if (matchingPackages.length > 0) {
-          form.setValue('packageId', matchingPackages[0].id)
-          form.setValue('usePackage', true)
-        }
-      } else if (selectedService?.value_type === 'monthly') {
-        const { data } = await getClientSubscriptions(clientId)
-        const hasSub = data?.some((sub) => sub.service_id === serviceId)
-        setHasActiveSubscription(!!hasSub)
+      // 1. Check Subscriptions
+      const { data: subs } = await getClientSubscriptions(clientId)
+      const matchingSub =
+        subs?.find((sub) => sub.service_id === serviceId) || null
+      setActiveSubscription(matchingSub)
+
+      // 2. Check Packages
+      const { data: pkgs } = await getClientPackages(clientId)
+      const matchingPackages =
+        pkgs?.filter((pkg) => pkg.packages.service_id === serviceId) || []
+      setAvailablePackages(matchingPackages)
+
+      // Default logic:
+      // If subscription exists, UI shows it automatically.
+      // If not, but packages exist, select the first one.
+      if (!matchingSub && matchingPackages.length > 0) {
+        form.setValue('packageId', matchingPackages[0].id)
+        form.setValue('usePackage', true)
+      } else {
+        form.setValue('packageId', undefined)
       }
 
       setCheckingEntitlements(false)
     }
 
     checkEntitlements()
-  }, [clientId, serviceId, services, form])
+  }, [clientId, serviceId, form])
 
-  // Manual Mode: Fetch available dates
+  // Available Dates & Slots (Manual Mode)
   useEffect(() => {
     if (!isSpecificTimeSlot && professionalId && serviceId) {
       setIsLoading((prev) => ({ ...prev, dates: true }))
       getAvailableDatesForProfessional(professionalId, serviceId, currentMonth)
-        .then((res) => {
-          setAvailableDates(res.data || [])
-        })
-        .finally(() => {
-          setIsLoading((prev) => ({ ...prev, dates: false }))
-        })
+        .then((res) => setAvailableDates(res.data || []))
+        .finally(() => setIsLoading((prev) => ({ ...prev, dates: false })))
     } else {
       setAvailableDates(null)
     }
   }, [professionalId, serviceId, currentMonth, isSpecificTimeSlot])
 
-  // Manual Mode: Fetch schedules
   useEffect(() => {
     if (!isSpecificTimeSlot && professionalId && serviceId && date) {
       setIsLoading((prev) => ({ ...prev, schedules: true }))
       getFilteredAvailableSchedules(professionalId, serviceId, date).then(
         (res) => {
-          if (res.error) {
-            console.error('Error fetching schedules:', res.error)
-            setSchedules([])
-          } else {
-            const slots = res.data || []
-            setSchedules(slots)
-
-            if (initialDate && initialDate.getDate() === date.getDate()) {
-              const targetTime = formatInTimeZone(initialDate, 'HH:mm')
-              const matchingSlot = slots.find(
-                (s) => formatInTimeZone(s.start_time, 'HH:mm') === targetTime,
-              )
-              if (matchingSlot) {
-                form.setValue('startTime', matchingSlot.start_time)
-              }
+          const slots = res.data || []
+          setSchedules(slots)
+          if (initialDate && initialDate.getDate() === date.getDate()) {
+            const targetTime = formatInTimeZone(initialDate, 'HH:mm')
+            const matchingSlot = slots.find(
+              (s) => formatInTimeZone(s.start_time, 'HH:mm') === targetTime,
+            )
+            if (matchingSlot) {
+              form.setValue('startTime', matchingSlot.start_time)
             }
           }
           setIsLoading((prev) => ({ ...prev, schedules: false }))
@@ -351,8 +314,6 @@ export const AppointmentFormDialog = ({
     }
   }, [professionalId, serviceId, date, form, initialDate, isSpecificTimeSlot])
 
-  const selectedService = services.find((s) => s.id === serviceId)
-
   const handleNavigateToProfile = () => {
     if (!clientId) return
     onOpenChange(false)
@@ -362,39 +323,22 @@ export const AppointmentFormDialog = ({
   }
 
   const onSubmit = async (values: AppointmentFormValues) => {
-    if (
-      selectedService?.value_type === 'monthly' &&
-      !hasActiveSubscription &&
-      !values.forceSingleCharge
-    ) {
-      toast({
-        title: 'Agendamento Bloqueado',
-        description:
-          'O cliente não possui uma assinatura ativa para este serviço.',
-        variant: 'destructive',
-      })
-      return
-    }
+    // If active subscription, backend handles it.
+    // If using package, we pass the package ID.
+    // Else it is "Avulso".
 
     const packageIdToUse =
-      values.usePackage && availablePackages.length > 0
+      values.usePackage && !activeSubscription && availablePackages.length > 0
         ? values.packageId
         : undefined
 
-    console.log('[AppointmentForm] Submitting booking request:', {
-      ...values,
-      packageIdToUse,
-    })
-
     try {
       let result
-
       if (
         values.isRecurring &&
         values.recurrenceWeeks &&
         values.recurrenceWeeks >= 2
       ) {
-        // Bulk Recurring Booking
         result = await bookRecurringAppointments(
           values.professionalId,
           values.clientId,
@@ -404,7 +348,6 @@ export const AppointmentFormDialog = ({
           packageIdToUse,
         )
       } else {
-        // Single Booking
         result = await bookAppointment(
           values.professionalId,
           values.clientId,
@@ -416,25 +359,20 @@ export const AppointmentFormDialog = ({
       }
 
       if (result.error) {
-        console.error('[AppointmentForm] Error during booking:', result.error)
         toast({
           title: 'Erro ao agendar',
-          description:
-            result.error.message || 'Falha ao processar agendamento.',
+          description: result.error.message,
           variant: 'destructive',
         })
       } else {
         toast({ title: 'Agendamento(s) criado(s) com sucesso!' })
         onAppointmentCreated()
         onOpenChange(false)
-        form.reset()
       }
     } catch (err: any) {
-      console.error('[AppointmentForm] Unexpected error:', err)
       toast({
         title: 'Erro inesperado',
-        description:
-          err.message || 'Ocorreu um erro desconhecido ao tentar agendar.',
+        description: err.message,
         variant: 'destructive',
       })
     }
@@ -445,21 +383,15 @@ export const AppointmentFormDialog = ({
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Agendamento</DialogTitle>
-          {isSpecificTimeSlot && initialDate && (
-            <div className="text-sm font-medium text-muted-foreground flex items-center gap-2 mt-2">
-              <CalendarIcon className="w-4 h-4" />
-              {formatInTimeZone(initialDate, "dd 'de' MMMM 'às' HH:mm")}
-            </div>
-          )}
           <DialogDescription>
             {isSpecificTimeSlot
               ? 'Selecione o cliente e serviço para este horário.'
-              : 'Selecione o serviço e o profissional para confirmar o horário.'}
+              : 'Configure o agendamento.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* 1. Client Selection - Searchable */}
+            {/* 1. Client */}
             <FormField
               control={form.control}
               name="clientId"
@@ -480,7 +412,7 @@ export const AppointmentFormDialog = ({
               )}
             />
 
-            {/* 2. Service Selection */}
+            {/* 2. Service */}
             <FormField
               control={form.control}
               name="serviceId"
@@ -503,7 +435,7 @@ export const AppointmentFormDialog = ({
                     <SelectContent>
                       {services.map((s) => (
                         <SelectItem key={s.id} value={s.id}>
-                          {s.name} {s.value_type === 'monthly' && '(Mensal)'}
+                          {s.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -513,7 +445,7 @@ export const AppointmentFormDialog = ({
               )}
             />
 
-            {/* 3. Professional Selection */}
+            {/* 3. Professional */}
             <FormField
               control={form.control}
               name="professionalId"
@@ -535,28 +467,15 @@ export const AppointmentFormDialog = ({
                       {professionals.length === 0 ? (
                         <div className="p-2 text-sm text-muted-foreground text-center">
                           {serviceId
-                            ? isSpecificTimeSlot
-                              ? 'Nenhum profissional disponível neste horário'
-                              : 'Nenhum profissional disponível'
+                            ? 'Nenhum profissional disponível'
                             : 'Selecione um serviço primeiro'}
                         </div>
                       ) : (
-                        professionals.map((p) => {
-                          const spotsLeft =
-                            p.max_capacity && p.max_capacity > 1
-                              ? p.max_capacity - (p.current_occupancy || 0)
-                              : null
-                          return (
-                            <SelectItem key={p.id} value={p.id}>
-                              {p.name}{' '}
-                              {spotsLeft !== null && (
-                                <span className="text-muted-foreground ml-1">
-                                  ({spotsLeft} vagas restantes)
-                                </span>
-                              )}
-                            </SelectItem>
-                          )
-                        })
+                        professionals.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))
                       )}
                     </SelectContent>
                   </Select>
@@ -565,79 +484,31 @@ export const AppointmentFormDialog = ({
               )}
             />
 
-            {/* Payment/Package Options */}
-            {!checkingEntitlements &&
-              clientId &&
-              serviceId &&
-              selectedService && (
-                <div className="p-4 bg-muted/30 rounded-lg border">
-                  {selectedService.value_type === 'monthly' ? (
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">
-                        Status da Assinatura
-                      </h4>
-                      {hasActiveSubscription ? (
-                        <div className="flex items-center text-green-600 gap-2 text-sm">
-                          <CheckCircle className="w-4 h-4" />
-                          <span>Assinatura Ativa Confirmada</span>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {!forceSingleCharge && (
-                            <Alert variant="destructive" className="py-2">
-                              <AlertCircle className="h-4 w-4" />
-                              <div className="ml-2 w-full">
-                                <AlertTitle className="text-sm font-semibold">
-                                  Assinatura Necessária
-                                </AlertTitle>
-                                <AlertDescription className="text-xs">
-                                  O cliente não possui uma assinatura ativa para
-                                  este serviço.
-                                </AlertDescription>
-                                <Button
-                                  variant="link"
-                                  className="p-0 h-auto text-xs text-destructive underline mt-1 flex items-center gap-1"
-                                  onClick={handleNavigateToProfile}
-                                  type="button"
-                                >
-                                  Ir para Perfil{' '}
-                                  <ExternalLink className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </Alert>
-                          )}
+            {/* Billing Info */}
+            {!checkingEntitlements && clientId && serviceId && (
+              <div className="p-4 bg-muted/30 rounded-lg border">
+                <h4 className="text-sm font-medium mb-2">
+                  Detalhes de Cobrança
+                </h4>
 
-                          <FormField
-                            control={form.control}
-                            name="forceSingleCharge"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-background">
-                                <div className="space-y-0.5">
-                                  <FormLabel className="text-sm font-medium">
-                                    Cobrança Única
-                                  </FormLabel>
-                                  <FormDescription className="text-xs">
-                                    Permitir agendamento avulso sem assinatura.
-                                  </FormDescription>
-                                </div>
-                                <FormControl>
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      )}
+                {activeSubscription ? (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center text-green-600 gap-2 text-sm font-medium">
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Plano Ativo</span>
                     </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-medium">
-                        Opções de Pagamento
-                      </h4>
-                      {availablePackages.length > 0 ? (
+                    <div className="text-sm text-muted-foreground ml-6">
+                      {activeSubscription.subscription_plans?.name ||
+                        'Assinatura Mensal'}
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">
+                      Este agendamento será coberto pelo plano mensal.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {availablePackages.length > 0 ? (
+                      <>
                         <FormField
                           control={form.control}
                           name="usePackage"
@@ -659,48 +530,64 @@ export const AppointmentFormDialog = ({
                             </FormItem>
                           )}
                         />
-                      ) : (
-                        <div className="text-sm text-muted-foreground">
-                          Nenhum pacote disponível. Será cobrado como avulso.
-                        </div>
-                      )}
 
-                      {usePackage && availablePackages.length > 0 && (
-                        <FormField
-                          control={form.control}
-                          name="packageId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Selecione o Pacote</FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecione o pacote" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {availablePackages.map((pkg) => (
-                                    <SelectItem key={pkg.id} value={pkg.id}>
-                                      {pkg.packages.name} (
-                                      {pkg.sessions_remaining} restantes)
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+                        {usePackage && (
+                          <FormField
+                            control={form.control}
+                            name="packageId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                  value={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Selecione o pacote" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {availablePackages.map((pkg) => (
+                                      <SelectItem key={pkg.id} value={pkg.id}>
+                                        {pkg.packages.name} (
+                                        {pkg.sessions_remaining} restantes)
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-sm text-muted-foreground flex flex-col gap-2">
+                        <p>
+                          Sem planos ou pacotes ativos. Será cobrado como{' '}
+                          <span className="font-semibold text-primary">
+                            Avulso
+                          </span>
+                          .
+                        </p>
+                        <Button
+                          variant="link"
+                          className="p-0 h-auto text-xs justify-start"
+                          onClick={handleNavigateToProfile}
+                          type="button"
+                        >
+                          Gerenciar Contratos do Cliente{' '}
+                          <ExternalLink className="w-3 h-3 ml-1" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
-            {/* Recurring Option */}
+            {/* Recurring */}
             <div className="space-y-2">
               <FormField
                 control={form.control}
@@ -718,9 +605,6 @@ export const AppointmentFormDialog = ({
                         <Repeat className="w-4 h-4 text-primary" />
                         Repetir semanalmente
                       </FormLabel>
-                      <FormDescription>
-                        Agendar automaticamente para as próximas semanas.
-                      </FormDescription>
                     </div>
                   </FormItem>
                 )}
@@ -731,7 +615,7 @@ export const AppointmentFormDialog = ({
                   control={form.control}
                   name="recurrenceWeeks"
                   render={({ field }) => (
-                    <FormItem className="animate-in fade-in slide-in-from-top-2 border rounded-md p-4 bg-muted/10">
+                    <FormItem className="border rounded-md p-4 bg-muted/10">
                       <FormLabel className="flex justify-between">
                         Duração da Recorrência
                         <span className="text-xs text-muted-foreground font-normal">
@@ -746,17 +630,12 @@ export const AppointmentFormDialog = ({
                             max={52}
                             className="w-24"
                             {...field}
-                            onChange={(e) => field.onChange(e.target.value)}
                           />
                         </FormControl>
                         <span className="text-sm text-muted-foreground">
                           semanas
                         </span>
                       </div>
-                      <FormDescription>
-                        O agendamento será repetido por {field.value} semanas a
-                        partir da data selecionada.
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -764,7 +643,7 @@ export const AppointmentFormDialog = ({
               )}
             </div>
 
-            {/* Manual Date and Time Selection (Only if NOT in Context Mode) */}
+            {/* Date/Time (Manual) */}
             {!isSpecificTimeSlot && (
               <>
                 <div className="flex gap-4">
@@ -853,12 +732,11 @@ export const AppointmentFormDialog = ({
               <Button
                 type="submit"
                 disabled={
-                  (selectedService?.value_type === 'monthly' &&
-                    !hasActiveSubscription &&
-                    !forceSingleCharge) ||
                   form.formState.isSubmitting ||
-                  (!isSpecificTimeSlot && !form.watch('startTime')) ||
-                  (isSpecificTimeSlot && !form.watch('startTime'))
+                  !form.watch('startTime') ||
+                  !form.watch('clientId') ||
+                  !form.watch('serviceId') ||
+                  !form.watch('professionalId')
                 }
               >
                 {form.formState.isSubmitting ? (

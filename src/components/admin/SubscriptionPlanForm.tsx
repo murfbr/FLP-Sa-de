@@ -13,52 +13,48 @@ import {
   FormMessage,
   FormDescription,
 } from '@/components/ui/form'
-import { Service } from '@/types'
+import { SubscriptionPlan } from '@/types'
 
-const serviceSchema = z.object({
+const planSchema = z.object({
   name: z.string().min(3, 'O nome deve ter pelo menos 3 caracteres.'),
   description: z.string().optional(),
-  duration_minutes: z.coerce
-    .number()
-    .int()
-    .positive('A duração deve ser um número positivo.'),
   price: z.coerce.number().min(0, 'O preço não pode ser negativo.'),
-  max_attendees: z.coerce
+  sessions_per_week: z.coerce
     .number()
     .int()
-    .positive('O número máximo de participantes deve ser pelo menos 1.')
-    .default(1),
+    .min(1, 'Mínimo 1 sessão por semana.')
+    .optional(),
 })
 
-type ServiceFormValues = z.infer<typeof serviceSchema>
+type PlanFormValues = z.infer<typeof planSchema>
 
-interface ServiceFormProps {
+interface SubscriptionPlanFormProps {
   onSubmit: (values: any) => void
-  defaultValues?: Partial<Service>
+  defaultValues?: Partial<SubscriptionPlan>
   isSubmitting: boolean
+  fixedServiceId: string
 }
 
-export const ServiceForm = ({
+export const SubscriptionPlanForm = ({
   onSubmit,
   defaultValues,
   isSubmitting,
-}: ServiceFormProps) => {
-  const form = useForm<ServiceFormValues>({
-    resolver: zodResolver(serviceSchema),
+  fixedServiceId,
+}: SubscriptionPlanFormProps) => {
+  const form = useForm<PlanFormValues>({
+    resolver: zodResolver(planSchema),
     defaultValues: {
       name: defaultValues?.name || '',
       description: defaultValues?.description || '',
-      duration_minutes: defaultValues?.duration_minutes || 60,
       price: defaultValues?.price || 0,
-      max_attendees: defaultValues?.max_attendees || 1,
+      sessions_per_week: defaultValues?.sessions_per_week || 2,
     },
   })
 
-  // We automatically inject 'session' as value_type to satisfy the backend enum for now
-  const handleSubmit = (values: ServiceFormValues) => {
+  const handleSubmit = (values: PlanFormValues) => {
     onSubmit({
       ...values,
-      value_type: 'session',
+      service_id: fixedServiceId,
     })
   }
 
@@ -70,9 +66,9 @@ export const ServiceForm = ({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Nome do Serviço</FormLabel>
+              <FormLabel>Nome do Plano</FormLabel>
               <FormControl>
-                <Input placeholder="Ex: Fisioterapia Ortopédica" {...field} />
+                <Input placeholder="Ex: Pilates 2x/Semana Mensal" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -86,7 +82,7 @@ export const ServiceForm = ({
               <FormLabel>Descrição</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Descreva o serviço..."
+                  placeholder="Detalhes do plano..."
                   className="resize-none"
                   {...field}
                 />
@@ -95,53 +91,37 @@ export const ServiceForm = ({
             </FormItem>
           )}
         />
-
         <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="duration_minutes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Duração (minutos)</FormLabel>
-                <FormControl>
-                  <Input type="number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
           <FormField
             control={form.control}
             name="price"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Preço Avulso (R$)</FormLabel>
+                <FormLabel>Preço Mensal (R$)</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" {...field} />
                 </FormControl>
-                <FormDescription>
-                  Valor base cobrado por sessão avulsa.
-                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="sessions_per_week"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Sessões/Semana</FormLabel>
+                <FormControl>
+                  <Input type="number" min="1" {...field} />
+                </FormControl>
+                <FormDescription>Apenas informativo.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-        <FormField
-          control={form.control}
-          name="max_attendees"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Max. Participantes</FormLabel>
-              <FormControl>
-                <Input type="number" min="1" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? 'Salvando...' : 'Salvar Serviço'}
+          {isSubmitting ? 'Salvando...' : 'Salvar Plano'}
         </Button>
       </form>
     </Form>

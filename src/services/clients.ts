@@ -122,7 +122,7 @@ export async function getClientSubscriptions(
 ): Promise<{ data: ClientSubscription[] | null; error: any }> {
   const { data, error } = await supabase
     .from('client_subscriptions')
-    .select('*, services(*)')
+    .select('*, services(*), subscription_plans(*)')
     .eq('client_id', clientId)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
@@ -133,7 +133,7 @@ export async function getClientSubscriptions(
 export async function createClientSubscription(
   subscriptionData: Omit<
     ClientSubscription,
-    'id' | 'created_at' | 'updated_at' | 'services'
+    'id' | 'created_at' | 'updated_at' | 'services' | 'subscription_plans'
   >,
 ): Promise<{ data: ClientSubscription | null; error: any }> {
   const { data, error } = await supabase
@@ -202,21 +202,6 @@ export async function getMonthlyClientUsage(
 ): Promise<{ count: number; error: any }> {
   const start = startOfMonth(new Date()).toISOString()
   const end = endOfMonth(new Date()).toISOString()
-
-  const { count, error } = await supabase
-    .from('appointments')
-    .select('*', { count: 'exact', head: true })
-    .eq('client_id', clientId)
-    .eq('service_id', serviceId)
-    .eq('status', 'completed')
-    .gte('schedules.start_time', start)
-    .lte('schedules.start_time', end)
-
-  // Note: We need to join with schedules to filter by date accurately if we were selecting data,
-  // but for simple count with basic filtering we can rely on appointment time if available directly,
-  // however appointment table doesn't have start_time column, it's in schedules.
-  // Supabase count doesn't support deep filtering easily without embedded resources in the query string which 'head: true' might not support fully in all SDK versions.
-  // A safer way is to use a regular select with count.
 
   const { count: safeCount, error: safeError } = await supabase
     .from('appointments')

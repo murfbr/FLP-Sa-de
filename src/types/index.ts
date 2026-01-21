@@ -10,6 +10,17 @@ export interface Service {
   value_type: 'session' | 'monthly'
   max_attendees: number
   packages?: Package[] | null
+  subscription_plans?: SubscriptionPlan[] | null
+}
+
+export interface SubscriptionPlan {
+  id: string
+  name: string
+  description: string | null
+  service_id: string
+  price: number
+  sessions_per_week: number | null
+  created_at: string
 }
 
 export interface Professional {
@@ -103,12 +114,14 @@ export interface ClientSubscription {
   id: string
   client_id: string
   service_id: string
+  subscription_plan_id?: string | null
   start_date: string
   end_date: string | null
   status: SubscriptionStatus
   created_at: string
   updated_at: string
   services?: Service
+  subscription_plans?: SubscriptionPlan | null
 }
 
 export interface FinancialRecord {

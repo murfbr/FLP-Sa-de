@@ -67,10 +67,8 @@ export const PackageForm = ({
 
   useEffect(() => {
     getServices().then(({ data }) => {
-      // Filter only 'session' type services, as monthly services are handled via subscription
-      const sessionServices =
-        data?.filter((s) => s.value_type === 'session') || []
-      setServices(sessionServices)
+      // Allow any service to have packages now
+      setServices(data || [])
     })
   }, [])
 
@@ -116,10 +114,7 @@ export const PackageForm = ({
             <FormItem>
               <FormLabel>Nome do Pacote</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Ex: Pilates 2x/Semana (Mensal)"
-                  {...field}
-                />
+                <Input placeholder="Ex: Pilates 10 Sessões" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -253,8 +248,7 @@ export const PackageForm = ({
                   <Input type="number" step="0.01" min="0" {...field} />
                 </FormControl>
                 <FormDescription>
-                  Defina o valor total para o pacote (com descontos se
-                  aplicável).
+                  Defina o valor total para o pacote.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

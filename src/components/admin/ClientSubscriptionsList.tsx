@@ -122,10 +122,15 @@ export const ClientSubscriptionsList = ({
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <h4 className="font-semibold text-sm">
-                      {sub.services?.name}
+                      {sub.subscription_plans?.name || sub.services?.name}
                     </h4>
                     <Badge variant="outline">Ativo</Badge>
                   </div>
+                  {sub.subscription_plans && (
+                    <p className="text-xs text-muted-foreground">
+                      Plano: {sub.services?.name}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     Início:{' '}
                     {format(new Date(sub.start_date), 'dd/MM/yyyy', {
