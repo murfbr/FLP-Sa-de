@@ -9,7 +9,7 @@ import {
   isToday,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, AlertTriangle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAppointmentsForRange } from '@/services/appointments'
@@ -17,6 +17,11 @@ import { Appointment } from '@/types'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { ViewMode } from './AgendaView'
 import { computeEventLayout } from '@/lib/event-layout'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface AgendaWeekViewProps {
   currentDate: Date
@@ -27,6 +32,7 @@ interface AgendaWeekViewProps {
   selectedProfessional: string
 }
 
+// Timeline helpers
 const START_HOUR = 0
 const END_HOUR = 24
 const COMPACT_START = 7
@@ -42,6 +48,7 @@ const getHourHeight = (hour: number) => {
 const getTopOffset = (time: Date) => {
   const timeStr = formatInTimeZone(time, 'HH:mm')
   const [h, m] = timeStr.split(':').map(Number)
+
   let offset = 0
   for (let i = 0; i < h; i++) {
     offset += getHourHeight(i)
@@ -53,8 +60,10 @@ const getTopOffset = (time: Date) => {
 const getDurationHeight = (startTime: Date, durationMinutes: number) => {
   const startStr = formatInTimeZone(startTime, 'HH:mm')
   let [h, m] = startStr.split(':').map(Number)
+
   let height = 0
   let remaining = durationMinutes
+
   while (remaining > 0) {
     const minutesLeftInHour = 60 - m
     const chunk = Math.min(remaining, minutesLeftInHour)
@@ -63,6 +72,7 @@ const getDurationHeight = (startTime: Date, durationMinutes: number) => {
     h = (h + 1) % 24
     m = 0
   }
+
   return height
 }
 
@@ -103,6 +113,7 @@ export const AgendaWeekView = ({
         end,
         selectedProfessional,
       )
+
       setAppointments(data || [])
       setIsLoading(false)
     }
@@ -254,7 +265,7 @@ export const AgendaWeekView = ({
                       const adjustedWidth =
                         width === 100 ? 'calc(100% - 10px)' : `${width}%`
 
-                      const isMissingNotes =
+                      const missingNotes =
                         appt.status === 'completed' &&
                         (!appt.notes || appt.notes.length === 0)
 
@@ -273,7 +284,7 @@ export const AgendaWeekView = ({
                         >
                           <div
                             className={cn(
-                              'h-full w-full rounded p-1 text-xs cursor-pointer shadow-sm overflow-hidden border transition-transform hover:scale-[1.02] hover:z-20 relative',
+                              'h-full w-full rounded p-1 text-xs cursor-pointer shadow-sm overflow-hidden border transition-transform hover:scale-[1.02] hover:z-20',
                               appt.status === 'completed'
                                 ? 'bg-green-100 text-green-800 border-green-200'
                                 : appt.status === 'cancelled'
@@ -281,8 +292,6 @@ export const AgendaWeekView = ({
                                   : appt.status === 'no_show'
                                     ? 'bg-orange-100 text-orange-800 border-orange-200'
                                     : 'bg-primary/10 text-primary border-primary/20',
-                              isMissingNotes &&
-                                'ring-1 ring-yellow-500 border-yellow-500',
                             )}
                             onClick={(e) => {
                               e.stopPropagation()
@@ -290,13 +299,20 @@ export const AgendaWeekView = ({
                             }}
                             title={`${appt.clients.name} - ${appt.services.name}`}
                           >
-                            {isMissingNotes && (
-                              <div className="absolute top-0.5 right-0.5 text-yellow-600 bg-white/80 rounded-full">
-                                <AlertTriangle className="w-2.5 h-2.5" />
+                            <div className="flex justify-between items-start">
+                              <div className="font-semibold truncate leading-none mb-0.5">
+                                {appt.clients.name}
                               </div>
-                            )}
-                            <div className="font-semibold truncate leading-none mb-0.5">
-                              {appt.clients.name}
+                              {missingNotes && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <AlertCircle className="h-3 w-3 text-red-600 shrink-0" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">
+                                    <p>Anotações pendentes</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                             </div>
                             <div className="truncate text-[10px] font-medium leading-none mb-0.5">
                               {appt.services.name}

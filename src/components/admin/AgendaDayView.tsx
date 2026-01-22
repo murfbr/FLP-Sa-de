@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { addDays, subDays, format, startOfDay, endOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, AlertTriangle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAppointmentsForRange } from '@/services/appointments'
@@ -9,6 +9,11 @@ import { Appointment } from '@/types'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { ViewMode } from './AgendaView'
 import { computeEventLayout } from '@/lib/event-layout'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface AgendaDayViewProps {
   currentDate: Date
@@ -19,6 +24,7 @@ interface AgendaDayViewProps {
   selectedProfessional: string
 }
 
+// Timeline constants
 const START_HOUR = 0
 const END_HOUR = 24
 const COMPACT_START = 7
@@ -34,6 +40,7 @@ const getHourHeight = (hour: number) => {
 const getTopOffset = (time: Date) => {
   const timeStr = formatInTimeZone(time, 'HH:mm')
   const [h, m] = timeStr.split(':').map(Number)
+
   let offset = 0
   for (let i = 0; i < h; i++) {
     offset += getHourHeight(i)
@@ -105,6 +112,7 @@ export const AgendaDayView = ({
         format(currentDate, 'yyyy-MM-dd')
       )
     })
+
     return computeEventLayout(filtered, getTopOffset, getDurationHeight)
   }, [appointments, currentDate])
 
@@ -182,7 +190,7 @@ export const AgendaDayView = ({
                 const adjustedWidth =
                   width === 100 ? 'calc(100% - 12px)' : `${width}%`
 
-                const isMissingNotes =
+                const missingNotes =
                   appt.status === 'completed' &&
                   (!appt.notes || appt.notes.length === 0)
 
@@ -201,7 +209,7 @@ export const AgendaDayView = ({
                   >
                     <div
                       className={cn(
-                        'h-full w-full rounded-md p-2 text-sm cursor-pointer shadow-sm overflow-hidden border transition-all hover:brightness-95 hover:z-20 relative',
+                        'h-full w-full rounded-md p-2 text-sm cursor-pointer shadow-sm overflow-hidden border transition-all hover:brightness-95 hover:z-20',
                         appt.status === 'completed'
                           ? 'bg-green-100 text-green-900 border-green-200'
                           : appt.status === 'cancelled'
@@ -209,28 +217,33 @@ export const AgendaDayView = ({
                             : appt.status === 'no_show'
                               ? 'bg-orange-100 text-orange-900 border-orange-200'
                               : 'bg-primary/10 text-primary border-primary/20',
-                        isMissingNotes &&
-                          'ring-2 ring-yellow-500 border-yellow-500',
                       )}
                       onClick={(e) => {
                         e.stopPropagation()
                         onAppointmentClick(appt)
                       }}
                     >
-                      {isMissingNotes && (
-                        <div className="absolute top-1 right-1 text-yellow-600 bg-white/80 rounded-full p-0.5">
-                          <AlertTriangle className="w-3 h-3" />
-                        </div>
-                      )}
                       <div className="flex flex-col h-full">
                         <div className="flex justify-between items-start font-bold">
                           <span className="truncate">{appt.clients.name}</span>
-                          <span className="font-mono text-xs opacity-75 shrink-0 ml-1">
-                            {formatInTimeZone(
-                              appt.schedules.start_time,
-                              'HH:mm',
+                          <div className="flex items-center gap-1">
+                            {missingNotes && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertCircle className="h-3 w-3 text-red-600" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Anotações pendentes</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
-                          </span>
+                            <span className="font-mono text-xs opacity-75 shrink-0 ml-1">
+                              {formatInTimeZone(
+                                appt.schedules.start_time,
+                                'HH:mm',
+                              )}
+                            </span>
+                          </div>
                         </div>
                         <div className="text-xs opacity-90 truncate mt-0.5">
                           {appt.services.name}

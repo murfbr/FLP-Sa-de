@@ -12,13 +12,18 @@ import {
   isValid,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, AlertTriangle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAppointmentsForRange } from '@/services/appointments'
 import { Appointment } from '@/types'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { ViewMode } from './AgendaView'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface AgendaCalendarViewProps {
   currentDate: Date
@@ -168,26 +173,32 @@ export const AgendaCalendarView = ({
 
                   <div className="mt-1 space-y-1 hidden sm:block">
                     {dayAppointments.slice(0, 3).map((appt) => {
-                      const isMissingNotes =
+                      const missingNotes =
                         appt.status === 'completed' &&
                         (!appt.notes || appt.notes.length === 0)
+
                       return (
                         <div
                           key={appt.id}
-                          className={cn(
-                            'text-[10px] p-1 bg-secondary text-secondary-foreground rounded truncate cursor-pointer hover:opacity-80 flex items-center justify-between',
-                            isMissingNotes &&
-                              'border border-yellow-400 bg-yellow-50',
-                          )}
+                          className="text-[10px] p-1 bg-secondary text-secondary-foreground rounded truncate cursor-pointer hover:opacity-80 flex items-center justify-between"
                           onClick={(e) => {
                             e.stopPropagation()
                             onAppointmentClick(appt)
                           }}
                           title={`${appt.clients.name} - ${appt.services.name}`}
                         >
-                          <span className="truncate">{appt.clients.name}</span>
-                          {isMissingNotes && (
-                            <AlertTriangle className="w-2.5 h-2.5 text-yellow-600 shrink-0 ml-1" />
+                          <span className="truncate flex-1">
+                            {appt.clients.name}
+                          </span>
+                          {missingNotes && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <AlertCircle className="h-3 w-3 text-red-500 shrink-0 ml-1" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Anotações pendentes</p>
+                              </TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
                       )
@@ -199,7 +210,14 @@ export const AgendaCalendarView = ({
                     )}
                   </div>
                   {dayAppointments.length > 0 && (
-                    <div className="sm:hidden w-2 h-2 rounded-full bg-primary mx-auto mt-1"></div>
+                    <div className="sm:hidden flex justify-center mt-1 gap-0.5">
+                      <div className="w-2 h-2 rounded-full bg-primary" />
+                      {dayAppointments.some(
+                        (a) =>
+                          a.status === 'completed' &&
+                          (!a.notes || a.notes.length === 0),
+                      ) && <div className="w-2 h-2 rounded-full bg-red-500" />}
+                    </div>
                   )}
                 </div>
               )

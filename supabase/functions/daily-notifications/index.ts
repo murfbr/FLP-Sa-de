@@ -18,35 +18,33 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // 1. Process Birthdays
+    // 1. Check birthdays
     const { error: birthdayError } = await supabase.rpc('check_daily_birthdays')
-    if (birthdayError) {
+    if (birthdayError)
       console.error('Error processing birthdays:', birthdayError)
-    }
 
-    // 2. Process Missing Notes
+    // 2. Check missing notes (New Feature)
     const { error: notesError } = await supabase.rpc(
       'process_missing_notes_notifications',
     )
-    if (notesError) {
-      console.error('Error processing missing notes:', notesError)
-    }
+    if (notesError) console.error('Error processing missing notes:', notesError)
 
-    if (birthdayError || notesError)
-      throw new Error('Partial failure in processing notifications')
+    if (birthdayError || notesError) {
+      throw new Error('Some notifications failed to process.')
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Daily notifications processed.',
+        message: 'Daily notifications processed (Birthdays & Missing Notes).',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       },
     )
-  } catch (error) {
-    console.error('Error processing notifications:', error)
+  } catch (error: any) {
+    console.error('Error processing daily notifications:', error)
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       {
