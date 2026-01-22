@@ -50,6 +50,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/providers/AuthProvider'
 import { formatInTimeZone } from '@/lib/utils'
+import { getFriendlyErrorMessage } from '@/lib/error-mapping'
 
 interface AppointmentDetailDialogProps {
   appointment: Appointment | null
@@ -95,7 +96,7 @@ export const AppointmentDetailDialog = ({
     if (error) {
       toast({
         title: 'Erro ao confirmar realização',
-        description: error.message,
+        description: getFriendlyErrorMessage(error),
         variant: 'destructive',
       })
     } else {
@@ -112,7 +113,7 @@ export const AppointmentDetailDialog = ({
     if (error) {
       toast({
         title: 'Erro ao registrar falta',
-        description: error.message,
+        description: getFriendlyErrorMessage(error),
         variant: 'destructive',
       })
     } else {
@@ -129,7 +130,7 @@ export const AppointmentDetailDialog = ({
     if (error) {
       toast({
         title: 'Erro ao cancelar agendamento',
-        description: error.message,
+        description: getFriendlyErrorMessage(error),
         variant: 'destructive',
       })
     } else {
@@ -158,7 +159,11 @@ export const AppointmentDetailDialog = ({
 
     const { error } = await addAppointmentNote(appointment.id, noteEntry)
     if (error) {
-      toast({ title: 'Erro ao adicionar nota', variant: 'destructive' })
+      toast({
+        title: 'Erro ao adicionar nota',
+        description: getFriendlyErrorMessage(error),
+        variant: 'destructive',
+      })
     } else {
       toast({ title: 'Nota adicionada com sucesso!' })
       setNewNote('')

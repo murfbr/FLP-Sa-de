@@ -12,6 +12,20 @@ export const getFriendlyErrorMessage = (error: any): string => {
     error.msg ||
     (typeof error === 'string' ? error : JSON.stringify(error))
 
+  // --- Capacity & Scheduling Errors ---
+  if (message.includes('Turma lotada')) {
+    return 'Este horário atingiu a capacidade máxima de participantes.'
+  }
+  if (message.includes('Conflito de serviço')) {
+    return 'Este horário já está reservado para outro tipo de serviço.'
+  }
+  if (message.includes('Cliente já está agendado')) {
+    return 'Este paciente já possui um agendamento neste horário.'
+  }
+  if (message.includes('Conflito de horário')) {
+    return 'O horário selecionado conflita com outro agendamento existente.'
+  }
+
   // --- Auth & User Management Errors ---
   if (
     message.includes('User already registered') ||

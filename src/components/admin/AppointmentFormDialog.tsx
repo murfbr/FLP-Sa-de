@@ -74,6 +74,7 @@ import { AvailableSlots } from '@/components/AvailableSlots'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/providers/AuthProvider'
 import { ClientSelector } from './ClientSelector'
+import { getFriendlyErrorMessage } from '@/lib/error-mapping'
 
 const appointmentSchema = z
   .object({
@@ -323,10 +324,6 @@ export const AppointmentFormDialog = ({
   }
 
   const onSubmit = async (values: AppointmentFormValues) => {
-    // If active subscription, backend handles it.
-    // If using package, we pass the package ID.
-    // Else it is "Avulso".
-
     const packageIdToUse =
       values.usePackage && !activeSubscription && availablePackages.length > 0
         ? values.packageId
@@ -361,7 +358,7 @@ export const AppointmentFormDialog = ({
       if (result.error) {
         toast({
           title: 'Erro ao agendar',
-          description: result.error.message,
+          description: getFriendlyErrorMessage(result.error),
           variant: 'destructive',
         })
       } else {
@@ -372,7 +369,7 @@ export const AppointmentFormDialog = ({
     } catch (err: any) {
       toast({
         title: 'Erro inesperado',
-        description: err.message,
+        description: getFriendlyErrorMessage(err),
         variant: 'destructive',
       })
     }

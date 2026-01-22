@@ -32,6 +32,7 @@ import { getAvailableDatesForProfessional } from '@/services/availability'
 import { rescheduleAppointment } from '@/services/appointments'
 import { getProfessionalsByService } from '@/services/professionals'
 import { AvailableSlots } from '@/components/AvailableSlots'
+import { getFriendlyErrorMessage } from '@/lib/error-mapping'
 
 interface RescheduleDialogProps {
   isOpen: boolean
@@ -132,7 +133,7 @@ export const RescheduleDialog = ({
     if (error) {
       toast({
         title: 'Erro ao remarcar agendamento',
-        description: error.message,
+        description: getFriendlyErrorMessage(error),
         variant: 'destructive',
       })
     } else {
