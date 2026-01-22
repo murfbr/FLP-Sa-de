@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   addWeeks,
   subWeeks,
@@ -9,7 +9,7 @@ import {
   isToday,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAppointmentsForRange } from '@/services/appointments'
@@ -27,7 +27,6 @@ interface AgendaWeekViewProps {
   selectedProfessional: string
 }
 
-// Timeline helpers
 const START_HOUR = 0
 const END_HOUR = 24
 const COMPACT_START = 7
@@ -43,7 +42,6 @@ const getHourHeight = (hour: number) => {
 const getTopOffset = (time: Date) => {
   const timeStr = formatInTimeZone(time, 'HH:mm')
   const [h, m] = timeStr.split(':').map(Number)
-
   let offset = 0
   for (let i = 0; i < h; i++) {
     offset += getHourHeight(i)
@@ -55,10 +53,8 @@ const getTopOffset = (time: Date) => {
 const getDurationHeight = (startTime: Date, durationMinutes: number) => {
   const startStr = formatInTimeZone(startTime, 'HH:mm')
   let [h, m] = startStr.split(':').map(Number)
-
   let height = 0
   let remaining = durationMinutes
-
   while (remaining > 0) {
     const minutesLeftInHour = 60 - m
     const chunk = Math.min(remaining, minutesLeftInHour)
@@ -67,7 +63,6 @@ const getDurationHeight = (startTime: Date, durationMinutes: number) => {
     h = (h + 1) % 24
     m = 0
   }
-
   return height
 }
 
@@ -100,27 +95,14 @@ export const AgendaWeekView = ({
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
-      // Force Sunday as start of week for consistency
       const start = startOfWeek(currentDate, { locale: ptBR, weekStartsOn: 0 })
       const end = endOfWeek(currentDate, { locale: ptBR, weekStartsOn: 0 })
 
-      console.log('[AgendaWeekView] Fetching range:', {
-        start: format(start, 'yyyy-MM-dd HH:mm'),
-        end: format(end, 'yyyy-MM-dd HH:mm'),
-      })
-
-      const { data, error } = await getAppointmentsForRange(
+      const { data } = await getAppointmentsForRange(
         start,
         end,
         selectedProfessional,
       )
-
-      if (error) {
-        console.error('[AgendaWeekView] Fetch error:', error)
-      } else {
-        console.log(`[AgendaWeekView] Loaded ${data?.length} appointments`)
-      }
-
       setAppointments(data || [])
       setIsLoading(false)
     }
@@ -135,25 +117,15 @@ export const AgendaWeekView = ({
 
   const appointmentsByDay = useMemo(() => {
     const map = new Map<string, ReturnType<typeof computeEventLayout>>()
-
-    // Group raw appointments first
     const rawMap = new Map<string, Appointment[]>()
 
     appointments.forEach((appt) => {
       if (!appt.schedules?.start_time) return
-      // Use helper to get Day in Brazil time
       const day = formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd')
       if (!rawMap.has(day)) rawMap.set(day, [])
       rawMap.get(day)?.push(appt)
     })
 
-    // Log for debugging visibility
-    console.log(
-      '[AgendaWeekView] Appointments per day keys:',
-      Array.from(rawMap.keys()),
-    )
-
-    // Then compute layout for each day
     rawMap.forEach((appts, day) => {
       map.set(day, computeEventLayout(appts, getTopOffset, getDurationHeight))
     })
@@ -218,7 +190,6 @@ export const AgendaWeekView = ({
       ) : (
         <div className="flex-1 overflow-y-auto relative border rounded-md bg-white">
           <div className="min-w-[800px] relative">
-            {/* Header Row */}
             <div className="sticky top-0 z-30 flex border-b bg-background shadow-sm">
               <div className="w-16 shrink-0 border-r bg-muted/30"></div>
               {daysInWeek.map((day) => (
@@ -244,9 +215,7 @@ export const AgendaWeekView = ({
               ))}
             </div>
 
-            {/* Body */}
             <div className="flex relative">
-              {/* Time Column */}
               <div className="w-16 shrink-0 border-r bg-muted/10">
                 {hours.map((h) => (
                   <div
@@ -259,7 +228,6 @@ export const AgendaWeekView = ({
                 ))}
               </div>
 
-              {/* Columns per day */}
               {daysInWeek.map((day) => {
                 const dayKey = format(day, 'yyyy-MM-dd')
                 const dayAppts = appointmentsByDay.get(dayKey) || []
@@ -271,7 +239,6 @@ export const AgendaWeekView = ({
                     onMouseMove={(e) => handleMouseMove(e, day)}
                     onMouseLeave={handleMouseLeave}
                   >
-                    {/* 1. Background Grid Lines */}
                     <div className="absolute inset-0 flex flex-col pointer-events-none z-0">
                       {hours.map((h) => (
                         <div
@@ -282,14 +249,14 @@ export const AgendaWeekView = ({
                       ))}
                     </div>
 
-                    {/* 2. Appointments Layer */}
                     {dayAppts.map((appt) => {
                       const { top, height, left, width } = appt.layout
-
-                      // We reduce width slightly to ensure there is always a gap to hover/click the slot
-                      // Especially important if single appointment takes full width
                       const adjustedWidth =
                         width === 100 ? 'calc(100% - 10px)' : `${width}%`
+
+                      const isMissingNotes =
+                        appt.status === 'completed' &&
+                        (!appt.notes || appt.notes.length === 0)
 
                       return (
                         <div
@@ -306,7 +273,7 @@ export const AgendaWeekView = ({
                         >
                           <div
                             className={cn(
-                              'h-full w-full rounded p-1 text-xs cursor-pointer shadow-sm overflow-hidden border transition-transform hover:scale-[1.02] hover:z-20',
+                              'h-full w-full rounded p-1 text-xs cursor-pointer shadow-sm overflow-hidden border transition-transform hover:scale-[1.02] hover:z-20 relative',
                               appt.status === 'completed'
                                 ? 'bg-green-100 text-green-800 border-green-200'
                                 : appt.status === 'cancelled'
@@ -314,6 +281,8 @@ export const AgendaWeekView = ({
                                   : appt.status === 'no_show'
                                     ? 'bg-orange-100 text-orange-800 border-orange-200'
                                     : 'bg-primary/10 text-primary border-primary/20',
+                              isMissingNotes &&
+                                'ring-1 ring-yellow-500 border-yellow-500',
                             )}
                             onClick={(e) => {
                               e.stopPropagation()
@@ -321,6 +290,11 @@ export const AgendaWeekView = ({
                             }}
                             title={`${appt.clients.name} - ${appt.services.name}`}
                           >
+                            {isMissingNotes && (
+                              <div className="absolute top-0.5 right-0.5 text-yellow-600 bg-white/80 rounded-full">
+                                <AlertTriangle className="w-2.5 h-2.5" />
+                              </div>
+                            )}
                             <div className="font-semibold truncate leading-none mb-0.5">
                               {appt.clients.name}
                             </div>
@@ -338,7 +312,6 @@ export const AgendaWeekView = ({
                       )
                     })}
 
-                    {/* 3. Interaction Layer (Plus Buttons) */}
                     {hoveredSlot?.day === dayKey && (
                       <div
                         className="absolute w-full z-20 pointer-events-none"
@@ -347,7 +320,6 @@ export const AgendaWeekView = ({
                           height: '100%',
                         }}
                       >
-                        {/* Only render the button for the hovered hour to save resources */}
                         {hours.map((h) => {
                           if (h !== hoveredSlot.hour) return null
                           let offset = 0

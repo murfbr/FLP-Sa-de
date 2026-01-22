@@ -12,7 +12,7 @@ import {
   isValid,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAppointmentsForRange } from '@/services/appointments'
@@ -98,9 +98,6 @@ export const AgendaCalendarView = ({
 
   const handlePlusClick = (e: React.MouseEvent, day: Date) => {
     e.stopPropagation()
-    // We pass the day without specific time (start of day)
-    // The form will detect this is just a date, not a specific slot selection
-    // Passing false for isSpecificSlot to allow manual time selection
     const dateWithTime = new Date(day)
     dateWithTime.setHours(0, 0, 0, 0)
     onTimeSlotClick(dateWithTime, false)
@@ -170,19 +167,31 @@ export const AgendaCalendarView = ({
                   </div>
 
                   <div className="mt-1 space-y-1 hidden sm:block">
-                    {dayAppointments.slice(0, 3).map((appt) => (
-                      <div
-                        key={appt.id}
-                        className="text-[10px] p-1 bg-secondary text-secondary-foreground rounded truncate cursor-pointer hover:opacity-80"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onAppointmentClick(appt)
-                        }}
-                        title={`${appt.clients.name} - ${appt.services.name}`}
-                      >
-                        {appt.clients.name} - {appt.services.name}
-                      </div>
-                    ))}
+                    {dayAppointments.slice(0, 3).map((appt) => {
+                      const isMissingNotes =
+                        appt.status === 'completed' &&
+                        (!appt.notes || appt.notes.length === 0)
+                      return (
+                        <div
+                          key={appt.id}
+                          className={cn(
+                            'text-[10px] p-1 bg-secondary text-secondary-foreground rounded truncate cursor-pointer hover:opacity-80 flex items-center justify-between',
+                            isMissingNotes &&
+                              'border border-yellow-400 bg-yellow-50',
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onAppointmentClick(appt)
+                          }}
+                          title={`${appt.clients.name} - ${appt.services.name}`}
+                        >
+                          <span className="truncate">{appt.clients.name}</span>
+                          {isMissingNotes && (
+                            <AlertTriangle className="w-2.5 h-2.5 text-yellow-600 shrink-0 ml-1" />
+                          )}
+                        </div>
+                      )
+                    })}
                     {dayAppointments.length > 3 && (
                       <div className="text-[10px] text-muted-foreground pl-1">
                         + {dayAppointments.length - 3} mais

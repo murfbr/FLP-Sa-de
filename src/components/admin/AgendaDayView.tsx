@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { addDays, subDays, format, startOfDay, endOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAppointmentsForRange } from '@/services/appointments'
@@ -19,7 +19,6 @@ interface AgendaDayViewProps {
   selectedProfessional: string
 }
 
-// Timeline constants
 const START_HOUR = 0
 const END_HOUR = 24
 const COMPACT_START = 7
@@ -35,7 +34,6 @@ const getHourHeight = (hour: number) => {
 const getTopOffset = (time: Date) => {
   const timeStr = formatInTimeZone(time, 'HH:mm')
   const [h, m] = timeStr.split(':').map(Number)
-
   let offset = 0
   for (let i = 0; i < h; i++) {
     offset += getHourHeight(i)
@@ -107,8 +105,6 @@ export const AgendaDayView = ({
         format(currentDate, 'yyyy-MM-dd')
       )
     })
-
-    // Apply layout logic for side-by-side overlap
     return computeEventLayout(filtered, getTopOffset, getDurationHeight)
   }, [appointments, currentDate])
 
@@ -154,7 +150,6 @@ export const AgendaDayView = ({
       ) : (
         <div className="flex-1 overflow-y-auto relative border rounded-md bg-white">
           <div className="flex relative min-h-full">
-            {/* Time Column */}
             <div className="w-20 shrink-0 border-r bg-muted/10 sticky left-0 z-30 bg-background">
               {hours.map((h) => (
                 <div
@@ -167,13 +162,11 @@ export const AgendaDayView = ({
               ))}
             </div>
 
-            {/* Day Column */}
             <div
               className="flex-1 relative bg-background"
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
             >
-              {/* 1. Background Grid Lines */}
               <div className="absolute inset-0 flex flex-col pointer-events-none z-0">
                 {hours.map((h) => (
                   <div
@@ -184,12 +177,14 @@ export const AgendaDayView = ({
                 ))}
               </div>
 
-              {/* 2. Appointments */}
               {dayAppointments.map((appt) => {
                 const { top, height, left, width } = appt.layout
-                // Adjust width for gap
                 const adjustedWidth =
                   width === 100 ? 'calc(100% - 12px)' : `${width}%`
+
+                const isMissingNotes =
+                  appt.status === 'completed' &&
+                  (!appt.notes || appt.notes.length === 0)
 
                 return (
                   <div
@@ -200,13 +195,13 @@ export const AgendaDayView = ({
                       left: `${left}%`,
                       width: adjustedWidth,
                       position: 'absolute',
-                      padding: '2px', // Gap
+                      padding: '2px',
                     }}
                     className="z-10"
                   >
                     <div
                       className={cn(
-                        'h-full w-full rounded-md p-2 text-sm cursor-pointer shadow-sm overflow-hidden border transition-all hover:brightness-95 hover:z-20',
+                        'h-full w-full rounded-md p-2 text-sm cursor-pointer shadow-sm overflow-hidden border transition-all hover:brightness-95 hover:z-20 relative',
                         appt.status === 'completed'
                           ? 'bg-green-100 text-green-900 border-green-200'
                           : appt.status === 'cancelled'
@@ -214,12 +209,19 @@ export const AgendaDayView = ({
                             : appt.status === 'no_show'
                               ? 'bg-orange-100 text-orange-900 border-orange-200'
                               : 'bg-primary/10 text-primary border-primary/20',
+                        isMissingNotes &&
+                          'ring-2 ring-yellow-500 border-yellow-500',
                       )}
                       onClick={(e) => {
                         e.stopPropagation()
                         onAppointmentClick(appt)
                       }}
                     >
+                      {isMissingNotes && (
+                        <div className="absolute top-1 right-1 text-yellow-600 bg-white/80 rounded-full p-0.5">
+                          <AlertTriangle className="w-3 h-3" />
+                        </div>
+                      )}
                       <div className="flex flex-col h-full">
                         <div className="flex justify-between items-start font-bold">
                           <span className="truncate">{appt.clients.name}</span>
@@ -239,7 +241,6 @@ export const AgendaDayView = ({
                 )
               })}
 
-              {/* 3. Interaction Layer (Plus Buttons) */}
               {hoveredHour !== null && (
                 <div
                   className="absolute w-full z-20 pointer-events-none"
