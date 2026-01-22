@@ -41,6 +41,7 @@ import {
   Repeat,
   Loader2,
   ExternalLink,
+  DollarSign,
 } from 'lucide-react'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -91,6 +92,7 @@ const appointmentSchema = z
       .min(2, 'Mínimo de 2 semanas para recorrência')
       .max(52, 'Máximo de 52 semanas (1 ano)')
       .optional(),
+    discount: z.coerce.number().min(0).optional(),
   })
   .refine(
     (data) => {
@@ -160,6 +162,7 @@ export const AppointmentFormDialog = ({
       startTime: '',
       serviceId: '',
       clientId: '',
+      discount: 0,
     },
   })
 
@@ -200,6 +203,7 @@ export const AppointmentFormDialog = ({
         startTime: '',
         serviceId: '',
         clientId: '',
+        discount: 0,
       })
       setSchedules([])
       setProfessionals([])
@@ -343,6 +347,7 @@ export const AppointmentFormDialog = ({
           values.startTime,
           values.recurrenceWeeks,
           packageIdToUse,
+          values.discount,
         )
       } else {
         result = await bookAppointment(
@@ -352,6 +357,7 @@ export const AppointmentFormDialog = ({
           values.startTime,
           packageIdToUse,
           values.isRecurring,
+          values.discount,
         )
       }
 
@@ -578,6 +584,35 @@ export const AppointmentFormDialog = ({
                           <ExternalLink className="w-3 h-3 ml-1" />
                         </Button>
                       </div>
+                    )}
+
+                    {/* Discount Input - Only if not using package/subscription or just separate */}
+                    {!usePackage && (
+                      <FormField
+                        control={form.control}
+                        name="discount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Desconto Pontual (R$)</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  type="number"
+                                  className="pl-9"
+                                  placeholder="0,00"
+                                  min={0}
+                                  {...field}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormDescription>
+                              O valor será subtraído do preço do serviço.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     )}
                   </div>
                 )}

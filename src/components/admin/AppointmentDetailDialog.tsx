@@ -26,6 +26,8 @@ import {
   CalendarClock,
   Send,
   Trash2,
+  Edit2,
+  DollarSign,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -33,6 +35,8 @@ import {
   markAppointmentAsNoShow,
   addAppointmentNote,
   cancelAppointment,
+  deleteAppointment,
+  updateAppointmentStatus,
 } from '@/services/appointments'
 import {
   AlertDialog,
@@ -51,6 +55,13 @@ import { Label } from '@/components/ui/label'
 import { useAuth } from '@/providers/AuthProvider'
 import { formatInTimeZone } from '@/lib/utils'
 import { getFriendlyErrorMessage } from '@/lib/error-mapping'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface AppointmentDetailDialogProps {
   appointment: Appointment | null
@@ -59,13 +70,13 @@ interface AppointmentDetailDialogProps {
   onAppointmentUpdated: () => void
 }
 
-const statusMap: Record<string, string> = {
-  scheduled: 'Agendado',
-  confirmed: 'Confirmado',
-  completed: 'Concluído',
-  cancelled: 'Cancelado',
-  no_show: 'Faltou',
-}
+const statusOptions = [
+  { value: 'scheduled', label: 'Agendado' },
+  { value: 'confirmed', label: 'Confirmado' },
+  { value: 'completed', label: 'Concluído' },
+  { value: 'cancelled', label: 'Cancelado' },
+  { value: 'no_show', label: 'Faltou' },
+]
 
 export const AppointmentDetailDialog = ({
   appointment,
@@ -74,10 +85,9 @@ export const AppointmentDetailDialog = ({
   onAppointmentUpdated,
 }: AppointmentDetailDialogProps) => {
   const { toast } = useToast()
-  const { user, professionalId } = useAuth()
-  const [isCompleting, setIsCompleting] = useState(false)
-  const [isMarkingNoShow, setIsMarkingNoShow] = useState(false)
-  const [isCancelling, setIsCancelling] = useState(false)
+  const { user, professionalId, role } = useAuth()
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false)
   const [newNote, setNewNote] = useState('')
   const [isSavingNote, setIsSavingNote] = useState(false)
@@ -90,55 +100,37 @@ export const AppointmentDetailDialog = ({
     return null
   }
 
-  const handleCompleteAppointment = async () => {
-    setIsCompleting(true)
-    const { error } = await completeAppointment(appointment.id)
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    const { error } = await deleteAppointment(appointment.id)
     if (error) {
       toast({
-        title: 'Erro ao confirmar realização',
+        title: 'Erro ao excluir agendamento',
         description: getFriendlyErrorMessage(error),
         variant: 'destructive',
       })
     } else {
-      toast({ title: 'Agendamento confirmado com sucesso!' })
+      toast({ title: 'Agendamento excluído com sucesso.' })
       onAppointmentUpdated()
       onOpenChange(false)
     }
-    setIsCompleting(false)
+    setIsDeleting(false)
   }
 
-  const handleNoShow = async () => {
-    setIsMarkingNoShow(true)
-    const { error } = await markAppointmentAsNoShow(appointment.id)
+  const handleStatusChange = async (newStatus: string) => {
+    setIsUpdatingStatus(true)
+    const { error } = await updateAppointmentStatus(appointment.id, newStatus)
     if (error) {
       toast({
-        title: 'Erro ao registrar falta',
+        title: 'Erro ao atualizar status',
         description: getFriendlyErrorMessage(error),
         variant: 'destructive',
       })
     } else {
-      toast({ title: 'Falta registrada com sucesso.' })
+      toast({ title: 'Status atualizado com sucesso.' })
       onAppointmentUpdated()
-      onOpenChange(false)
     }
-    setIsMarkingNoShow(false)
-  }
-
-  const handleCancel = async () => {
-    setIsCancelling(true)
-    const { error } = await cancelAppointment(appointment.id)
-    if (error) {
-      toast({
-        title: 'Erro ao cancelar agendamento',
-        description: getFriendlyErrorMessage(error),
-        variant: 'destructive',
-      })
-    } else {
-      toast({ title: 'Agendamento cancelado com sucesso.' })
-      onAppointmentUpdated()
-      onOpenChange(false)
-    }
-    setIsCancelling(false)
+    setIsUpdatingStatus(false)
   }
 
   const handleRescheduleSuccess = () => {
@@ -174,10 +166,10 @@ export const AppointmentDetailDialog = ({
 
   const startTime = appointment.schedules.start_time
   const duration = appointment.services.duration_minutes || 30
-  // Calculate end time dynamically based on the service duration
   const calculatedEndTime = addMinutes(new Date(startTime), duration)
 
   const canEdit = ['scheduled', 'confirmed'].includes(appointment.status)
+  const isAdmin = role === 'admin'
 
   const DetailItem = ({
     icon: Icon,
@@ -192,7 +184,7 @@ export const AppointmentDetailDialog = ({
       <Icon className="h-5 w-5 text-primary mt-1" />
       <div>
         <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="font-medium">{value}</p>
+        <div className="font-medium">{value}</div>
       </div>
     </div>
   )
@@ -217,7 +209,19 @@ export const AppointmentDetailDialog = ({
               <DetailItem
                 icon={Stethoscope}
                 label="Serviço"
-                value={appointment.services.name}
+                value={
+                  <div className="flex flex-col">
+                    <span>{appointment.services.name}</span>
+                    {appointment.discount_amount &&
+                      appointment.discount_amount > 0 && (
+                        <span className="text-xs text-green-600 flex items-center gap-1">
+                          <DollarSign className="w-3 h-3" />
+                          Desconto aplicado: R${' '}
+                          {appointment.discount_amount.toFixed(2)}
+                        </span>
+                      )}
+                  </div>
+                }
               />
               <DetailItem
                 icon={Briefcase}
@@ -244,9 +248,29 @@ export const AppointmentDetailDialog = ({
                 icon={FileText}
                 label="Status"
                 value={
-                  <Badge>
-                    {statusMap[appointment.status] || appointment.status}
-                  </Badge>
+                  isAdmin ? (
+                    <Select
+                      value={appointment.status}
+                      onValueChange={handleStatusChange}
+                      disabled={isUpdatingStatus}
+                    >
+                      <SelectTrigger className="h-8 w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Badge variant="outline" className="capitalize">
+                      {statusOptions.find((o) => o.value === appointment.status)
+                        ?.label || appointment.status}
+                    </Badge>
+                  )
                 }
               />
             </div>
@@ -309,66 +333,45 @@ export const AppointmentDetailDialog = ({
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
+            {/* Delete Button (Hard Delete) - Admin Only or special permission */}
+            {isAdmin && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full sm:w-auto">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Excluir
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir Agendamento</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tem certeza que deseja{' '}
+                      <strong>excluir permanentemente</strong> este registro?
+                      <br />
+                      Esta ação não pode ser desfeita. Para apenas cancelar e
+                      manter o histórico, altere o status para "Cancelado".
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        'Confirmar Exclusão'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+
             {canEdit && (
               <>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full sm:w-auto border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Cancelar
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Cancelar Agendamento</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tem certeza que deseja cancelar este agendamento? O
-                        horário ficará disponível novamente.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Voltar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleCancel}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        {isCancelling ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          'Confirmar Cancelamento'
-                        )}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" className="w-full sm:w-auto">
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Faltou
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Registrar Falta</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tem certeza que deseja marcar este agendamento como "Não
-                        Compareceu"?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleNoShow}>
-                        Confirmar Falta
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-
                 <Button
                   variant="secondary"
                   className="w-full sm:w-auto"
@@ -376,19 +379,6 @@ export const AppointmentDetailDialog = ({
                 >
                   <CalendarClock className="mr-2 h-4 w-4" />
                   Remarcar
-                </Button>
-
-                <Button
-                  onClick={handleCompleteAppointment}
-                  disabled={isCompleting}
-                  className="w-full sm:w-auto"
-                >
-                  {isCompleting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                  )}
-                  Confirmar Realização
                 </Button>
               </>
             )}

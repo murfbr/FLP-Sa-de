@@ -80,6 +80,7 @@ export interface Appointment {
   service_id: string
   schedule_id: string
   status: string
+  discount_amount?: number
   notes: NoteEntry[] | null
   created_at: string
   clients: Client
