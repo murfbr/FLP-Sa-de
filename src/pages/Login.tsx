@@ -26,23 +26,19 @@ const Login = () => {
 
   const from = location.state?.from?.pathname || '/'
 
-  // Redirect if already authenticated and role is loaded
   useEffect(() => {
-    // Only redirect if loading is finished and user exists
     if (!loading && user) {
       if (role) {
         console.log('[Login] Authenticated with role:', role, 'Redirecting...')
-        // Smart redirect based on role
         if (from === '/' || from === '/login') {
           if (role === 'admin') navigate('/admin', { replace: true })
           else if (role === 'professional')
             navigate('/profissional', { replace: true })
-          else navigate('/', { replace: true }) // Will hit Index and redirect
+          else navigate('/', { replace: true })
         } else {
           navigate(from, { replace: true })
         }
       }
-      // Note: If user is authenticated but role is missing, we render the error UI below.
     }
   }, [user, role, loading, navigate, from])
 
@@ -60,8 +56,6 @@ const Login = () => {
           variant: 'destructive',
         })
       }
-      // Successful login logic is handled by the useEffect watching auth state
-      // The AuthProvider sets loading=true on success, triggering the loading view
     } catch (err) {
       console.error(err)
       toast({
@@ -70,12 +64,10 @@ const Login = () => {
         variant: 'destructive',
       })
     } finally {
-      // If successful, loading will be true (set by AuthProvider), so this doesn't flash
       setIsSubmitting(false)
     }
   }
 
-  // Loading State - Shows while AuthProvider is verifying session/profile
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background animate-in fade-in duration-500">
@@ -92,10 +84,8 @@ const Login = () => {
     )
   }
 
-  // Valid Auth State - Render nothing while redirecting (handled by useEffect)
   if (user && role) return null
 
-  // Error State: User logged in but no role found
   if (user && !role) {
     return (
       <div className="container flex items-center justify-center min-h-screen py-12">
@@ -134,7 +124,6 @@ const Login = () => {
     )
   }
 
-  // Default Login Form
   return (
     <div className="container flex items-center justify-center min-h-[calc(100vh-112px)] py-12">
       <Card className="w-full max-w-sm animate-fade-in-up shadow-lg">
@@ -165,6 +154,12 @@ const Login = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Senha</Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-muted-foreground underline hover:text-primary"
+                >
+                  Esqueci minha senha
+                </Link>
               </div>
               <Input
                 id="password"

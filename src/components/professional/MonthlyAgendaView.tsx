@@ -12,18 +12,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getAppointmentsByProfessionalForRange } from '@/services/appointments'
 import { getAvailabilityOverrides } from '@/services/availability'
 import { Appointment, AvailabilityOverride } from '@/types'
-import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  isSameDay,
-  parseISO,
-  isValid,
-} from 'date-fns'
+import { format, startOfMonth, endOfMonth, parseISO, isValid } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { ProfessionalAppointmentDialog } from './ProfessionalAppointmentDialog'
 import { DayProps } from 'react-day-picker'
 import { formatInTimeZone } from '@/lib/utils'
+import { AlertTriangle } from 'lucide-react'
 
 interface MonthlyAgendaViewProps {
   professionalId: string
@@ -77,7 +71,6 @@ export const MonthlyAgendaView = ({
   const appointmentsByDay = useMemo(() => {
     const counts = new Map<string, number>()
     validAppointments.forEach((appt) => {
-      // Use formatInTimeZone for grouping to ensure correct day assignment
       const day = formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd')
       counts.set(day, (counts.get(day) || 0) + 1)
     })
@@ -111,7 +104,6 @@ export const MonthlyAgendaView = ({
     )
     return {
       appointmentsOnSelectedDay: validAppointments.filter((appt) => {
-        // Check if appointment is in the selected day (Brazil time)
         const apptDay = formatInTimeZone(
           appt.schedules.start_time,
           'yyyy-MM-dd',
@@ -177,23 +169,35 @@ export const MonthlyAgendaView = ({
           </CardHeader>
           <CardContent className="space-y-3">
             {appointmentsOnSelectedDay.length > 0 ? (
-              appointmentsOnSelectedDay.map((appt) => (
-                <div
-                  key={appt.id}
-                  className="p-3 border rounded-md flex justify-between items-center cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleAppointmentClick(appt)}
-                >
-                  <div>
-                    <p className="font-semibold">{appt.clients.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {appt.services.name}
-                    </p>
+              appointmentsOnSelectedDay.map((appt) => {
+                const isMissingNotes =
+                  appt.status === 'completed' &&
+                  (!appt.notes || appt.notes.length === 0)
+                return (
+                  <div
+                    key={appt.id}
+                    className="p-3 border rounded-md flex justify-between items-center cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleAppointmentClick(appt)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <p className="font-semibold">{appt.clients.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {appt.services.name}
+                        </p>
+                      </div>
+                      {isMissingNotes && (
+                        <div title="Prontuário Pendente">
+                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                        </div>
+                      )}
+                    </div>
+                    <Badge variant="secondary">
+                      {formatInTimeZone(appt.schedules.start_time, 'HH:mm')}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary">
-                    {formatInTimeZone(appt.schedules.start_time, 'HH:mm')}
-                  </Badge>
-                </div>
-              ))
+                )
+              })
             ) : (
               <p className="text-center text-muted-foreground pt-8">
                 Nenhum agendamento para o dia selecionado.

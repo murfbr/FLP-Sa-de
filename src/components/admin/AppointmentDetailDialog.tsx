@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -20,21 +20,15 @@ import {
   Calendar,
   Clock,
   FileText,
-  CheckCircle,
   Loader2,
-  XCircle,
   CalendarClock,
   Send,
   Trash2,
-  Edit2,
   DollarSign,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
-  completeAppointment,
-  markAppointmentAsNoShow,
   addAppointmentNote,
-  cancelAppointment,
   deleteAppointment,
   updateAppointmentStatus,
 } from '@/services/appointments'
@@ -79,18 +73,26 @@ const statusOptions = [
 ]
 
 export const AppointmentDetailDialog = ({
-  appointment,
+  appointment: initialAppointment,
   isOpen,
   onOpenChange,
   onAppointmentUpdated,
 }: AppointmentDetailDialogProps) => {
   const { toast } = useToast()
   const { user, professionalId, role } = useAuth()
+  const [appointment, setAppointment] = useState<Appointment | null>(
+    initialAppointment,
+  )
   const [isDeleting, setIsDeleting] = useState(false)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false)
   const [newNote, setNewNote] = useState('')
   const [isSavingNote, setIsSavingNote] = useState(false)
+
+  // Sync with initial prop
+  useEffect(() => {
+    setAppointment(initialAppointment)
+  }, [initialAppointment])
 
   if (
     !appointment ||
@@ -128,6 +130,8 @@ export const AppointmentDetailDialog = ({
       })
     } else {
       toast({ title: 'Status atualizado com sucesso.' })
+      // Instant Local Update
+      setAppointment((prev) => (prev ? { ...prev, status: newStatus } : prev))
       onAppointmentUpdated()
     }
     setIsUpdatingStatus(false)
@@ -158,6 +162,12 @@ export const AppointmentDetailDialog = ({
       })
     } else {
       toast({ title: 'Nota adicionada com sucesso!' })
+      // Local Update
+      setAppointment((prev) => {
+        if (!prev) return null
+        const updatedNotes = [...(prev.notes || []), noteEntry]
+        return { ...prev, notes: updatedNotes }
+      })
       setNewNote('')
       onAppointmentUpdated()
     }
@@ -333,7 +343,6 @@ export const AppointmentDetailDialog = ({
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            {/* Delete Button (Hard Delete) - Admin Only or special permission */}
             {isAdmin && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { addDays, subDays, format, startOfDay, endOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAppointmentsForRange } from '@/services/appointments'
@@ -9,6 +9,11 @@ import { Appointment } from '@/types'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { ViewMode } from './AgendaView'
 import { computeEventLayout } from '@/lib/event-layout'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface AgendaDayViewProps {
   currentDate: Date
@@ -108,7 +113,6 @@ export const AgendaDayView = ({
       )
     })
 
-    // Apply layout logic for side-by-side overlap
     return computeEventLayout(filtered, getTopOffset, getDurationHeight)
   }, [appointments, currentDate])
 
@@ -154,7 +158,6 @@ export const AgendaDayView = ({
       ) : (
         <div className="flex-1 overflow-y-auto relative border rounded-md bg-white">
           <div className="flex relative min-h-full">
-            {/* Time Column */}
             <div className="w-20 shrink-0 border-r bg-muted/10 sticky left-0 z-30 bg-background">
               {hours.map((h) => (
                 <div
@@ -167,13 +170,11 @@ export const AgendaDayView = ({
               ))}
             </div>
 
-            {/* Day Column */}
             <div
               className="flex-1 relative bg-background"
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
             >
-              {/* 1. Background Grid Lines */}
               <div className="absolute inset-0 flex flex-col pointer-events-none z-0">
                 {hours.map((h) => (
                   <div
@@ -184,12 +185,14 @@ export const AgendaDayView = ({
                 ))}
               </div>
 
-              {/* 2. Appointments */}
               {dayAppointments.map((appt) => {
                 const { top, height, left, width } = appt.layout
-                // Adjust width for gap
                 const adjustedWidth =
                   width === 100 ? 'calc(100% - 12px)' : `${width}%`
+
+                const missingNotes =
+                  appt.status === 'completed' &&
+                  (!appt.notes || appt.notes.length === 0)
 
                 return (
                   <div
@@ -200,7 +203,7 @@ export const AgendaDayView = ({
                       left: `${left}%`,
                       width: adjustedWidth,
                       position: 'absolute',
-                      padding: '2px', // Gap
+                      padding: '2px',
                     }}
                     className="z-10"
                   >
@@ -223,12 +226,24 @@ export const AgendaDayView = ({
                       <div className="flex flex-col h-full">
                         <div className="flex justify-between items-start font-bold">
                           <span className="truncate">{appt.clients.name}</span>
-                          <span className="font-mono text-xs opacity-75 shrink-0 ml-1">
-                            {formatInTimeZone(
-                              appt.schedules.start_time,
-                              'HH:mm',
+                          <div className="flex items-center gap-1">
+                            {missingNotes && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertCircle className="h-3 w-3 text-red-600" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Anotações pendentes</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
-                          </span>
+                            <span className="font-mono text-xs opacity-75 shrink-0 ml-1">
+                              {formatInTimeZone(
+                                appt.schedules.start_time,
+                                'HH:mm',
+                              )}
+                            </span>
+                          </div>
                         </div>
                         <div className="text-xs opacity-90 truncate mt-0.5">
                           {appt.services.name}
@@ -239,7 +254,6 @@ export const AgendaDayView = ({
                 )
               })}
 
-              {/* 3. Interaction Layer (Plus Buttons) */}
               {hoveredHour !== null && (
                 <div
                   className="absolute w-full z-20 pointer-events-none"
