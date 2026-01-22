@@ -19,7 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar as CalendarIcon,
-  AlertTriangle,
+  AlertCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -36,6 +36,11 @@ import {
   getAvailabilityOverridesForRange,
 } from '@/services/availability'
 import { ProfessionalAppointmentDialog } from './ProfessionalAppointmentDialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface WeeklyAgendaViewProps {
   professionalId: string
@@ -268,7 +273,7 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
                         >
                           <div className="flex flex-col gap-1 h-full overflow-y-auto">
                             {slotAppointments.map((appointment) => {
-                              const isMissingNotes =
+                              const hasMissingNotes =
                                 appointment.status === 'completed' &&
                                 (!appointment.notes ||
                                   appointment.notes.length === 0)
@@ -287,14 +292,19 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
                                         : appointment.status === 'no_show'
                                           ? 'bg-orange-100 text-orange-800 border-orange-200'
                                           : 'bg-primary/15 text-primary border-primary/20 border',
-                                    isMissingNotes &&
-                                      'ring-1 ring-yellow-500 border-yellow-500',
                                   )}
                                 >
-                                  {isMissingNotes && (
-                                    <div className="absolute top-0.5 right-0.5 text-yellow-600">
-                                      <AlertTriangle className="w-2.5 h-2.5" />
-                                    </div>
+                                  {hasMissingNotes && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className="absolute top-0.5 right-0.5">
+                                          <AlertCircle className="h-3 w-3 text-orange-600" />
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Notas pendentes</p>
+                                      </TooltipContent>
+                                    </Tooltip>
                                   )}
                                   <div className="font-semibold truncate">
                                     {appointment.clients.name}

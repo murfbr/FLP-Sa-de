@@ -1,4 +1,9 @@
 import { useState, useEffect } from 'react'
+import { startOfDay, endOfDay, isValid, format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { Skeleton } from '@/components/ui/skeleton'
+import { getAppointmentsForRange } from '@/services/appointments'
+import { Appointment } from '@/types'
 import {
   Table,
   TableBody,
@@ -8,23 +13,11 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { getAppointmentsPaginated } from '@/services/appointments'
-import { Appointment } from '@/types'
-import { isValid } from 'date-fns'
-import { useIsMobile } from '@/hooks/use-mobile'
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
-import { formatInTimeZone } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Edit, AlertCircle } from 'lucide-react'
+import { cn, formatInTimeZone } from '@/lib/utils'
 import { ViewMode } from './AgendaView'
 import { DateRange } from 'react-day-picker'
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination'
-import { AlertTriangle } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -32,17 +25,14 @@ import {
 } from '@/components/ui/tooltip'
 
 interface AgendaListViewProps {
+  currentDate: Date
+  onDateChange: (date: Date) => void
+  onViewChange: (view: ViewMode) => void
   onAppointmentClick: (appointment: Appointment) => void
+  onTimeSlotClick: (date: Date, isSpecificSlot?: boolean) => void
   selectedProfessional: string
-  dateRange?: DateRange
-  // Unused props but kept for interface compatibility
-  currentDate?: Date
-  onDateChange?: (date: Date) => void
-  onViewChange?: (view: ViewMode) => void
-  onTimeSlotClick?: (date: Date, isSpecificSlot?: boolean) => void
+  dateRange: DateRange | undefined
 }
-
-const PAGE_SIZE = 20
 
 export const AgendaListView = ({
   onAppointmentClick,
@@ -51,217 +41,118 @@ export const AgendaListView = ({
 }: AgendaListViewProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalCount, setTotalCount] = useState(0)
-  const isMobile = useIsMobile()
-
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [selectedProfessional, dateRange])
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
-      const { data, count } = await getAppointmentsPaginated(
-        currentPage,
-        PAGE_SIZE,
-        {
-          professionalId: selectedProfessional,
-          startDate: dateRange?.from,
-          endDate: dateRange?.to,
-        },
-      )
+      const start = dateRange?.from
+        ? startOfDay(dateRange.from)
+        : startOfDay(new Date())
+      const end = dateRange?.to ? endOfDay(dateRange.to) : endOfDay(new Date())
 
-      if (data) setAppointments(data)
-      if (count !== null) setTotalCount(count)
+      const { data } = await getAppointmentsForRange(
+        start,
+        end,
+        selectedProfessional,
+      )
+      setAppointments(data || [])
       setIsLoading(false)
     }
     fetchData()
-  }, [selectedProfessional, dateRange, currentPage])
+  }, [selectedProfessional, dateRange])
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
-
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page)
-    }
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    )
   }
 
-  const renderContent = () => {
-    const validAppointments = appointments.filter(
-      (appt) =>
-        appt.schedules?.start_time &&
-        isValid(new Date(appt.schedules.start_time)),
-    )
-
-    if (isLoading) {
-      return <Skeleton className="h-96 w-full" />
-    }
-    if (validAppointments.length === 0) {
-      return (
-        <div className="text-center py-16">
-          <p className="text-muted-foreground">
-            Nenhum agendamento encontrado para o período selecionado.
-          </p>
-        </div>
-      )
-    }
-    if (isMobile) {
-      return (
-        <div className="space-y-4">
-          {validAppointments.map((appt) => {
-            const isMissingNotes =
-              appt.status === 'completed' &&
-              (!appt.notes || appt.notes.length === 0)
-            return (
-              <Card
-                key={appt.id}
-                onClick={() => onAppointmentClick(appt)}
-                className={cn(
-                  'cursor-pointer hover:bg-muted/50',
-                  isMissingNotes && 'border-yellow-400',
-                )}
-              >
-                <CardHeader>
-                  <CardTitle className="text-base flex justify-between items-center">
-                    {appt.clients.name}
-                    {isMissingNotes && (
-                      <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                    )}
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {formatInTimeZone(
-                      appt.schedules.start_time,
-                      "dd/MM/yyyy 'às' HH:mm",
-                    )}
-                  </p>
-                </CardHeader>
-                <CardContent className="text-sm space-y-1">
-                  <p>
-                    <strong>Serviço:</strong> {appt.services.name}
-                  </p>
-                  <p>
-                    <strong>Profissional:</strong> {appt.professionals.name}
-                  </p>
-                  <Badge>{appt.status}</Badge>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      )
-    }
+  if (appointments.length === 0) {
     return (
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Profissional</TableHead>
-              <TableHead>Serviço</TableHead>
-              <TableHead>Data e Hora</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {validAppointments.map((appt) => {
-              const isMissingNotes =
-                appt.status === 'completed' &&
-                (!appt.notes || appt.notes.length === 0)
-              return (
-                <TableRow
-                  key={appt.id}
-                  onClick={() => onAppointmentClick(appt)}
-                  className="cursor-pointer hover:bg-muted/50"
-                >
-                  <TableCell className="font-medium">
-                    {appt.clients.name}
-                  </TableCell>
-                  <TableCell>{appt.professionals.name}</TableCell>
-                  <TableCell>{appt.services.name}</TableCell>
-                  <TableCell>
-                    {formatInTimeZone(
-                      appt.schedules.start_time,
-                      "dd/MM/yyyy 'às' HH:mm",
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          appt.status === 'completed' &&
-                            'bg-green-100 text-green-800 border-green-200',
-                          appt.status === 'cancelled' &&
-                            'bg-red-100 text-red-800 border-red-200',
-                        )}
-                      >
-                        {appt.status}
-                      </Badge>
-                      {isMissingNotes && (
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <AlertTriangle className="w-4 h-4 text-yellow-500 animate-pulse" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Prontuário pendente</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+      <div className="text-center py-12 border rounded-lg bg-muted/10">
+        <p className="text-muted-foreground">
+          Nenhum agendamento encontrado para o período selecionado.
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      {renderContent()}
+    <div className="border rounded-lg overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Data</TableHead>
+            <TableHead>Horário</TableHead>
+            <TableHead>Cliente</TableHead>
+            <TableHead>Serviço</TableHead>
+            <TableHead>Profissional</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {appointments.map((appt) => {
+            const hasMissingNotes =
+              appt.status === 'completed' &&
+              (!appt.notes || appt.notes.length === 0)
 
-      {!isLoading && totalPages > 1 && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault()
-                  handlePageChange(currentPage - 1)
-                }}
-                className={
-                  currentPage === 1 ? 'pointer-events-none opacity-50' : ''
-                }
-              />
-            </PaginationItem>
-
-            <PaginationItem>
-              <span className="text-sm px-4">
-                Página {currentPage} de {totalPages}
-              </span>
-            </PaginationItem>
-
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault()
-                  handlePageChange(currentPage + 1)
-                }}
-                className={
-                  currentPage === totalPages
-                    ? 'pointer-events-none opacity-50'
-                    : ''
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
+            return (
+              <TableRow key={appt.id}>
+                <TableCell>
+                  {format(new Date(appt.schedules.start_time), 'dd/MM/yyyy')}
+                </TableCell>
+                <TableCell>
+                  {formatInTimeZone(appt.schedules.start_time, 'HH:mm')}
+                </TableCell>
+                <TableCell className="font-medium">
+                  {appt.clients.name}
+                </TableCell>
+                <TableCell>{appt.services.name}</TableCell>
+                <TableCell>{appt.professionals.name}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={
+                        appt.status === 'completed'
+                          ? 'secondary'
+                          : appt.status === 'cancelled'
+                            ? 'destructive'
+                            : 'default'
+                      }
+                    >
+                      {appt.status}
+                    </Badge>
+                    {hasMissingNotes && (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <AlertCircle className="h-4 w-4 text-orange-500" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Notas pendentes</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onAppointmentClick(appt)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
     </div>
   )
 }

@@ -42,7 +42,6 @@ import {
   Loader2,
   ExternalLink,
   DollarSign,
-  Percent,
 } from 'lucide-react'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -77,7 +76,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/providers/AuthProvider'
 import { ClientSelector } from './ClientSelector'
 import { getFriendlyErrorMessage } from '@/lib/error-mapping'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 const appointmentSchema = z
   .object({
@@ -137,7 +135,6 @@ export const AppointmentFormDialog = ({
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [availableDates, setAvailableDates] = useState<string[] | null>(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [discountType, setDiscountType] = useState<'BRL' | 'PERCENT'>('BRL')
   const [isLoading, setIsLoading] = useState({
     clients: true,
     services: false,
@@ -175,6 +172,9 @@ export const AppointmentFormDialog = ({
   const date = form.watch('date')
   const usePackage = form.watch('usePackage')
   const isRecurring = form.watch('isRecurring')
+  const discount = form.watch('discount') || 0
+
+  const selectedService = services.find((s) => s.id === serviceId)
 
   // Initialize form
   useEffect(() => {
@@ -212,7 +212,6 @@ export const AppointmentFormDialog = ({
       setProfessionals([])
       setAvailablePackages([])
       setActiveSubscription(null)
-      setDiscountType('BRL')
     }
   }, [isOpen, initialDate, form, preselectedProfessionalId, isSpecificTimeSlot])
 
@@ -272,6 +271,8 @@ export const AppointmentFormDialog = ({
       setAvailablePackages(matchingPackages)
 
       // Default logic:
+      // If subscription exists, UI shows it automatically.
+      // If not, but packages exist, select the first one.
       if (!matchingSub && matchingPackages.length > 0) {
         form.setValue('packageId', matchingPackages[0].id)
         form.setValue('usePackage', true)
@@ -335,15 +336,6 @@ export const AppointmentFormDialog = ({
         ? values.packageId
         : undefined
 
-    // Calculate actual discount
-    let finalDiscount = values.discount || 0
-    if (discountType === 'PERCENT' && values.discount && values.serviceId) {
-      const service = services.find((s) => s.id === values.serviceId)
-      if (service) {
-        finalDiscount = (service.price * values.discount) / 100
-      }
-    }
-
     try {
       let result
       if (
@@ -358,7 +350,7 @@ export const AppointmentFormDialog = ({
           values.startTime,
           values.recurrenceWeeks,
           packageIdToUse,
-          finalDiscount,
+          values.discount,
         )
       } else {
         result = await bookAppointment(
@@ -368,7 +360,7 @@ export const AppointmentFormDialog = ({
           values.startTime,
           packageIdToUse,
           values.isRecurring,
-          finalDiscount,
+          values.discount,
         )
       }
 
@@ -392,7 +384,8 @@ export const AppointmentFormDialog = ({
     }
   }
 
-  const selectedService = services.find((s) => s.id === serviceId)
+  const originalPrice = selectedService?.price || 0
+  const finalPrice = Math.max(0, originalPrice - discount)
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -517,64 +510,68 @@ export const AppointmentFormDialog = ({
                       {activeSubscription.subscription_plans?.name ||
                         'Assinatura Mensal'}
                     </div>
+                    <p className="text-xs text-muted-foreground ml-6">
+                      Este agendamento será coberto pelo plano mensal.
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {availablePackages.length > 0 && (
-                      <FormField
-                        control={form.control}
-                        name="usePackage"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3 bg-background">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Usar Pacote de Sessões</FormLabel>
-                              <FormDescription>
-                                {availablePackages.length} pacote(s) disponível.
-                              </FormDescription>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-                    )}
-
-                    {usePackage && availablePackages.length > 0 && (
-                      <FormField
-                        control={form.control}
-                        name="packageId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              value={field.value}
-                            >
+                    {availablePackages.length > 0 ? (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="usePackage"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3 bg-background">
                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione o pacote" />
-                                </SelectTrigger>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
                               </FormControl>
-                              <SelectContent>
-                                {availablePackages.map((pkg) => (
-                                  <SelectItem key={pkg.id} value={pkg.id}>
-                                    {pkg.packages.name} (
-                                    {pkg.sessions_remaining} restantes)
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Usar Pacote de Sessões</FormLabel>
+                                <FormDescription>
+                                  {availablePackages.length} pacote(s)
+                                  disponível.
+                                </FormDescription>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
 
-                    {!usePackage && availablePackages.length === 0 && (
+                        {usePackage && (
+                          <FormField
+                            control={form.control}
+                            name="packageId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value}
+                                  value={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Selecione o pacote" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {availablePackages.map((pkg) => (
+                                      <SelectItem key={pkg.id} value={pkg.id}>
+                                        {pkg.packages.name} (
+                                        {pkg.sessions_remaining} restantes)
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </>
+                    ) : (
                       <div className="text-sm text-muted-foreground flex flex-col gap-2">
                         <p>
                           Sem planos ou pacotes ativos. Será cobrado como{' '}
@@ -595,22 +592,18 @@ export const AppointmentFormDialog = ({
                       </div>
                     )}
 
-                    {/* Discount Input */}
+                    {/* Discount Input - Only if not using package/subscription or just separate */}
                     {!usePackage && (
-                      <FormField
-                        control={form.control}
-                        name="discount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Desconto Pontual</FormLabel>
-                            <div className="flex gap-2">
-                              <div className="relative flex-1">
-                                {discountType === 'BRL' ? (
+                      <div className="space-y-2">
+                        <FormField
+                          control={form.control}
+                          name="discount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Desconto Pontual (R$)</FormLabel>
+                              <FormControl>
+                                <div className="relative">
                                   <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                ) : (
-                                  <Percent className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                )}
-                                <FormControl>
                                   <Input
                                     type="number"
                                     className="pl-9"
@@ -618,46 +611,27 @@ export const AppointmentFormDialog = ({
                                     min={0}
                                     {...field}
                                   />
-                                </FormControl>
-                              </div>
-                              <ToggleGroup
-                                type="single"
-                                value={discountType}
-                                onValueChange={(v) => {
-                                  if (v) setDiscountType(v as 'BRL' | 'PERCENT')
-                                }}
-                                className="border rounded-md"
-                              >
-                                <ToggleGroupItem value="BRL" aria-label="Reais">
-                                  R$
-                                </ToggleGroupItem>
-                                <ToggleGroupItem
-                                  value="PERCENT"
-                                  aria-label="Porcentagem"
-                                >
-                                  %
-                                </ToggleGroupItem>
-                              </ToggleGroup>
-                            </div>
-                            <FormDescription>
-                              {discountType === 'PERCENT' &&
-                              selectedService &&
-                              field.value ? (
-                                <span>
-                                  Valor final: R${' '}
-                                  {(
-                                    selectedService.price *
-                                    (1 - field.value / 100)
-                                  ).toFixed(2)}
-                                </span>
-                              ) : (
-                                'O valor será subtraído do preço do serviço.'
-                              )}
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        {/* Discount Impact Display */}
+                        <div className="flex justify-between items-center text-sm pt-2 border-t mt-2">
+                          <span className="text-muted-foreground">
+                            Preço Final:
+                          </span>
+                          <div className="flex flex-col items-end">
+                            <span className="line-through text-xs text-muted-foreground">
+                              R$ {originalPrice.toFixed(2)}
+                            </span>
+                            <span className="font-bold text-green-600">
+                              R$ {finalPrice.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}

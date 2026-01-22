@@ -7,9 +7,14 @@ import { Appointment } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Edit, AlertTriangle } from 'lucide-react'
+import { Edit, AlertCircle } from 'lucide-react'
 import { ProfessionalAppointmentDialog } from './ProfessionalAppointmentDialog'
-import { formatInTimeZone, cn } from '@/lib/utils'
+import { formatInTimeZone } from '@/lib/utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface DailyAgendaViewProps {
   professionalId: string
@@ -85,16 +90,13 @@ export const DailyAgendaView = ({
                     new Date(b.schedules.start_time).getTime(),
                 )
                 .map((appt) => {
-                  const isMissingNotes =
+                  const hasMissingNotes =
                     appt.status === 'completed' &&
                     (!appt.notes || appt.notes.length === 0)
                   return (
                     <li
                       key={appt.id}
-                      className={cn(
-                        'p-4 border rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/50 transition-colors cursor-pointer',
-                        isMissingNotes && 'border-yellow-400 bg-yellow-50/50',
-                      )}
+                      className="p-4 border rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/50 transition-colors cursor-pointer"
                       onClick={() => handleAppointmentClick(appt)}
                     >
                       <div className="flex-1">
@@ -103,11 +105,15 @@ export const DailyAgendaView = ({
                             {appt.clients.name}
                           </p>
                           <Badge variant="outline">{appt.status}</Badge>
-                          {isMissingNotes && (
-                            <div className="flex items-center text-yellow-600 text-xs font-medium border border-yellow-200 bg-yellow-100 px-2 py-0.5 rounded-full">
-                              <AlertTriangle className="w-3 h-3 mr-1" />
-                              Prontuário Pendente
-                            </div>
+                          {hasMissingNotes && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <AlertCircle className="h-4 w-4 text-orange-500" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Notas pendentes</p>
+                              </TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">

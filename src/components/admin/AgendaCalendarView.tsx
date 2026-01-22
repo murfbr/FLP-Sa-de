@@ -173,7 +173,7 @@ export const AgendaCalendarView = ({
 
                   <div className="mt-1 space-y-1 hidden sm:block">
                     {dayAppointments.slice(0, 3).map((appt) => {
-                      const missingNotes =
+                      const hasMissingNotes =
                         appt.status === 'completed' &&
                         (!appt.notes || appt.notes.length === 0)
 
@@ -187,16 +187,14 @@ export const AgendaCalendarView = ({
                           }}
                           title={`${appt.clients.name} - ${appt.services.name}`}
                         >
-                          <span className="truncate flex-1">
-                            {appt.clients.name}
-                          </span>
-                          {missingNotes && (
+                          <span className="truncate">{appt.clients.name}</span>
+                          {hasMissingNotes && (
                             <Tooltip>
-                              <TooltipTrigger asChild>
-                                <AlertCircle className="h-3 w-3 text-red-500 shrink-0 ml-1" />
+                              <TooltipTrigger>
+                                <AlertCircle className="h-3 w-3 text-orange-500 shrink-0 ml-1" />
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Anotações pendentes</p>
+                                <p>Notas pendentes</p>
                               </TooltipContent>
                             </Tooltip>
                           )}
@@ -210,14 +208,7 @@ export const AgendaCalendarView = ({
                     )}
                   </div>
                   {dayAppointments.length > 0 && (
-                    <div className="sm:hidden flex justify-center mt-1 gap-0.5">
-                      <div className="w-2 h-2 rounded-full bg-primary" />
-                      {dayAppointments.some(
-                        (a) =>
-                          a.status === 'completed' &&
-                          (!a.notes || a.notes.length === 0),
-                      ) && <div className="w-2 h-2 rounded-full bg-red-500" />}
-                    </div>
+                    <div className="sm:hidden w-2 h-2 rounded-full bg-primary mx-auto mt-1"></div>
                   )}
                 </div>
               )

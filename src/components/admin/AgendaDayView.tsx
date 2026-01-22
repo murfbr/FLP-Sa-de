@@ -158,6 +158,7 @@ export const AgendaDayView = ({
       ) : (
         <div className="flex-1 overflow-y-auto relative border rounded-md bg-white">
           <div className="flex relative min-h-full">
+            {/* Time Column */}
             <div className="w-20 shrink-0 border-r bg-muted/10 sticky left-0 z-30 bg-background">
               {hours.map((h) => (
                 <div
@@ -170,11 +171,13 @@ export const AgendaDayView = ({
               ))}
             </div>
 
+            {/* Day Column */}
             <div
               className="flex-1 relative bg-background"
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
             >
+              {/* 1. Background Grid Lines */}
               <div className="absolute inset-0 flex flex-col pointer-events-none z-0">
                 {hours.map((h) => (
                   <div
@@ -185,12 +188,12 @@ export const AgendaDayView = ({
                 ))}
               </div>
 
+              {/* 2. Appointments */}
               {dayAppointments.map((appt) => {
                 const { top, height, left, width } = appt.layout
                 const adjustedWidth =
                   width === 100 ? 'calc(100% - 12px)' : `${width}%`
-
-                const missingNotes =
+                const hasMissingNotes =
                   appt.status === 'completed' &&
                   (!appt.notes || appt.notes.length === 0)
 
@@ -203,13 +206,13 @@ export const AgendaDayView = ({
                       left: `${left}%`,
                       width: adjustedWidth,
                       position: 'absolute',
-                      padding: '2px',
+                      padding: '2px', // Gap
                     }}
                     className="z-10"
                   >
                     <div
                       className={cn(
-                        'h-full w-full rounded-md p-2 text-sm cursor-pointer shadow-sm overflow-hidden border transition-all hover:brightness-95 hover:z-20',
+                        'h-full w-full rounded-md p-2 text-sm cursor-pointer shadow-sm overflow-hidden border transition-all hover:brightness-95 hover:z-20 relative',
                         appt.status === 'completed'
                           ? 'bg-green-100 text-green-900 border-green-200'
                           : appt.status === 'cancelled'
@@ -223,27 +226,27 @@ export const AgendaDayView = ({
                         onAppointmentClick(appt)
                       }}
                     >
+                      {hasMissingNotes && (
+                        <div className="absolute top-1 right-1">
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <AlertCircle className="h-4 w-4 text-orange-600" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Notas pendentes</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      )}
                       <div className="flex flex-col h-full">
-                        <div className="flex justify-between items-start font-bold">
+                        <div className="flex justify-between items-start font-bold pr-4">
                           <span className="truncate">{appt.clients.name}</span>
-                          <div className="flex items-center gap-1">
-                            {missingNotes && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <AlertCircle className="h-3 w-3 text-red-600" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Anotações pendentes</p>
-                                </TooltipContent>
-                              </Tooltip>
+                          <span className="font-mono text-xs opacity-75 shrink-0 ml-1">
+                            {formatInTimeZone(
+                              appt.schedules.start_time,
+                              'HH:mm',
                             )}
-                            <span className="font-mono text-xs opacity-75 shrink-0 ml-1">
-                              {formatInTimeZone(
-                                appt.schedules.start_time,
-                                'HH:mm',
-                              )}
-                            </span>
-                          </div>
+                          </span>
                         </div>
                         <div className="text-xs opacity-90 truncate mt-0.5">
                           {appt.services.name}
@@ -254,6 +257,7 @@ export const AgendaDayView = ({
                 )
               })}
 
+              {/* 3. Interaction Layer (Plus Buttons) */}
               {hoveredHour !== null && (
                 <div
                   className="absolute w-full z-20 pointer-events-none"

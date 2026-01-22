@@ -113,7 +113,6 @@ export const AgendaWeekView = ({
         end,
         selectedProfessional,
       )
-
       setAppointments(data || [])
       setIsLoading(false)
     }
@@ -264,8 +263,7 @@ export const AgendaWeekView = ({
                       const { top, height, left, width } = appt.layout
                       const adjustedWidth =
                         width === 100 ? 'calc(100% - 10px)' : `${width}%`
-
-                      const missingNotes =
+                      const hasMissingNotes =
                         appt.status === 'completed' &&
                         (!appt.notes || appt.notes.length === 0)
 
@@ -284,7 +282,7 @@ export const AgendaWeekView = ({
                         >
                           <div
                             className={cn(
-                              'h-full w-full rounded p-1 text-xs cursor-pointer shadow-sm overflow-hidden border transition-transform hover:scale-[1.02] hover:z-20',
+                              'h-full w-full rounded p-1 text-xs cursor-pointer shadow-sm overflow-hidden border transition-transform hover:scale-[1.02] hover:z-20 relative',
                               appt.status === 'completed'
                                 ? 'bg-green-100 text-green-800 border-green-200'
                                 : appt.status === 'cancelled'
@@ -299,20 +297,20 @@ export const AgendaWeekView = ({
                             }}
                             title={`${appt.clients.name} - ${appt.services.name}`}
                           >
-                            <div className="flex justify-between items-start">
-                              <div className="font-semibold truncate leading-none mb-0.5">
-                                {appt.clients.name}
-                              </div>
-                              {missingNotes && (
+                            {hasMissingNotes && (
+                              <div className="absolute top-0.5 right-0.5 z-30">
                                 <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <AlertCircle className="h-3 w-3 text-red-600 shrink-0" />
+                                  <TooltipTrigger>
+                                    <AlertCircle className="h-3 w-3 text-orange-600" />
                                   </TooltipTrigger>
-                                  <TooltipContent side="top">
-                                    <p>Anotações pendentes</p>
+                                  <TooltipContent>
+                                    <p>Notas pendentes</p>
                                   </TooltipContent>
                                 </Tooltip>
-                              )}
+                              </div>
+                            )}
+                            <div className="font-semibold truncate leading-none mb-0.5">
+                              {appt.clients.name}
                             </div>
                             <div className="truncate text-[10px] font-medium leading-none mb-0.5">
                               {appt.services.name}

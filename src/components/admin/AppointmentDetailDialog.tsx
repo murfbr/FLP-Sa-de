@@ -73,26 +73,25 @@ const statusOptions = [
 ]
 
 export const AppointmentDetailDialog = ({
-  appointment: initialAppointment,
+  appointment,
   isOpen,
   onOpenChange,
   onAppointmentUpdated,
 }: AppointmentDetailDialogProps) => {
   const { toast } = useToast()
   const { user, professionalId, role } = useAuth()
-  const [appointment, setAppointment] = useState<Appointment | null>(
-    initialAppointment,
-  )
   const [isDeleting, setIsDeleting] = useState(false)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false)
   const [newNote, setNewNote] = useState('')
   const [isSavingNote, setIsSavingNote] = useState(false)
+  const [localStatus, setLocalStatus] = useState<string | null>(null)
 
-  // Sync with initial prop
   useEffect(() => {
-    setAppointment(initialAppointment)
-  }, [initialAppointment])
+    if (appointment) {
+      setLocalStatus(appointment.status)
+    }
+  }, [appointment])
 
   if (
     !appointment ||
@@ -121,8 +120,13 @@ export const AppointmentDetailDialog = ({
 
   const handleStatusChange = async (newStatus: string) => {
     setIsUpdatingStatus(true)
+    // Optimistic Update
+    setLocalStatus(newStatus)
+
     const { error } = await updateAppointmentStatus(appointment.id, newStatus)
     if (error) {
+      // Revert if error
+      setLocalStatus(appointment.status)
       toast({
         title: 'Erro ao atualizar status',
         description: getFriendlyErrorMessage(error),
@@ -130,8 +134,6 @@ export const AppointmentDetailDialog = ({
       })
     } else {
       toast({ title: 'Status atualizado com sucesso.' })
-      // Instant Local Update
-      setAppointment((prev) => (prev ? { ...prev, status: newStatus } : prev))
       onAppointmentUpdated()
     }
     setIsUpdatingStatus(false)
@@ -162,12 +164,6 @@ export const AppointmentDetailDialog = ({
       })
     } else {
       toast({ title: 'Nota adicionada com sucesso!' })
-      // Local Update
-      setAppointment((prev) => {
-        if (!prev) return null
-        const updatedNotes = [...(prev.notes || []), noteEntry]
-        return { ...prev, notes: updatedNotes }
-      })
       setNewNote('')
       onAppointmentUpdated()
     }
@@ -178,7 +174,9 @@ export const AppointmentDetailDialog = ({
   const duration = appointment.services.duration_minutes || 30
   const calculatedEndTime = addMinutes(new Date(startTime), duration)
 
-  const canEdit = ['scheduled', 'confirmed'].includes(appointment.status)
+  // Use local status for display to support optimistic updates
+  const displayStatus = localStatus || appointment.status
+  const canEdit = ['scheduled', 'confirmed'].includes(displayStatus)
   const isAdmin = role === 'admin'
 
   const DetailItem = ({
@@ -260,7 +258,7 @@ export const AppointmentDetailDialog = ({
                 value={
                   isAdmin ? (
                     <Select
-                      value={appointment.status}
+                      value={displayStatus}
                       onValueChange={handleStatusChange}
                       disabled={isUpdatingStatus}
                     >
@@ -277,8 +275,8 @@ export const AppointmentDetailDialog = ({
                     </Select>
                   ) : (
                     <Badge variant="outline" className="capitalize">
-                      {statusOptions.find((o) => o.value === appointment.status)
-                        ?.label || appointment.status}
+                      {statusOptions.find((o) => o.value === displayStatus)
+                        ?.label || displayStatus}
                     </Badge>
                   )
                 }
@@ -343,6 +341,7 @@ export const AppointmentDetailDialog = ({
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
+            {/* Delete Button (Hard Delete) - Admin Only or special permission */}
             {isAdmin && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>

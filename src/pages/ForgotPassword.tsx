@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '@/providers/AuthProvider'
+import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Card,
   CardContent,
@@ -9,65 +11,68 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { Mail, ArrowLeft, Loader2 } from 'lucide-react'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Mail, ArrowLeft, Loader2, CheckCircle } from 'lucide-react'
 
-const ForgotPassword = () => {
+export default function ForgotPassword() {
   const [email, setEmail] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
-  const { resetPasswordForEmail } = useAuth()
   const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email) return
+    setIsLoading(true)
 
-    setIsSubmitting(true)
     try {
-      const { error } = await resetPasswordForEmail(email)
+      const redirectUrl = `${window.location.origin}/reset-password`
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      })
+
       if (error) {
         throw error
       }
+
       setIsSuccess(true)
       toast({
         title: 'Email enviado',
         description: 'Verifique sua caixa de entrada para redefinir sua senha.',
       })
     } catch (error: any) {
-      console.error(error)
       toast({
         title: 'Erro ao enviar email',
-        description:
-          error.message ||
-          'Não foi possível processar sua solicitação. Tente novamente.',
+        description: error.message || 'Tente novamente mais tarde.',
         variant: 'destructive',
       })
     } finally {
-      setIsSubmitting(false)
+      setIsLoading(false)
     }
   }
 
   if (isSuccess) {
     return (
       <div className="container flex items-center justify-center min-h-[calc(100vh-112px)] py-12">
-        <Card className="w-full max-w-md animate-fade-in-up">
+        <Card className="w-full max-w-sm animate-fade-in-up">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Verifique seu Email</CardTitle>
+            <div className="mx-auto bg-primary/10 text-primary rounded-full p-4 mb-4">
+              <CheckCircle className="h-8 w-8" />
+            </div>
+            <CardTitle>Verifique seu Email</CardTitle>
+            <CardDescription>
+              Enviamos um link de recuperação para <strong>{email}</strong>
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Alert>
-              <AlertTitle>Email de recuperação enviado!</AlertTitle>
-              <AlertDescription>
-                Enviamos instruções para <strong>{email}</strong>. Por favor,
-                siga o link no email para criar uma nova senha.
-              </AlertDescription>
-            </Alert>
-            <Button className="w-full mt-4" asChild>
-              <Link to="/login">Voltar para o Login</Link>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-center text-muted-foreground">
+              Clique no link enviado para criar uma nova senha. Se não encontrar
+              o email, verifique sua pasta de spam.
+            </p>
+            <Button variant="outline" className="w-full" asChild>
+              <Link to="/login">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar para Login
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -79,18 +84,18 @@ const ForgotPassword = () => {
     <div className="container flex items-center justify-center min-h-[calc(100vh-112px)] py-12">
       <Card className="w-full max-w-sm animate-fade-in-up">
         <CardHeader className="text-center">
-          <div className="mx-auto bg-primary/10 text-primary rounded-full h-16 w-16 flex items-center justify-center mb-4">
+          <div className="mx-auto bg-secondary text-secondary-foreground rounded-full h-16 w-16 flex items-center justify-center mb-4">
             <Mail className="h-8 w-8" />
           </div>
-          <CardTitle className="text-2xl">Recuperar Senha</CardTitle>
+          <CardTitle>Recuperar Senha</CardTitle>
           <CardDescription>
-            Informe seu email para receber o link de redefinição.
+            Digite seu email para receber um link de redefinição.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email Cadastrado</Label>
               <Input
                 id="email"
                 type="email"
@@ -98,20 +103,20 @@ const ForgotPassword = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isSubmitting}
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? (
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Enviando...
                 </>
               ) : (
-                'Enviar Email de Recuperação'
+                'Enviar Link de Recuperação'
               )}
             </Button>
-            <Button variant="ghost" className="w-full" asChild>
+            <Button variant="link" className="w-full" asChild>
               <Link to="/login">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar para Login
@@ -123,5 +128,3 @@ const ForgotPassword = () => {
     </div>
   )
 }
-
-export default ForgotPassword

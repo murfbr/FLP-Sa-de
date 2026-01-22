@@ -14,11 +14,9 @@ BEGIN
   -- Calculate final amount (price - discount), ensuring not negative
   v_final_amount := GREATEST(0, v_service_price - COALESCE(NEW.discount_amount, 0));
   
-  -- Update financial record if exists and not using a package (packages usually handle payment separately)
-  -- If using package (client_package_id IS NOT NULL), revenue attribution is complex, 
-  -- but generally the appointment record itself might show 0 or the service price.
-  -- Here we assume if discount is applied, it should affect the financial record linked to the appointment.
-  
+  -- Update financial record if exists and not using a package
+  -- If client_package_id is set, typically the record is 0 or handled differently, 
+  -- but we ensure consistency here for non-package records or if logic changes.
   UPDATE financial_records 
   SET amount = v_final_amount
   WHERE appointment_id = NEW.id;
@@ -33,4 +31,3 @@ CREATE TRIGGER update_financials_on_appointment_change
 AFTER UPDATE OF discount_amount ON appointments
 FOR EACH ROW
 EXECUTE FUNCTION sync_appointment_financials();
-

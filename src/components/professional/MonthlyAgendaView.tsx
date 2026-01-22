@@ -12,12 +12,24 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { getAppointmentsByProfessionalForRange } from '@/services/appointments'
 import { getAvailabilityOverrides } from '@/services/availability'
 import { Appointment, AvailabilityOverride } from '@/types'
-import { format, startOfMonth, endOfMonth, parseISO, isValid } from 'date-fns'
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  isSameDay,
+  parseISO,
+  isValid,
+} from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { ProfessionalAppointmentDialog } from './ProfessionalAppointmentDialog'
 import { DayProps } from 'react-day-picker'
 import { formatInTimeZone } from '@/lib/utils'
-import { AlertTriangle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface MonthlyAgendaViewProps {
   professionalId: string
@@ -170,7 +182,7 @@ export const MonthlyAgendaView = ({
           <CardContent className="space-y-3">
             {appointmentsOnSelectedDay.length > 0 ? (
               appointmentsOnSelectedDay.map((appt) => {
-                const isMissingNotes =
+                const hasMissingNotes =
                   appt.status === 'completed' &&
                   (!appt.notes || appt.notes.length === 0)
                 return (
@@ -179,18 +191,23 @@ export const MonthlyAgendaView = ({
                     className="p-3 border rounded-md flex justify-between items-center cursor-pointer hover:bg-muted/50"
                     onClick={() => handleAppointmentClick(appt)}
                   >
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <p className="font-semibold">{appt.clients.name}</p>
+                    <div className="flex-1">
+                      <p className="font-semibold">{appt.clients.name}</p>
+                      <div className="flex items-center gap-2">
                         <p className="text-sm text-muted-foreground">
                           {appt.services.name}
                         </p>
+                        {hasMissingNotes && (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <AlertCircle className="h-4 w-4 text-orange-500" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Notas pendentes</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
-                      {isMissingNotes && (
-                        <div title="Prontuário Pendente">
-                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                        </div>
-                      )}
                     </div>
                     <Badge variant="secondary">
                       {formatInTimeZone(appt.schedules.start_time, 'HH:mm')}
