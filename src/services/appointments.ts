@@ -116,6 +116,19 @@ export async function updateAppointmentStatus(
   return { error }
 }
 
+export async function updateAppointment(
+  appointmentId: string,
+  updates: Partial<Appointment>,
+): Promise<{ data: Appointment | null; error: any }> {
+  const { data, error } = await supabase
+    .from('appointments')
+    .update(updates)
+    .eq('id', appointmentId)
+    .select()
+    .single()
+  return { data, error }
+}
+
 export async function deleteAppointment(
   appointmentId: string,
 ): Promise<{ error: any }> {
@@ -239,6 +252,7 @@ export async function getAppointmentsByProfessionalForRange(
       id,
       status,
       notes,
+      discount_amount,
       client_id,
       professional_id,
       schedule_id,

@@ -25,12 +25,16 @@ import {
   Send,
   Trash2,
   DollarSign,
+  Edit2,
+  Check,
+  X,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   addAppointmentNote,
   deleteAppointment,
   updateAppointmentStatus,
+  updateAppointment,
 } from '@/services/appointments'
 import {
   AlertDialog,
@@ -45,6 +49,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { RescheduleDialog } from './RescheduleDialog'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/providers/AuthProvider'
 import { formatInTimeZone } from '@/lib/utils'
@@ -87,9 +92,15 @@ export const AppointmentDetailDialog = ({
   const [isSavingNote, setIsSavingNote] = useState(false)
   const [localStatus, setLocalStatus] = useState<string | null>(null)
 
+  // Discount editing state
+  const [isEditingDiscount, setIsEditingDiscount] = useState(false)
+  const [discountValue, setDiscountValue] = useState('')
+  const [isSavingDiscount, setIsSavingDiscount] = useState(false)
+
   useEffect(() => {
     if (appointment) {
       setLocalStatus(appointment.status)
+      setDiscountValue(appointment.discount_amount?.toString() || '0')
     }
   }, [appointment])
 
@@ -170,9 +181,42 @@ export const AppointmentDetailDialog = ({
     setIsSavingNote(false)
   }
 
+  const handleSaveDiscount = async () => {
+    const val = parseFloat(discountValue)
+    if (isNaN(val) || val < 0) {
+      toast({
+        title: 'Valor inválido',
+        description: 'O desconto deve ser um número positivo.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsSavingDiscount(true)
+    const { error } = await updateAppointment(appointment.id, {
+      discount_amount: val,
+    })
+
+    if (error) {
+      toast({
+        title: 'Erro ao atualizar desconto',
+        description: getFriendlyErrorMessage(error),
+        variant: 'destructive',
+      })
+    } else {
+      toast({ title: 'Desconto atualizado com sucesso!' })
+      setIsEditingDiscount(false)
+      onAppointmentUpdated()
+    }
+    setIsSavingDiscount(false)
+  }
+
   const startTime = appointment.schedules.start_time
   const duration = appointment.services.duration_minutes || 30
   const calculatedEndTime = addMinutes(new Date(startTime), duration)
+  const servicePrice = appointment.services.price || 0
+  const currentDiscount = parseFloat(discountValue) || 0
+  const finalPrice = Math.max(0, servicePrice - currentDiscount)
 
   // Use local status for display to support optimistic updates
   const displayStatus = localStatus || appointment.status
@@ -183,12 +227,14 @@ export const AppointmentDetailDialog = ({
     icon: Icon,
     label,
     value,
+    className,
   }: {
     icon: React.ElementType
     label: string
     value: React.ReactNode
+    className?: string
   }) => (
-    <div className="flex items-start gap-3">
+    <div className={className || 'flex items-start gap-3'}>
       <Icon className="h-5 w-5 text-primary mt-1" />
       <div>
         <p className="text-sm text-muted-foreground">{label}</p>
@@ -220,14 +266,9 @@ export const AppointmentDetailDialog = ({
                 value={
                   <div className="flex flex-col">
                     <span>{appointment.services.name}</span>
-                    {appointment.discount_amount &&
-                      appointment.discount_amount > 0 && (
-                        <span className="text-xs text-green-600 flex items-center gap-1">
-                          <DollarSign className="w-3 h-3" />
-                          Desconto aplicado: R${' '}
-                          {appointment.discount_amount.toFixed(2)}
-                        </span>
-                      )}
+                    <span className="text-xs text-muted-foreground">
+                      Valor Base: R$ {servicePrice.toFixed(2)}
+                    </span>
                   </div>
                 }
               />
@@ -281,6 +322,93 @@ export const AppointmentDetailDialog = ({
                   )
                 }
               />
+
+              {/* Financeiro / Desconto */}
+              <div className="flex items-start gap-3 col-span-1 sm:col-span-2 bg-muted/20 p-3 rounded-md border">
+                <DollarSign className="h-5 w-5 text-primary mt-1" />
+                <div className="w-full">
+                  <div className="flex justify-between items-center mb-1">
+                    <p className="text-sm text-muted-foreground font-medium">
+                      Financeiro
+                    </p>
+                    {canEdit && !isEditingDiscount && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => setIsEditingDiscount(true)}
+                      >
+                        <Edit2 className="w-3 h-3 mr-1" />
+                        Editar Desconto
+                      </Button>
+                    )}
+                  </div>
+
+                  {isEditingDiscount ? (
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex-1">
+                        <Label htmlFor="discount-edit" className="text-xs">
+                          Desconto Pontual (R$)
+                        </Label>
+                        <Input
+                          id="discount-edit"
+                          type="number"
+                          value={discountValue}
+                          onChange={(e) => setDiscountValue(e.target.value)}
+                          className="h-8 text-sm mt-1"
+                          min="0"
+                        />
+                      </div>
+                      <div className="flex items-end gap-1 pb-0.5">
+                        <Button
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={handleSaveDiscount}
+                          disabled={isSavingDiscount}
+                        >
+                          {isSavingDiscount ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            setIsEditingDiscount(false)
+                            setDiscountValue(
+                              appointment.discount_amount?.toString() || '0',
+                            )
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      <div className="flex justify-between text-sm">
+                        <span>Desconto Aplicado:</span>
+                        <span
+                          className={
+                            currentDiscount > 0
+                              ? 'text-green-600 font-medium'
+                              : 'text-muted-foreground'
+                          }
+                        >
+                          - R$ {currentDiscount.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm font-bold border-t pt-1 mt-1">
+                        <span>Valor Final:</span>
+                        <span>R$ {finalPrice.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="space-y-3">

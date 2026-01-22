@@ -592,7 +592,7 @@ export const AppointmentFormDialog = ({
                       </div>
                     )}
 
-                    {/* Discount Input - Only if not using package/subscription or just separate */}
+                    {/* Discount Input - Only if not using package/subscription */}
                     {!usePackage && (
                       <div className="space-y-2">
                         <FormField
