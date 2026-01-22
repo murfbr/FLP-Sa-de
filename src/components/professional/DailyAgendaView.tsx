@@ -7,9 +7,9 @@ import { Appointment } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Edit } from 'lucide-react'
+import { Edit, AlertTriangle } from 'lucide-react'
 import { ProfessionalAppointmentDialog } from './ProfessionalAppointmentDialog'
-import { formatInTimeZone } from '@/lib/utils'
+import { formatInTimeZone, cn } from '@/lib/utils'
 
 interface DailyAgendaViewProps {
   professionalId: string
@@ -84,39 +84,55 @@ export const DailyAgendaView = ({
                     new Date(a.schedules.start_time).getTime() -
                     new Date(b.schedules.start_time).getTime(),
                 )
-                .map((appt) => (
-                  <li
-                    key={appt.id}
-                    className="p-4 border rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => handleAppointmentClick(appt)}
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-semibold text-lg">
-                          {appt.clients.name}
-                        </p>
-                        <Badge variant="outline">{appt.status}</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {appt.services.name} •{' '}
-                        {formatInTimeZone(appt.schedules.start_time, 'HH:mm')} -{' '}
-                        {formatInTimeZone(appt.schedules.end_time, 'HH:mm')}
-                      </p>
-                      {appt.notes && appt.notes.length > 0 && (
-                        <div className="text-xs text-muted-foreground mt-2 bg-muted p-2 rounded">
-                          <p className="font-semibold mb-1">Última anotação:</p>
-                          <p className="line-clamp-2">
-                            {appt.notes[appt.notes.length - 1].content}
-                          </p>
-                        </div>
+                .map((appt) => {
+                  const isMissingNotes =
+                    appt.status === 'completed' &&
+                    (!appt.notes || appt.notes.length === 0)
+                  return (
+                    <li
+                      key={appt.id}
+                      className={cn(
+                        'p-4 border rounded-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-muted/50 transition-colors cursor-pointer',
+                        isMissingNotes && 'border-yellow-400 bg-yellow-50/50',
                       )}
-                    </div>
-                    <Button variant="ghost" size="sm">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Detalhes
-                    </Button>
-                  </li>
-                ))}
+                      onClick={() => handleAppointmentClick(appt)}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-lg">
+                            {appt.clients.name}
+                          </p>
+                          <Badge variant="outline">{appt.status}</Badge>
+                          {isMissingNotes && (
+                            <div className="flex items-center text-yellow-600 text-xs font-medium border border-yellow-200 bg-yellow-100 px-2 py-0.5 rounded-full">
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              Prontuário Pendente
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {appt.services.name} •{' '}
+                          {formatInTimeZone(appt.schedules.start_time, 'HH:mm')}{' '}
+                          - {formatInTimeZone(appt.schedules.end_time, 'HH:mm')}
+                        </p>
+                        {appt.notes && appt.notes.length > 0 && (
+                          <div className="text-xs text-muted-foreground mt-2 bg-muted p-2 rounded">
+                            <p className="font-semibold mb-1">
+                              Última anotação:
+                            </p>
+                            <p className="line-clamp-2">
+                              {appt.notes[appt.notes.length - 1].content}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Detalhes
+                      </Button>
+                    </li>
+                  )
+                })}
             </ul>
           )}
         </CardContent>

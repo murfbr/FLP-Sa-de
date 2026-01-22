@@ -11,6 +11,8 @@ import PublicLayout from './components/PublicLayout'
 import Index from './pages/Index'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import ProfessionalArea from './pages/ProfessionalArea'
 import PatientDetail from './pages/admin/PatientDetail'
 import Patients from './pages/admin/Patients'
@@ -21,9 +23,6 @@ import AccessDenied from './pages/AccessDenied'
 import ProfessionalPatientDetail from './pages/professional/PatientDetail'
 import NotificationsPage from './pages/professional/Notifications'
 import AdminDashboard from './pages/AdminDashboard'
-
-// ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
-// AVOID REMOVING ANY CONTEXT PROVIDERS FROM THIS FILE (e.g. TooltipProvider, Toaster, Sonner)
 
 console.log('App.tsx: Initializing application...')
 
@@ -41,6 +40,8 @@ const App = () => (
             <Route element={<PublicLayout />}>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route
                 path="/cliente-indisponivel"
                 element={<ClientAreaUnavailable />}
@@ -49,7 +50,6 @@ const App = () => (
             </Route>
 
             {/* Protected Routes - Structure Refactoring */}
-            {/* We wrap the Layout with ProtectedRoute to ensure authentication before any layout rendering */}
             <Route
               element={
                 <ProtectedRoute>

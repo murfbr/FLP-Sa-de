@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar as CalendarIcon,
+  AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -99,8 +100,6 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
     const map = new Map<string, Appointment[]>()
     appointments.forEach((appt) => {
       if (!appt.schedules?.start_time) return
-      // Use formatInTimeZone to generate the key in Brazil time
-      // The format should be yyyy-MM-dd-HH
       const key = formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd-HH')
       if (!map.has(key)) map.set(key, [])
       map.get(key)?.push(appt)
@@ -129,15 +128,9 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
 
   const isSlotAvailable = useCallback(
     (day: Date, hour: number) => {
-      // NOTE: Here day/hour are local to browser loop.
-      // But availability rules (overrides/recurring) are defined in "Wall Clock" Brazil time.
-      // If we assume the Grid is displaying "Brazil Time Slots", we just compare numbers.
-
       const dateStr = format(day, 'yyyy-MM-dd')
       const dayOfWeek = day.getDay()
 
-      // We construct start/end as "dummy" dates just to compare hours/minutes
-      // Since availability logic is pure time comparison on a specific date.
       const slotStart = addHours(startOfDay(day), hour)
       const slotEnd = addHours(slotStart, 1)
 
@@ -187,8 +180,6 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
 
   const getAppointmentsForSlot = useCallback(
     (day: Date, hour: number) => {
-      // Construct key as 'yyyy-MM-dd-HH' using the loop variables
-      // Since the grid represents Brazil time, we can just formatting the loop date
       const key = `${format(day, 'yyyy-MM-dd')}-${hour.toString().padStart(2, '0')}`
       return appointmentsMap.get(key) || []
     },
@@ -276,37 +267,50 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
                           )}
                         >
                           <div className="flex flex-col gap-1 h-full overflow-y-auto">
-                            {slotAppointments.map((appointment) => (
-                              <div
-                                key={appointment.id}
-                                onClick={() =>
-                                  handleAppointmentClick(appointment)
-                                }
-                                className={cn(
-                                  'rounded-md p-1.5 text-xs cursor-pointer hover:opacity-90 shadow-sm overflow-hidden flex flex-col gap-0.5 shrink-0',
-                                  appointment.status === 'completed'
-                                    ? 'bg-green-100 text-green-800 border-green-200'
-                                    : appointment.status === 'cancelled'
-                                      ? 'bg-red-100 text-red-800 border-red-200'
-                                      : appointment.status === 'no_show'
-                                        ? 'bg-orange-100 text-orange-800 border-orange-200'
-                                        : 'bg-primary/15 text-primary border-primary/20 border',
-                                )}
-                              >
-                                <div className="font-semibold truncate">
-                                  {appointment.clients.name}
-                                </div>
-                                <div className="truncate opacity-80">
-                                  {appointment.services.name}
-                                </div>
-                                <div className="mt-auto text-[10px] font-mono opacity-70">
-                                  {formatInTimeZone(
-                                    appointment.schedules.start_time,
-                                    'HH:mm',
+                            {slotAppointments.map((appointment) => {
+                              const isMissingNotes =
+                                appointment.status === 'completed' &&
+                                (!appointment.notes ||
+                                  appointment.notes.length === 0)
+                              return (
+                                <div
+                                  key={appointment.id}
+                                  onClick={() =>
+                                    handleAppointmentClick(appointment)
+                                  }
+                                  className={cn(
+                                    'rounded-md p-1.5 text-xs cursor-pointer hover:opacity-90 shadow-sm overflow-hidden flex flex-col gap-0.5 shrink-0 relative',
+                                    appointment.status === 'completed'
+                                      ? 'bg-green-100 text-green-800 border-green-200'
+                                      : appointment.status === 'cancelled'
+                                        ? 'bg-red-100 text-red-800 border-red-200'
+                                        : appointment.status === 'no_show'
+                                          ? 'bg-orange-100 text-orange-800 border-orange-200'
+                                          : 'bg-primary/15 text-primary border-primary/20 border',
+                                    isMissingNotes &&
+                                      'ring-1 ring-yellow-500 border-yellow-500',
                                   )}
+                                >
+                                  {isMissingNotes && (
+                                    <div className="absolute top-0.5 right-0.5 text-yellow-600">
+                                      <AlertTriangle className="w-2.5 h-2.5" />
+                                    </div>
+                                  )}
+                                  <div className="font-semibold truncate">
+                                    {appointment.clients.name}
+                                  </div>
+                                  <div className="truncate opacity-80">
+                                    {appointment.services.name}
+                                  </div>
+                                  <div className="mt-auto text-[10px] font-mono opacity-70">
+                                    {formatInTimeZone(
+                                      appointment.schedules.start_time,
+                                      'HH:mm',
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         </div>
                       )

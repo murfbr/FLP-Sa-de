@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -20,23 +20,20 @@ import {
   Calendar,
   Clock,
   FileText,
-  CheckCircle,
   Loader2,
-  XCircle,
   CalendarClock,
   Send,
   Trash2,
-  Edit2,
   DollarSign,
+  AlertTriangle,
+  Pencil,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
-  completeAppointment,
-  markAppointmentAsNoShow,
   addAppointmentNote,
-  cancelAppointment,
   deleteAppointment,
   updateAppointmentStatus,
+  updateAppointment,
 } from '@/services/appointments'
 import {
   AlertDialog,
@@ -62,6 +59,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 
 interface AppointmentDetailDialogProps {
   appointment: Appointment | null
@@ -79,18 +82,31 @@ const statusOptions = [
 ]
 
 export const AppointmentDetailDialog = ({
-  appointment,
+  appointment: initialAppointment,
   isOpen,
   onOpenChange,
   onAppointmentUpdated,
 }: AppointmentDetailDialogProps) => {
   const { toast } = useToast()
   const { user, professionalId, role } = useAuth()
+  const [appointment, setAppointment] = useState<Appointment | null>(
+    initialAppointment,
+  )
   const [isDeleting, setIsDeleting] = useState(false)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false)
   const [newNote, setNewNote] = useState('')
   const [isSavingNote, setIsSavingNote] = useState(false)
+
+  // Discount Edit
+  const [isEditingDiscount, setIsEditingDiscount] = useState(false)
+  const [editDiscountValue, setEditDiscountValue] = useState('')
+  const [isSavingDiscount, setIsSavingDiscount] = useState(false)
+
+  // Sync internal state with props
+  useEffect(() => {
+    setAppointment(initialAppointment)
+  }, [initialAppointment])
 
   if (
     !appointment ||
@@ -119,18 +135,56 @@ export const AppointmentDetailDialog = ({
 
   const handleStatusChange = async (newStatus: string) => {
     setIsUpdatingStatus(true)
+
+    // Optimistic Update
+    setAppointment((prev) => (prev ? { ...prev, status: newStatus } : null))
+
     const { error } = await updateAppointmentStatus(appointment.id, newStatus)
+
     if (error) {
+      // Revert if error
+      setAppointment(initialAppointment)
       toast({
         title: 'Erro ao atualizar status',
         description: getFriendlyErrorMessage(error),
         variant: 'destructive',
       })
     } else {
-      toast({ title: 'Status atualizado com sucesso.' })
+      // Trigger background sync
       onAppointmentUpdated()
     }
     setIsUpdatingStatus(false)
+  }
+
+  const handleDiscountUpdate = async () => {
+    setIsSavingDiscount(true)
+    const val = parseFloat(editDiscountValue)
+    if (isNaN(val) || val < 0) {
+      toast({ title: 'Valor inválido', variant: 'destructive' })
+      setIsSavingDiscount(false)
+      return
+    }
+
+    // Optimistic Update
+    setAppointment((prev) => (prev ? { ...prev, discount_amount: val } : null))
+
+    const { error } = await updateAppointment(appointment.id, {
+      discount_amount: val,
+    })
+
+    if (error) {
+      setAppointment(initialAppointment)
+      toast({
+        title: 'Erro ao atualizar desconto',
+        description: getFriendlyErrorMessage(error),
+        variant: 'destructive',
+      })
+    } else {
+      toast({ title: 'Desconto atualizado.' })
+      setIsEditingDiscount(false)
+      onAppointmentUpdated()
+    }
+    setIsSavingDiscount(false)
   }
 
   const handleRescheduleSuccess = () => {
@@ -159,6 +213,10 @@ export const AppointmentDetailDialog = ({
     } else {
       toast({ title: 'Nota adicionada com sucesso!' })
       setNewNote('')
+      // Update local state by appending note
+      setAppointment((prev) =>
+        prev ? { ...prev, notes: [...(prev.notes || []), noteEntry] } : null,
+      )
       onAppointmentUpdated()
     }
     setIsSavingNote(false)
@@ -170,6 +228,9 @@ export const AppointmentDetailDialog = ({
 
   const canEdit = ['scheduled', 'confirmed'].includes(appointment.status)
   const isAdmin = role === 'admin'
+  const isCompletedWithoutNotes =
+    appointment.status === 'completed' &&
+    (!appointment.notes || appointment.notes.length === 0)
 
   const DetailItem = ({
     icon: Icon,
@@ -200,6 +261,16 @@ export const AppointmentDetailDialog = ({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
+            {isCompletedWithoutNotes && (
+              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md p-3 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                <span className="text-sm font-medium">
+                  Atenção: Este atendimento foi concluído mas não possui
+                  anotações.
+                </span>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <DetailItem
                 icon={User}
@@ -212,14 +283,70 @@ export const AppointmentDetailDialog = ({
                 value={
                   <div className="flex flex-col">
                     <span>{appointment.services.name}</span>
-                    {appointment.discount_amount &&
-                      appointment.discount_amount > 0 && (
+                    <div className="flex items-center gap-2 mt-1">
+                      {appointment.discount_amount &&
+                      appointment.discount_amount > 0 ? (
                         <span className="text-xs text-green-600 flex items-center gap-1">
                           <DollarSign className="w-3 h-3" />
-                          Desconto aplicado: R${' '}
-                          {appointment.discount_amount.toFixed(2)}
+                          Desconto: R${' '}
+                          {Number(appointment.discount_amount).toFixed(2)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          Sem desconto
                         </span>
                       )}
+
+                      {isAdmin && (
+                        <Popover
+                          open={isEditingDiscount}
+                          onOpenChange={(open) => {
+                            if (open)
+                              setEditDiscountValue(
+                                String(appointment.discount_amount || 0),
+                              )
+                            setIsEditingDiscount(open)
+                          }}
+                        >
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 ml-1"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-60 p-3">
+                            <div className="space-y-2">
+                              <h4 className="font-medium text-xs">
+                                Editar Desconto (R$)
+                              </h4>
+                              <Input
+                                type="number"
+                                min={0}
+                                value={editDiscountValue}
+                                onChange={(e) =>
+                                  setEditDiscountValue(e.target.value)
+                                }
+                              />
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                onClick={handleDiscountUpdate}
+                                disabled={isSavingDiscount}
+                              >
+                                {isSavingDiscount ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  'Salvar'
+                                )}
+                              </Button>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
                   </div>
                 }
               />
@@ -333,7 +460,6 @@ export const AppointmentDetailDialog = ({
           </div>
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            {/* Delete Button (Hard Delete) - Admin Only or special permission */}
             {isAdmin && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>

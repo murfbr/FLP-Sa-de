@@ -21,10 +21,15 @@ import {
   Pagination,
   PaginationContent,
   PaginationItem,
-  PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
+import { AlertTriangle } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface AgendaListViewProps {
   onAppointmentClick: (appointment: Appointment) => void
@@ -51,7 +56,6 @@ export const AgendaListView = ({
   const isMobile = useIsMobile()
 
   useEffect(() => {
-    // Reset to page 1 when filters change
     setCurrentPage(1)
   }, [selectedProfessional, dateRange])
 
@@ -105,32 +109,45 @@ export const AgendaListView = ({
     if (isMobile) {
       return (
         <div className="space-y-4">
-          {validAppointments.map((appt) => (
-            <Card
-              key={appt.id}
-              onClick={() => onAppointmentClick(appt)}
-              className="cursor-pointer hover:bg-muted/50"
-            >
-              <CardHeader>
-                <CardTitle className="text-base">{appt.clients.name}</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {formatInTimeZone(
-                    appt.schedules.start_time,
-                    "dd/MM/yyyy 'às' HH:mm",
-                  )}
-                </p>
-              </CardHeader>
-              <CardContent className="text-sm space-y-1">
-                <p>
-                  <strong>Serviço:</strong> {appt.services.name}
-                </p>
-                <p>
-                  <strong>Profissional:</strong> {appt.professionals.name}
-                </p>
-                <Badge>{appt.status}</Badge>
-              </CardContent>
-            </Card>
-          ))}
+          {validAppointments.map((appt) => {
+            const isMissingNotes =
+              appt.status === 'completed' &&
+              (!appt.notes || appt.notes.length === 0)
+            return (
+              <Card
+                key={appt.id}
+                onClick={() => onAppointmentClick(appt)}
+                className={cn(
+                  'cursor-pointer hover:bg-muted/50',
+                  isMissingNotes && 'border-yellow-400',
+                )}
+              >
+                <CardHeader>
+                  <CardTitle className="text-base flex justify-between items-center">
+                    {appt.clients.name}
+                    {isMissingNotes && (
+                      <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                    )}
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {formatInTimeZone(
+                      appt.schedules.start_time,
+                      "dd/MM/yyyy 'às' HH:mm",
+                    )}
+                  </p>
+                </CardHeader>
+                <CardContent className="text-sm space-y-1">
+                  <p>
+                    <strong>Serviço:</strong> {appt.services.name}
+                  </p>
+                  <p>
+                    <strong>Profissional:</strong> {appt.professionals.name}
+                  </p>
+                  <Badge>{appt.status}</Badge>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )
     }
@@ -147,26 +164,55 @@ export const AgendaListView = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {validAppointments.map((appt) => (
-              <TableRow
-                key={appt.id}
-                onClick={() => onAppointmentClick(appt)}
-                className="cursor-pointer hover:bg-muted/50"
-              >
-                <TableCell>{appt.clients.name}</TableCell>
-                <TableCell>{appt.professionals.name}</TableCell>
-                <TableCell>{appt.services.name}</TableCell>
-                <TableCell>
-                  {formatInTimeZone(
-                    appt.schedules.start_time,
-                    "dd/MM/yyyy 'às' HH:mm",
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Badge>{appt.status}</Badge>
-                </TableCell>
-              </TableRow>
-            ))}
+            {validAppointments.map((appt) => {
+              const isMissingNotes =
+                appt.status === 'completed' &&
+                (!appt.notes || appt.notes.length === 0)
+              return (
+                <TableRow
+                  key={appt.id}
+                  onClick={() => onAppointmentClick(appt)}
+                  className="cursor-pointer hover:bg-muted/50"
+                >
+                  <TableCell className="font-medium">
+                    {appt.clients.name}
+                  </TableCell>
+                  <TableCell>{appt.professionals.name}</TableCell>
+                  <TableCell>{appt.services.name}</TableCell>
+                  <TableCell>
+                    {formatInTimeZone(
+                      appt.schedules.start_time,
+                      "dd/MM/yyyy 'às' HH:mm",
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          appt.status === 'completed' &&
+                            'bg-green-100 text-green-800 border-green-200',
+                          appt.status === 'cancelled' &&
+                            'bg-red-100 text-red-800 border-red-200',
+                        )}
+                      >
+                        {appt.status}
+                      </Badge>
+                      {isMissingNotes && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <AlertTriangle className="w-4 h-4 text-yellow-500 animate-pulse" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Prontuário pendente</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </div>

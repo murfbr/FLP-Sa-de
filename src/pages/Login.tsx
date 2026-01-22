@@ -42,7 +42,6 @@ const Login = () => {
           navigate(from, { replace: true })
         }
       }
-      // Note: If user is authenticated but role is missing, we render the error UI below.
     }
   }, [user, role, loading, navigate, from])
 
@@ -60,8 +59,6 @@ const Login = () => {
           variant: 'destructive',
         })
       }
-      // Successful login logic is handled by the useEffect watching auth state
-      // The AuthProvider sets loading=true on success, triggering the loading view
     } catch (err) {
       console.error(err)
       toast({
@@ -70,7 +67,6 @@ const Login = () => {
         variant: 'destructive',
       })
     } finally {
-      // If successful, loading will be true (set by AuthProvider), so this doesn't flash
       setIsSubmitting(false)
     }
   }
@@ -165,6 +161,12 @@ const Login = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Senha</Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  Esqueceu a senha?
+                </Link>
               </div>
               <Input
                 id="password"
