@@ -308,6 +308,9 @@ BEGIN
 END;
 $$;
 
+-- Drop function first to handle return type changes
+DROP FUNCTION IF EXISTS public.get_available_slots_dynamic(uuid, uuid, timestamp with time zone, timestamp with time zone);
+
 -- Re-create get_available_slots_dynamic to ensure correct capacity reporting without is_booked
 CREATE OR REPLACE FUNCTION public.get_available_slots_dynamic(
     p_professional_id UUID,
