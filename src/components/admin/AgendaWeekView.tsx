@@ -78,8 +78,6 @@ export const AgendaWeekView = ({
     if (isExpanded) {
       return Array.from({ length: 24 }, (_, i) => i)
     }
-    // Show 06:00 to 20:00 (which covers slots until 21:00)
-    // Hidden: 00-05 and 21-23
     return Array.from({ length: 15 }, (_, i) => i + 6)
   }, [isExpanded])
 
@@ -169,8 +167,8 @@ export const AgendaWeekView = ({
   }
 
   return (
-    <div className="p-4 border rounded-lg flex flex-col h-[800px]">
-      <div className="flex justify-between items-center mb-4 shrink-0">
+    <div className="flex flex-col bg-background">
+      <div className="sticky top-14 z-40 bg-background border-b p-4 flex justify-between items-center shrink-0 shadow-sm">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={prevWeek}>
             <ChevronLeft className="h-4 w-4" />
@@ -210,11 +208,13 @@ export const AgendaWeekView = ({
       </div>
 
       {isLoading ? (
-        <Skeleton className="flex-1 w-full" />
+        <div className="p-4">
+          <Skeleton className="h-[600px] w-full" />
+        </div>
       ) : (
-        <div className="flex-1 overflow-y-auto relative border rounded-md bg-white">
+        <div className="relative border-l border-r border-b">
           <div className="min-w-[800px] relative">
-            <div className="sticky top-0 z-30 flex border-b bg-background shadow-sm">
+            <div className="sticky top-[7rem] z-30 flex border-b bg-background shadow-sm">
               <div className="w-16 shrink-0 border-r bg-muted/30"></div>
               {daysInWeek.map((day) => (
                 <div
@@ -245,7 +245,7 @@ export const AgendaWeekView = ({
                   <div
                     key={h}
                     style={{ height: NORMAL_HEIGHT }}
-                    className="border-b text-xs text-muted-foreground flex items-center justify-center relative"
+                    className="border-b text-xs text-muted-foreground flex items-center justify-center relative font-medium"
                   >
                     {h}:00
                   </div>

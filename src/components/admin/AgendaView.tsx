@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { List, Calendar, View, Columns, RefreshCw } from 'lucide-react'
-import { AgendaListView } from './AgendaListView'
+import { Calendar, RefreshCw, Columns, Rows } from 'lucide-react'
 import { AgendaCalendarView } from './AgendaCalendarView'
 import { AgendaWeekView } from './AgendaWeekView'
 import { AgendaDayView } from './AgendaDayView'
@@ -18,14 +17,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { getAllProfessionals } from '@/services/professionals'
-import { DateRangePicker } from '@/components/ui/date-range-picker'
-import { DateRange } from 'react-day-picker'
-import { startOfMonth, endOfMonth } from 'date-fns'
 
-export type ViewMode = 'list' | 'month' | 'week' | 'day'
+export type ViewMode = 'month' | 'week' | 'day'
 
 export const AgendaView = () => {
-  const [viewMode, setViewMode] = useState<ViewMode>('week')
+  const [viewMode, setViewMode] = useState<ViewMode>('day')
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedAppointment, setSelectedAppointment] =
@@ -36,12 +32,6 @@ export const AgendaView = () => {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedProfessional, setSelectedProfessional] = useState('all')
   const [professionals, setProfessionals] = useState<Professional[]>([])
-
-  // Date Range Filter State (Primary for List View)
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
-  })
 
   // Quick Create State
   const [quickCreateDate, setQuickCreateDate] = useState<Date | undefined>(
@@ -91,14 +81,6 @@ export const AgendaView = () => {
 
   const renderView = () => {
     switch (viewMode) {
-      case 'list':
-        return (
-          <AgendaListView
-            key={refreshKey}
-            {...commonProps}
-            dateRange={dateRange}
-          />
-        )
       case 'month':
         return <AgendaCalendarView key={refreshKey} {...commonProps} />
       case 'week':
@@ -106,13 +88,7 @@ export const AgendaView = () => {
       case 'day':
         return <AgendaDayView key={refreshKey} {...commonProps} />
       default:
-        return (
-          <AgendaListView
-            key={refreshKey}
-            {...commonProps}
-            dateRange={dateRange}
-          />
-        )
+        return <AgendaDayView key={refreshKey} {...commonProps} />
     }
   }
 
@@ -123,11 +99,10 @@ export const AgendaView = () => {
           value={viewMode}
           onValueChange={(value: ViewMode) => value && setViewMode(value)}
         >
-          <SelectTrigger className="w-[130px]">
+          <SelectTrigger className="w-[120px]">
             <SelectValue placeholder="Visualização" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="list">Lista</SelectItem>
             <SelectItem value="month">Mês</SelectItem>
             <SelectItem value="week">Semana</SelectItem>
             <SelectItem value="day">Dia</SelectItem>
@@ -143,13 +118,6 @@ export const AgendaView = () => {
         className="border rounded-md p-1 h-9"
       >
         <ToggleGroupItem
-          value="list"
-          aria-label="List view"
-          className="h-7 w-7 p-0"
-        >
-          <List className="h-4 w-4" />
-        </ToggleGroupItem>
-        <ToggleGroupItem
           value="month"
           aria-label="Month view"
           className="h-7 w-7 p-0"
@@ -161,76 +129,61 @@ export const AgendaView = () => {
           aria-label="Week view"
           className="h-7 w-7 p-0"
         >
-          <View className="h-4 w-4" />
+          <Columns className="h-4 w-4" />
         </ToggleGroupItem>
         <ToggleGroupItem
           value="day"
           aria-label="Day view"
           className="h-7 w-7 p-0"
         >
-          <Columns className="h-4 w-4" />
+          <Rows className="h-4 w-4" />
         </ToggleGroupItem>
       </ToggleGroup>
     )
   }
 
   return (
-    <>
-      <div className="space-y-4">
-        {/* Compressed Header for Space Optimization */}
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b pb-4">
-          {/* Left Side: Title & Primary Filters Inline */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full xl:w-auto">
-            <h2 className="text-lg font-semibold whitespace-nowrap hidden md:block">
-              Agenda
-            </h2>
+    <div className="flex flex-col h-full bg-background rounded-lg border shadow-sm">
+      {/* Consolidated Single Row Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 border-b">
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <h2 className="text-lg font-semibold whitespace-nowrap">Agenda</h2>
 
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              <Select
-                value={selectedProfessional}
-                onValueChange={setSelectedProfessional}
-              >
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Profissional" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Profissionais</SelectItem>
-                  {professionals.map((prof) => (
-                    <SelectItem key={prof.id} value={prof.id}>
-                      {prof.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {viewMode === 'list' && (
-                <DateRangePicker
-                  date={dateRange}
-                  onDateChange={setDateRange}
-                  className="w-full sm:w-auto"
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Right Side: View Controls & Actions */}
-          <div className="flex items-center gap-2 w-full xl:w-auto justify-between xl:justify-end">
-            {renderViewSwitcher()}
-
-            <Button
-              variant={isMobile ? 'outline' : 'ghost'}
-              size="icon"
-              onClick={handleDataRefresh}
-              title="Atualizar Dados"
-              className="shrink-0"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
+          <Select
+            value={selectedProfessional}
+            onValueChange={setSelectedProfessional}
+          >
+            <SelectTrigger className="w-full md:w-[240px]">
+              <SelectValue placeholder="Selecione o profissional" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Profissionais</SelectItem>
+              {professionals.map((prof) => (
+                <SelectItem key={prof.id} value={prof.id}>
+                  {prof.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {renderView()}
+        <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
+          {renderViewSwitcher()}
+
+          <Button
+            variant={isMobile ? 'outline' : 'ghost'}
+            size="icon"
+            onClick={handleDataRefresh}
+            title="Atualizar Dados"
+            className="shrink-0"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
+      <div className="flex-1 min-h-0">{renderView()}</div>
+
       <AppointmentFormDialog
         isOpen={isFormOpen}
         onOpenChange={handleFormClose}
@@ -247,6 +200,6 @@ export const AgendaView = () => {
         appointment={selectedAppointment}
         onAppointmentUpdated={handleDataRefresh}
       />
-    </>
+    </div>
   )
 }

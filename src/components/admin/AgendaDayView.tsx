@@ -64,6 +64,9 @@ export const AgendaDayView = ({
     fetchData()
   }, [selectedProfessional, currentDate])
 
+  // If Expanded: Show 00-23
+  // If Collapsed: Show 06-20 (covers until 21:00)
+  // Hidden: 00-05 and 21-23
   const hours = useMemo(() => {
     if (isExpanded) {
       return Array.from({ length: 24 }, (_, i) => i)
@@ -137,13 +140,13 @@ export const AgendaDayView = ({
   }
 
   return (
-    <div className="p-4 border rounded-lg flex flex-col h-[800px]">
-      <div className="flex justify-between items-center mb-4 shrink-0">
+    <div className="flex flex-col bg-background">
+      <div className="sticky top-14 z-40 bg-background border-b p-4 flex justify-between items-center shrink-0 shadow-sm">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={prevDay}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <h2 className="text-lg md:text-xl font-semibold capitalize w-[250px] text-center">
+          <h2 className="text-lg md:text-xl font-semibold capitalize min-w-[200px] text-center">
             {format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
           </h2>
           <Button variant="outline" size="icon" onClick={nextDay}>
@@ -167,17 +170,19 @@ export const AgendaDayView = ({
       </div>
 
       {isLoading ? (
-        <Skeleton className="flex-1 w-full" />
+        <div className="p-4">
+          <Skeleton className="h-[600px] w-full" />
+        </div>
       ) : (
-        <div className="flex-1 overflow-y-auto relative border rounded-md bg-white">
+        <div className="relative border-l border-r border-b">
           <div className="flex relative min-h-full">
             {/* Time Column - Centered Alignment */}
-            <div className="w-20 shrink-0 border-r bg-muted/10 sticky left-0 z-30 bg-background">
+            <div className="w-20 shrink-0 border-r bg-muted/10">
               {hours.map((h) => (
                 <div
                   key={h}
                   style={{ height: NORMAL_HEIGHT }}
-                  className="border-b text-xs text-muted-foreground flex items-center justify-center relative"
+                  className="border-b text-xs text-muted-foreground flex items-center justify-center relative font-medium"
                 >
                   {h}:00
                 </div>
@@ -279,7 +284,6 @@ export const AgendaDayView = ({
                   className="absolute w-full z-20 pointer-events-none"
                   style={{ top: 0, height: '100%' }}
                 >
-                  {/* Calculate offset for single hovered slot */}
                   {(() => {
                     const startHour = isExpanded ? 0 : 6
                     const h = hoveredSlot.hour

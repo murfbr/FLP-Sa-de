@@ -68,6 +68,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const fetchUserName = async () => {
+      // Prioritize Professional Name
       if (professionalId) {
         const { data } = await getProfessionalById(professionalId)
         if (data) {
@@ -75,11 +76,14 @@ const AdminDashboard = () => {
           return
         }
       }
-      // Fallback if not a professional but has metadata
+      // Fallback to metadata name
       if (user?.user_metadata?.full_name) {
         setUserName(user.user_metadata.full_name)
       } else if (user?.user_metadata?.name) {
         setUserName(user.user_metadata.name)
+      } else {
+        // Last resort fallback
+        setUserName('Administrador')
       }
     }
     fetchUserName()
@@ -133,10 +137,9 @@ const AdminDashboard = () => {
     <>
       <div className="container mx-auto py-4 px-4">
         {/* Header - Simplified and Personalized */}
-        <div className="mb-4">
+        <div className="mb-6">
           <h1 className="text-xl md:text-2xl font-bold font-sans tracking-tight">
-            Bem-vindo,{' '}
-            {userName || user?.email?.split('@')[0] || 'Administrador'}.
+            Bem-vindo, {userName}.
           </h1>
         </div>
 
@@ -226,7 +229,7 @@ const AdminDashboard = () => {
 
           <TabsContent value="agenda">
             <Card>
-              <CardContent className="p-4 sm:p-4">
+              <CardContent className="p-0 sm:p-0">
                 <AgendaView />
               </CardContent>
             </Card>
