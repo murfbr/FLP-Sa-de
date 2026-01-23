@@ -162,7 +162,7 @@ export const AgendaDayView = ({
           ) : (
             <Maximize2 className="mr-2 h-4 w-4" />
           )}
-          {isExpanded ? 'Recolher Horários' : 'Expandir Dia'}
+          {isExpanded ? 'Recolher horários' : 'Expandir horários'}
         </Button>
       </div>
 

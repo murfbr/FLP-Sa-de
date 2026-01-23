@@ -177,66 +177,55 @@ export const AgendaView = () => {
   return (
     <>
       <div className="space-y-4">
-        {/* Single Row Header Optimization */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b pb-4">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold tracking-tight shrink-0">
-              Agenda Centralizada
+        {/* Compressed Header for Space Optimization */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b pb-4">
+          {/* Left Side: Title & Primary Filters Inline */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full xl:w-auto">
+            <h2 className="text-lg font-semibold whitespace-nowrap hidden md:block">
+              Agenda
             </h2>
-            {/* Divider */}
-            <div className="h-6 w-px bg-border hidden lg:block" />
-            {/* Desktop Refresh */}
+
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <Select
+                value={selectedProfessional}
+                onValueChange={setSelectedProfessional}
+              >
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="Profissional" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Profissionais</SelectItem>
+                  {professionals.map((prof) => (
+                    <SelectItem key={prof.id} value={prof.id}>
+                      {prof.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {viewMode === 'list' && (
+                <DateRangePicker
+                  date={dateRange}
+                  onDateChange={setDateRange}
+                  className="w-full sm:w-auto"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Right Side: View Controls & Actions */}
+          <div className="flex items-center gap-2 w-full xl:w-auto justify-between xl:justify-end">
+            {renderViewSwitcher()}
+
             <Button
-              variant="ghost"
+              variant={isMobile ? 'outline' : 'ghost'}
               size="icon"
               onClick={handleDataRefresh}
               title="Atualizar Dados"
-              className="hidden lg:flex"
+              className="shrink-0"
             >
               <RefreshCw className="h-4 w-4" />
             </Button>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value={selectedProfessional}
-              onValueChange={setSelectedProfessional}
-            >
-              <SelectTrigger className="w-full sm:w-[220px]">
-                <SelectValue placeholder="Profissional" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Profissionais</SelectItem>
-                {professionals.map((prof) => (
-                  <SelectItem key={prof.id} value={prof.id}>
-                    {prof.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {viewMode === 'list' && (
-              <DateRangePicker
-                date={dateRange}
-                onDateChange={setDateRange}
-                className="w-full sm:w-auto"
-              />
-            )}
-
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
-              {renderViewSwitcher()}
-
-              {/* Mobile Refresh */}
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleDataRefresh}
-                title="Atualizar Dados"
-                className="lg:hidden"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </div>
           </div>
         </div>
 

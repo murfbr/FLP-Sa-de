@@ -14,7 +14,6 @@ import {
   ChevronRight,
   Plus,
   AlertCircle,
-  ChevronsUpDown,
   Maximize2,
   Minimize2,
 } from 'lucide-react'
@@ -40,10 +39,7 @@ interface AgendaWeekViewProps {
   selectedProfessional: string
 }
 
-const COLLAPSED_START = 6 // 06:00
-const COLLAPSED_END = 21 // 21:00 (so 20:00 is last hour shown, 21:00 is end)
 const NORMAL_HEIGHT = 64
-const COMPACT_HEIGHT = 32
 
 export const AgendaWeekView = ({
   currentDate,
@@ -82,27 +78,14 @@ export const AgendaWeekView = ({
     if (isExpanded) {
       return Array.from({ length: 24 }, (_, i) => i)
     }
-    // Show 06:00 to 21:00 inclusive (meaning slot starting at 21:00 is last one? No, usually end of day.
-    // Requirement: "hide 00-06 and 21-23". So we show 06, 07 ... 20.
-    // Range 06 to 21 (exclusive) means 06:00 - 21:00
+    // Show 06:00 to 20:00 (which covers slots until 21:00)
+    // Hidden: 00-05 and 21-23
     return Array.from({ length: 15 }, (_, i) => i + 6)
   }, [isExpanded])
 
-  const getHourHeight = (hour: number) => {
-    return NORMAL_HEIGHT
-  }
-
-  // Need custom getTopOffset for filtered hours
   const getTopOffset = (time: Date) => {
     const timeStr = formatInTimeZone(time, 'HH:mm')
     const [h, m] = timeStr.split(':').map(Number)
-
-    // If we are in collapsed mode and time is out of bounds, we might have issues.
-    // However, usually we just map it.
-    // If h < 6, it maps to negative or 0?
-    // We should ideally filter appointments or handle them visually.
-    // For simplicity in this visualization, we assume visible range.
-    // But to be robust:
 
     let effectiveH = h
     if (!isExpanded) {
@@ -110,7 +93,6 @@ export const AgendaWeekView = ({
       if (h > 20) effectiveH = 20 // clamp to bottom
     }
 
-    // Calculate offset based on visible hours
     const startHour = isExpanded ? 0 : 6
     const hoursPassed = Math.max(0, effectiveH - startHour)
 
@@ -133,14 +115,10 @@ export const AgendaWeekView = ({
 
     appointments.forEach((appt) => {
       if (!appt.schedules?.start_time) return
-      // Filter out if hidden? Or clamp?
-      // Let's filter out for cleaner UI if collapsed
+
       const h = parseInt(formatInTimeZone(appt.schedules.start_time, 'HH'))
+      // If collapsed, filter out times outside 06-21 range
       if (!isExpanded && (h < 6 || h >= 21)) {
-        // Option: Show them at the edge or hide.
-        // Showing them at edge might be confusing. Hiding them is consistent with "Collapsed".
-        // But user might miss appointments.
-        // Ideally we show a indicator "X hidden".
         return
       }
 
@@ -167,7 +145,6 @@ export const AgendaWeekView = ({
     const hourIndex = Math.floor(y / NORMAL_HEIGHT)
     const currentHour = startHour + hourIndex
 
-    // Check bounds
     const maxHour = isExpanded ? 23 : 20
     if (currentHour > maxHour) {
       setHoveredSlot(null)
@@ -228,7 +205,7 @@ export const AgendaWeekView = ({
           ) : (
             <Maximize2 className="mr-2 h-4 w-4" />
           )}
-          {isExpanded ? 'Recolher Horários' : 'Expandir Dia'}
+          {isExpanded ? 'Recolher horários' : 'Expandir horários'}
         </Button>
       </div>
 
@@ -373,7 +350,6 @@ export const AgendaWeekView = ({
                           height: '100%',
                         }}
                       >
-                        {/* Render ghost slot for hovered time */}
                         {(() => {
                           const startHour = isExpanded ? 0 : 6
                           const h = hoveredSlot.hour

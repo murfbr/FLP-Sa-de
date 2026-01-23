@@ -11,6 +11,7 @@ export const Header = () => {
   const location = useLocation()
 
   // Determine if we are in an admin context for branding
+  // This is used to display the "Dashboard Administrativo" in the header
   const isAdminContext =
     (role === 'admin' && location.pathname === '/') ||
     location.pathname.startsWith('/admin')

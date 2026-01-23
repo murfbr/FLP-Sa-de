@@ -70,11 +70,20 @@ const AdminDashboard = () => {
     const fetchUserName = async () => {
       if (professionalId) {
         const { data } = await getProfessionalById(professionalId)
-        if (data) setUserName(data.name)
+        if (data) {
+          setUserName(data.name)
+          return
+        }
+      }
+      // Fallback if not a professional but has metadata
+      if (user?.user_metadata?.full_name) {
+        setUserName(user.user_metadata.full_name)
+      } else if (user?.user_metadata?.name) {
+        setUserName(user.user_metadata.name)
       }
     }
     fetchUserName()
-  }, [professionalId])
+  }, [professionalId, user])
 
   const fetchData = async () => {
     setIsLoading(true)
@@ -122,14 +131,13 @@ const AdminDashboard = () => {
 
   return (
     <>
-      <div className="container mx-auto py-6 px-4">
-        <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold font-sans tracking-tight">
-            Dashboard Administrativo
+      <div className="container mx-auto py-4 px-4">
+        {/* Header - Simplified and Personalized */}
+        <div className="mb-4">
+          <h1 className="text-xl md:text-2xl font-bold font-sans tracking-tight">
+            Bem-vindo,{' '}
+            {userName || user?.email?.split('@')[0] || 'Administrador'}.
           </h1>
-          <p className="text-sm md:text-base text-muted-foreground mt-1">
-            Bem-vindo, {userName || user?.email || 'Administrador'}.
-          </p>
         </div>
 
         <Tabs
@@ -218,7 +226,7 @@ const AdminDashboard = () => {
 
           <TabsContent value="agenda">
             <Card>
-              <CardContent className="p-4 sm:p-6">
+              <CardContent className="p-4 sm:p-4">
                 <AgendaView />
               </CardContent>
             </Card>
