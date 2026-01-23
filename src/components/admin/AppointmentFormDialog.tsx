@@ -493,148 +493,139 @@ export const AppointmentFormDialog = ({
               )}
             />
 
-            {/* Billing Info */}
-            {!checkingEntitlements && clientId && serviceId && (
+            {/* Financial Section */}
+            {clientId && serviceId && (
               <div className="p-4 bg-muted/30 rounded-lg border">
-                <h4 className="text-sm font-medium mb-2">
-                  Detalhes de Cobrança
+                <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-primary" />
+                  Financeiro
                 </h4>
 
-                {activeSubscription ? (
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center text-green-600 gap-2 text-sm font-medium">
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Plano Ativo</span>
-                    </div>
-                    <div className="text-sm text-muted-foreground ml-6">
-                      {activeSubscription.subscription_plans?.name ||
-                        'Assinatura Mensal'}
-                    </div>
-                    <p className="text-xs text-muted-foreground ml-6">
-                      Este agendamento será coberto pelo plano mensal.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {availablePackages.length > 0 ? (
-                      <>
-                        <FormField
-                          control={form.control}
-                          name="usePackage"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3 bg-background">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel>Usar Pacote de Sessões</FormLabel>
-                                <FormDescription>
-                                  {availablePackages.length} pacote(s)
-                                  disponível.
-                                </FormDescription>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
+                {/* Always visible Discount Field */}
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="discount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Desconto Pontual (R$)</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              type="number"
+                              className="pl-9"
+                              placeholder="0,00"
+                              min={0}
+                              step="0.01"
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                        {usePackage && (
+                  {/* Entitlements Info (Package/Sub) */}
+                  {!checkingEntitlements && (
+                    <div className="border-t pt-4">
+                      {activeSubscription ? (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center text-green-600 gap-2 text-sm font-medium">
+                            <CheckCircle className="w-4 h-4" />
+                            <span>Plano Ativo</span>
+                          </div>
+                          <div className="text-sm text-muted-foreground ml-6">
+                            {activeSubscription.subscription_plans?.name ||
+                              'Assinatura Mensal'}
+                          </div>
+                        </div>
+                      ) : availablePackages.length > 0 ? (
+                        <>
                           <FormField
                             control={form.control}
-                            name="packageId"
+                            name="usePackage"
                             render={({ field }) => (
-                              <FormItem>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  defaultValue={field.value}
-                                  value={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Selecione o pacote" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {availablePackages.map((pkg) => (
-                                      <SelectItem key={pkg.id} value={pkg.id}>
-                                        {pkg.packages.name} (
-                                        {pkg.sessions_remaining} restantes)
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 mb-3">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Usar Pacote de Sessões</FormLabel>
+                                  <FormDescription>
+                                    {availablePackages.length} pacote(s)
+                                    disponível.
+                                  </FormDescription>
+                                </div>
                               </FormItem>
                             )}
                           />
-                        )}
-                      </>
-                    ) : (
-                      <div className="text-sm text-muted-foreground flex flex-col gap-2">
-                        <p>
-                          Sem planos ou pacotes ativos. Será cobrado como{' '}
-                          <span className="font-semibold text-primary">
-                            Avulso
-                          </span>
-                          .
-                        </p>
-                        <Button
-                          variant="link"
-                          className="p-0 h-auto text-xs justify-start"
-                          onClick={handleNavigateToProfile}
-                          type="button"
-                        >
-                          Gerenciar Contratos do Cliente{' '}
-                          <ExternalLink className="w-3 h-3 ml-1" />
-                        </Button>
-                      </div>
-                    )}
 
-                    {/* Discount Input - Only if not using package/subscription */}
-                    {!usePackage && (
-                      <div className="space-y-2">
-                        <FormField
-                          control={form.control}
-                          name="discount"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Desconto Pontual (R$)</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                  <Input
-                                    type="number"
-                                    className="pl-9"
-                                    placeholder="0,00"
-                                    min={0}
-                                    {...field}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
+                          {usePackage && (
+                            <FormField
+                              control={form.control}
+                              name="packageId"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <Select
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                    value={field.value}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Selecione o pacote" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {availablePackages.map((pkg) => (
+                                        <SelectItem key={pkg.id} value={pkg.id}>
+                                          {pkg.packages.name} (
+                                          {pkg.sessions_remaining} restantes)
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                           )}
-                        />
-                        {/* Discount Impact Display */}
-                        <div className="flex justify-between items-center text-sm pt-2 border-t mt-2">
-                          <span className="text-muted-foreground">
-                            Preço Final:
-                          </span>
-                          <div className="flex flex-col items-end">
-                            <span className="line-through text-xs text-muted-foreground">
-                              R$ {originalPrice.toFixed(2)}
-                            </span>
-                            <span className="font-bold text-green-600">
-                              R$ {finalPrice.toFixed(2)}
-                            </span>
-                          </div>
+                        </>
+                      ) : (
+                        <div className="text-sm text-muted-foreground flex flex-col gap-2">
+                          <p>Sem planos ou pacotes ativos.</p>
+                          <Button
+                            variant="link"
+                            className="p-0 h-auto text-xs justify-start"
+                            onClick={handleNavigateToProfile}
+                            type="button"
+                          >
+                            Gerenciar Contratos do Cliente{' '}
+                            <ExternalLink className="w-3 h-3 ml-1" />
+                          </Button>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  )}
+
+                  {/* Price Summary */}
+                  <div className="flex justify-between items-center text-sm pt-2 border-t mt-2">
+                    <span className="text-muted-foreground">Preço Final:</span>
+                    <div className="flex flex-col items-end">
+                      <span className="line-through text-xs text-muted-foreground">
+                        R$ {originalPrice.toFixed(2)}
+                      </span>
+                      <span className="font-bold text-green-600">
+                        R$ {finalPrice.toFixed(2)}
+                      </span>
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             )}
 

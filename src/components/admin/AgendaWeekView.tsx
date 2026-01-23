@@ -38,7 +38,7 @@ const END_HOUR = 24
 const COMPACT_START = 7
 const COMPACT_END = 21
 const NORMAL_HEIGHT = 64
-const COMPACT_HEIGHT = 24
+const COMPACT_HEIGHT = 32
 
 const getHourHeight = (hour: number) => {
   if (hour < COMPACT_START || hour >= COMPACT_END) return COMPACT_HEIGHT
@@ -76,16 +76,18 @@ const getDurationHeight = (startTime: Date, durationMinutes: number) => {
   return height
 }
 
-const getHourFromY = (y: number) => {
+const getSlotFromY = (y: number) => {
   let currentY = 0
   for (let h = START_HOUR; h < END_HOUR; h++) {
     const height = getHourHeight(h)
     if (y >= currentY && y < currentY + height) {
-      return h
+      const relativeY = y - currentY
+      const minutes = relativeY < height / 2 ? 0 : 30
+      return { hour: h, minutes }
     }
     currentY += height
   }
-  return -1
+  return null
 }
 
 export const AgendaWeekView = ({
@@ -100,6 +102,7 @@ export const AgendaWeekView = ({
   const [hoveredSlot, setHoveredSlot] = useState<{
     day: string
     hour: number
+    minutes: number
   } | null>(null)
 
   useEffect(() => {
@@ -154,12 +157,16 @@ export const AgendaWeekView = ({
   const handleMouseMove = (e: React.MouseEvent, day: Date) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const y = e.clientY - rect.top
-    const h = getHourFromY(y)
+    const slot = getSlotFromY(y)
     const dayKey = format(day, 'yyyy-MM-dd')
 
-    if (h !== -1) {
-      if (hoveredSlot?.day !== dayKey || hoveredSlot?.hour !== h) {
-        setHoveredSlot({ day: dayKey, hour: h })
+    if (slot) {
+      if (
+        hoveredSlot?.day !== dayKey ||
+        hoveredSlot?.hour !== slot.hour ||
+        hoveredSlot?.minutes !== slot.minutes
+      ) {
+        setHoveredSlot({ day: dayKey, hour: slot.hour, minutes: slot.minutes })
       }
     } else {
       setHoveredSlot(null)
@@ -254,8 +261,10 @@ export const AgendaWeekView = ({
                         <div
                           key={h}
                           style={{ height: getHourHeight(h) }}
-                          className="border-b"
-                        />
+                          className="border-b relative"
+                        >
+                          <div className="absolute top-1/2 left-0 right-0 border-b border-dashed border-gray-100/50" />
+                        </div>
                       ))}
                     </div>
 
@@ -341,12 +350,16 @@ export const AgendaWeekView = ({
                             offset += getHourHeight(i)
                           }
 
+                          if (hoveredSlot.minutes === 30) {
+                            offset += getHourHeight(h) / 2
+                          }
+
                           return (
                             <div
-                              key={h}
+                              key={`${h}-${hoveredSlot.minutes}`}
                               style={{
                                 top: offset,
-                                height: getHourHeight(h),
+                                height: getHourHeight(h) / 2,
                               }}
                               className="absolute w-full flex items-center justify-center bg-black/5"
                             >
@@ -356,7 +369,12 @@ export const AgendaWeekView = ({
                                 className="h-6 w-6 rounded-full pointer-events-auto shadow-sm animate-in fade-in zoom-in duration-100"
                                 onClick={() => {
                                   const targetTime = new Date(day)
-                                  targetTime.setHours(h, 0, 0, 0)
+                                  targetTime.setHours(
+                                    h,
+                                    hoveredSlot.minutes,
+                                    0,
+                                    0,
+                                  )
                                   onTimeSlotClick(targetTime, true)
                                 }}
                               >

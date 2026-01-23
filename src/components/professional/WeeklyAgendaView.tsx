@@ -7,12 +7,13 @@ import {
   subWeeks,
   format,
   isToday,
-  addHours,
+  addMinutes,
   startOfDay,
   parse,
   isBefore,
   isAfter,
   isEqual,
+  addHours,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
@@ -105,7 +106,11 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
     const map = new Map<string, Appointment[]>()
     appointments.forEach((appt) => {
       if (!appt.schedules?.start_time) return
-      const key = formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd-HH')
+      // Use 30 min granularity key
+      const startTime = new Date(appt.schedules.start_time)
+      const minutes = startTime.getMinutes() >= 30 ? 30 : 0
+      const key = `${formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd-HH')}-${minutes}`
+
       if (!map.has(key)) map.set(key, [])
       map.get(key)?.push(appt)
     })
@@ -132,12 +137,13 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
   }, [recurring])
 
   const isSlotAvailable = useCallback(
-    (day: Date, hour: number) => {
+    (day: Date, hour: number, minutes: number) => {
       const dateStr = format(day, 'yyyy-MM-dd')
       const dayOfWeek = day.getDay()
 
-      const slotStart = addHours(startOfDay(day), hour)
-      const slotEnd = addHours(slotStart, 1)
+      // Slot is 30 mins long
+      const slotStart = addMinutes(addHours(startOfDay(day), hour), minutes)
+      const slotEnd = addMinutes(slotStart, 30)
 
       const dayOverrides = overridesMap.get(dateStr)
 
@@ -146,6 +152,7 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
           if (o.is_available) return false
           const oStart = parse(o.start_time, 'HH:mm:ss', day)
           const oEnd = parse(o.end_time, 'HH:mm:ss', day)
+          // Standard overlap check
           return (
             (isBefore(oStart, slotEnd) && isAfter(oEnd, slotStart)) ||
             isEqual(oStart, slotStart)
@@ -184,8 +191,8 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
   )
 
   const getAppointmentsForSlot = useCallback(
-    (day: Date, hour: number) => {
-      const key = `${format(day, 'yyyy-MM-dd')}-${hour.toString().padStart(2, '0')}`
+    (day: Date, hour: number, minutes: number) => {
+      const key = `${format(day, 'yyyy-MM-dd')}-${hour.toString().padStart(2, '0')}-${minutes}`
       return appointmentsMap.get(key) || []
     },
     [appointmentsMap],
@@ -254,74 +261,82 @@ export const WeeklyAgendaView = ({ professionalId }: WeeklyAgendaViewProps) => {
               <div className="grid grid-cols-[60px_repeat(7,1fr)]">
                 {HOURS.map((hour) => (
                   <div key={hour} className="contents">
-                    <div className="p-2 text-xs text-muted-foreground text-right border-r border-b bg-muted/30 h-20">
-                      {`${hour.toString().padStart(2, '0')}:00`}
+                    {/* Hour Label */}
+                    <div className="text-xs text-muted-foreground text-right border-r border-b bg-muted/30 h-[80px]">
+                      <div className="p-1 h-[40px] flex items-center justify-end">
+                        {`${hour.toString().padStart(2, '0')}:00`}
+                      </div>
+                      <div className="p-1 h-[40px] flex items-center justify-end text-[10px] opacity-50">
+                        :30
+                      </div>
                     </div>
 
                     {days.map((day) => {
-                      const isAvailable = isSlotAvailable(day, hour)
-                      const slotAppointments = getAppointmentsForSlot(day, hour)
-
+                      // Render two 30-min sub-slots
                       return (
                         <div
                           key={`${day}-${hour}`}
-                          className={cn(
-                            'border-r border-b last:border-r-0 h-20 relative p-1 transition-colors',
-                            !isAvailable && 'bg-muted/30 diagonal-stripes',
-                            isAvailable && 'bg-background',
-                          )}
+                          className="border-r border-b last:border-r-0 h-[80px] flex flex-col"
                         >
-                          <div className="flex flex-col gap-1 h-full overflow-y-auto">
-                            {slotAppointments.map((appointment) => {
-                              const hasMissingNotes =
-                                appointment.status === 'completed' &&
-                                (!appointment.notes ||
-                                  appointment.notes.length === 0)
-                              return (
-                                <div
-                                  key={appointment.id}
-                                  onClick={() =>
-                                    handleAppointmentClick(appointment)
-                                  }
-                                  className={cn(
-                                    'rounded-md p-1.5 text-xs cursor-pointer hover:opacity-90 shadow-sm overflow-hidden flex flex-col gap-0.5 shrink-0 relative',
-                                    appointment.status === 'completed'
-                                      ? 'bg-green-100 text-green-800 border-green-200'
-                                      : appointment.status === 'cancelled'
-                                        ? 'bg-red-100 text-red-800 border-red-200'
-                                        : appointment.status === 'no_show'
-                                          ? 'bg-orange-100 text-orange-800 border-orange-200'
-                                          : 'bg-primary/15 text-primary border-primary/20 border',
-                                  )}
-                                >
-                                  {hasMissingNotes && (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <div className="absolute top-0.5 right-0.5">
-                                          <AlertCircle className="h-3 w-3 text-orange-600" />
-                                        </div>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Notas pendentes</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  )}
-                                  <div className="font-semibold truncate">
-                                    {appointment.clients.name}
-                                  </div>
-                                  <div className="truncate opacity-80">
-                                    {appointment.services.name}
-                                  </div>
-                                  <div className="mt-auto text-[10px] font-mono opacity-70">
-                                    {formatInTimeZone(
-                                      appointment.schedules.start_time,
-                                      'HH:mm',
-                                    )}
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
+                          {[0, 30].map((minutes) => {
+                            const isAvailable = isSlotAvailable(
+                              day,
+                              hour,
+                              minutes,
+                            )
+                            const slotAppointments = getAppointmentsForSlot(
+                              day,
+                              hour,
+                              minutes,
+                            )
+
+                            return (
+                              <div
+                                key={minutes}
+                                className={cn(
+                                  'h-[40px] w-full relative p-0.5 transition-colors border-b last:border-b-0 border-dashed border-gray-100',
+                                  !isAvailable &&
+                                    'bg-muted/30 diagonal-stripes',
+                                  isAvailable && 'bg-background',
+                                )}
+                              >
+                                {slotAppointments.map((appointment) => {
+                                  const hasMissingNotes =
+                                    appointment.status === 'completed' &&
+                                    (!appointment.notes ||
+                                      appointment.notes.length === 0)
+                                  return (
+                                    <div
+                                      key={appointment.id}
+                                      onClick={() =>
+                                        handleAppointmentClick(appointment)
+                                      }
+                                      className={cn(
+                                        'rounded-sm px-1 py-0.5 text-[10px] cursor-pointer hover:opacity-90 shadow-sm overflow-hidden flex items-center gap-1 shrink-0 relative h-full w-full',
+                                        appointment.status === 'completed'
+                                          ? 'bg-green-100 text-green-900 border-green-200'
+                                          : appointment.status === 'cancelled'
+                                            ? 'bg-red-100 text-red-900 border-red-200'
+                                            : appointment.status === 'no_show'
+                                              ? 'bg-orange-100 text-orange-900 border-orange-200'
+                                              : 'bg-primary/20 text-primary-900 border-primary/20 border',
+                                      )}
+                                    >
+                                      {hasMissingNotes && (
+                                        <AlertCircle className="h-3 w-3 text-orange-600 shrink-0" />
+                                      )}
+                                      <span className="font-bold truncate max-w-[50%]">
+                                        {appointment.clients.name}
+                                      </span>
+                                      <span className="truncate opacity-80 flex-1">
+                                        {appointment.services.name}
+                                      </span>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )
+                          })}
                         </div>
                       )
                     })}

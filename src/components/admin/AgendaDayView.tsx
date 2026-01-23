@@ -1,5 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
-import { addDays, subDays, format, startOfDay, endOfDay } from 'date-fns'
+import {
+  addDays,
+  subDays,
+  format,
+  startOfDay,
+  endOfDay,
+  setMinutes,
+} from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -30,7 +37,7 @@ const END_HOUR = 24
 const COMPACT_START = 7
 const COMPACT_END = 21
 const NORMAL_HEIGHT = 80
-const COMPACT_HEIGHT = 30
+const COMPACT_HEIGHT = 40 // Adjusted for 30min slots visibility
 
 const getHourHeight = (hour: number) => {
   if (hour < COMPACT_START || hour >= COMPACT_END) return COMPACT_HEIGHT
@@ -65,16 +72,19 @@ const getDurationHeight = (startTime: Date, durationMinutes: number) => {
   return height
 }
 
-const getHourFromY = (y: number) => {
+const getSlotFromY = (y: number) => {
   let currentY = 0
   for (let h = START_HOUR; h < END_HOUR; h++) {
     const height = getHourHeight(h)
     if (y >= currentY && y < currentY + height) {
-      return h
+      // Calculate if top (0-30) or bottom (30-60)
+      const relativeY = y - currentY
+      const minutes = relativeY < height / 2 ? 0 : 30
+      return { hour: h, minutes }
     }
     currentY += height
   }
-  return -1
+  return null
 }
 
 export const AgendaDayView = ({
@@ -86,7 +96,10 @@ export const AgendaDayView = ({
 }: AgendaDayViewProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [hoveredHour, setHoveredHour] = useState<number | null>(null)
+  const [hoveredSlot, setHoveredSlot] = useState<{
+    hour: number
+    minutes: number
+  } | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -127,16 +140,22 @@ export const AgendaDayView = ({
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const y = e.clientY - rect.top
-    const h = getHourFromY(y)
-    if (h !== -1) {
-      if (hoveredHour !== h) setHoveredHour(h)
+    const slot = getSlotFromY(y)
+
+    if (slot) {
+      if (
+        hoveredSlot?.hour !== slot.hour ||
+        hoveredSlot?.minutes !== slot.minutes
+      ) {
+        setHoveredSlot(slot)
+      }
     } else {
-      setHoveredHour(null)
+      setHoveredSlot(null)
     }
   }
 
   const handleMouseLeave = () => {
-    setHoveredHour(null)
+    setHoveredSlot(null)
   }
 
   return (
@@ -167,6 +186,9 @@ export const AgendaDayView = ({
                   className="border-b text-xs text-muted-foreground text-right pr-3 pt-2 relative"
                 >
                   <span className="-top-3 relative">{h}:00</span>
+                  <span className="absolute top-[50%] right-3 -translate-y-[50%] text-[10px] opacity-30 hidden group-hover:block">
+                    :30
+                  </span>
                 </div>
               ))}
             </div>
@@ -183,8 +205,11 @@ export const AgendaDayView = ({
                   <div
                     key={h}
                     style={{ height: getHourHeight(h) }}
-                    className="border-b border-dashed"
-                  />
+                    className="border-b border-dashed relative"
+                  >
+                    {/* 30-min subtle line */}
+                    <div className="absolute top-1/2 left-0 right-0 border-b border-dashed border-gray-100/50" />
+                  </div>
                 ))}
               </div>
 
@@ -258,38 +283,44 @@ export const AgendaDayView = ({
               })}
 
               {/* 3. Interaction Layer (Plus Buttons) */}
-              {hoveredHour !== null && (
+              {hoveredSlot !== null && (
                 <div
                   className="absolute w-full z-20 pointer-events-none"
                   style={{ top: 0, height: '100%' }}
                 >
                   {hours.map((h) => {
-                    if (h !== hoveredHour) return null
+                    if (h !== hoveredSlot.hour) return null
                     let offset = 0
                     for (let i = START_HOUR; i < h; i++) {
                       offset += getHourHeight(i)
                     }
 
+                    // Adjust offset for minutes
+                    if (hoveredSlot.minutes === 30) {
+                      offset += getHourHeight(h) / 2
+                    }
+
                     return (
                       <div
-                        key={h}
+                        key={`${h}-${hoveredSlot.minutes}`}
                         style={{
                           top: offset,
-                          height: getHourHeight(h),
+                          height: getHourHeight(h) / 2,
                         }}
                         className="absolute w-full flex items-center justify-center bg-black/5"
                       >
                         <Button
                           variant="secondary"
-                          className="rounded-full shadow-sm pointer-events-auto animate-in fade-in zoom-in duration-100"
+                          className="rounded-full shadow-sm pointer-events-auto animate-in fade-in zoom-in duration-100 h-8"
                           onClick={() => {
                             const targetTime = new Date(currentDate)
-                            targetTime.setHours(h, 0, 0, 0)
+                            targetTime.setHours(h, hoveredSlot.minutes, 0, 0)
                             onTimeSlotClick(targetTime, true)
                           }}
                         >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Agendar às {h}:00
+                          <Plus className="h-3 w-3 mr-2" />
+                          Agendar às {h}:
+                          {hoveredSlot.minutes === 0 ? '00' : '30'}
                         </Button>
                       </div>
                     )
