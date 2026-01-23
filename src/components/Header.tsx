@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { UserNav } from './header/UserNav'
 import { MobileNav } from './header/MobileNav'
@@ -7,13 +7,27 @@ import { Skeleton } from './ui/skeleton'
 
 export const Header = () => {
   const isMobile = useIsMobile()
-  const { user, loading } = useAuth()
+  const { user, loading, role } = useAuth()
+  const location = useLocation()
+
+  // Determine if we are in an admin context for branding
+  const isAdminContext =
+    (role === 'admin' && location.pathname === '/') ||
+    location.pathname.startsWith('/admin')
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
           <span className="font-bold text-lg text-primary">FPL Saúde</span>
+          {isAdminContext && (
+            <>
+              <span className="text-muted-foreground hidden sm:inline">|</span>
+              <span className="text-sm md:text-lg text-muted-foreground font-medium truncate hidden sm:inline-block">
+                Dashboard Administrativo
+              </span>
+            </>
+          )}
         </Link>
         <nav>
           {loading ? (
@@ -29,7 +43,7 @@ export const Header = () => {
               <UserNav />
             )
           ) : (
-            // Fallback for safety - shouldn't be reached inside protected layout
+            // Fallback for safety
             <div className="w-8 h-8" />
           )}
         </nav>

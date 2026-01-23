@@ -123,8 +123,8 @@ export const AgendaView = () => {
           value={viewMode}
           onValueChange={(value: ViewMode) => value && setViewMode(value)}
         >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Selecionar visualização" />
+          <SelectTrigger className="w-[130px]">
+            <SelectValue placeholder="Visualização" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="list">Lista</SelectItem>
@@ -140,17 +140,34 @@ export const AgendaView = () => {
         type="single"
         value={viewMode}
         onValueChange={(value: ViewMode) => value && setViewMode(value)}
+        className="border rounded-md p-1 h-9"
       >
-        <ToggleGroupItem value="list" aria-label="List view">
+        <ToggleGroupItem
+          value="list"
+          aria-label="List view"
+          className="h-7 w-7 p-0"
+        >
           <List className="h-4 w-4" />
         </ToggleGroupItem>
-        <ToggleGroupItem value="month" aria-label="Month view">
+        <ToggleGroupItem
+          value="month"
+          aria-label="Month view"
+          className="h-7 w-7 p-0"
+        >
           <Calendar className="h-4 w-4" />
         </ToggleGroupItem>
-        <ToggleGroupItem value="week" aria-label="Week view">
+        <ToggleGroupItem
+          value="week"
+          aria-label="Week view"
+          className="h-7 w-7 p-0"
+        >
           <View className="h-4 w-4" />
         </ToggleGroupItem>
-        <ToggleGroupItem value="day" aria-label="Day view">
+        <ToggleGroupItem
+          value="day"
+          aria-label="Day view"
+          className="h-7 w-7 p-0"
+        >
           <Columns className="h-4 w-4" />
         </ToggleGroupItem>
       </ToggleGroup>
@@ -160,14 +177,33 @@ export const AgendaView = () => {
   return (
     <>
       <div className="space-y-4">
-        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-          <div className="flex flex-wrap gap-2 w-full xl:w-auto items-center">
+        {/* Single Row Header Optimization */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b pb-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-semibold tracking-tight shrink-0">
+              Agenda Centralizada
+            </h2>
+            {/* Divider */}
+            <div className="h-6 w-px bg-border hidden lg:block" />
+            {/* Desktop Refresh */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDataRefresh}
+              title="Atualizar Dados"
+              className="hidden lg:flex"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
             <Select
               value={selectedProfessional}
               onValueChange={setSelectedProfessional}
             >
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Filtrar Profissional" />
+              <SelectTrigger className="w-full sm:w-[220px]">
+                <SelectValue placeholder="Profissional" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os Profissionais</SelectItem>
@@ -187,17 +223,21 @@ export const AgendaView = () => {
               />
             )}
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDataRefresh}
-              title="Atualizar Dados"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+              {renderViewSwitcher()}
 
-          <div className="w-full xl:w-auto">{renderViewSwitcher()}</div>
+              {/* Mobile Refresh */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleDataRefresh}
+                title="Atualizar Dados"
+                className="lg:hidden"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
 
         {renderView()}

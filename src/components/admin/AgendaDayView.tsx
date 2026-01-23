@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
-import {
-  addDays,
-  subDays,
-  format,
-  startOfDay,
-  endOfDay,
-  setMinutes,
-} from 'date-fns'
+import { addDays, subDays, format, startOfDay, endOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, Plus, AlertCircle } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  AlertCircle,
+  Maximize2,
+  Minimize2,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getAppointmentsForRange } from '@/services/appointments'
@@ -31,61 +31,7 @@ interface AgendaDayViewProps {
   selectedProfessional: string
 }
 
-// Timeline constants
-const START_HOUR = 0
-const END_HOUR = 24
-const COMPACT_START = 7
-const COMPACT_END = 21
 const NORMAL_HEIGHT = 80
-const COMPACT_HEIGHT = 40 // Adjusted for 30min slots visibility
-
-const getHourHeight = (hour: number) => {
-  if (hour < COMPACT_START || hour >= COMPACT_END) return COMPACT_HEIGHT
-  return NORMAL_HEIGHT
-}
-
-const getTopOffset = (time: Date) => {
-  const timeStr = formatInTimeZone(time, 'HH:mm')
-  const [h, m] = timeStr.split(':').map(Number)
-
-  let offset = 0
-  for (let i = 0; i < h; i++) {
-    offset += getHourHeight(i)
-  }
-  offset += (m / 60) * getHourHeight(h)
-  return offset
-}
-
-const getDurationHeight = (startTime: Date, durationMinutes: number) => {
-  const startStr = formatInTimeZone(startTime, 'HH:mm')
-  let [h, m] = startStr.split(':').map(Number)
-  let height = 0
-  let remaining = durationMinutes
-  while (remaining > 0) {
-    const minutesLeftInHour = 60 - m
-    const chunk = Math.min(remaining, minutesLeftInHour)
-    height += (chunk / 60) * getHourHeight(h)
-    remaining -= chunk
-    h = (h + 1) % 24
-    m = 0
-  }
-  return height
-}
-
-const getSlotFromY = (y: number) => {
-  let currentY = 0
-  for (let h = START_HOUR; h < END_HOUR; h++) {
-    const height = getHourHeight(h)
-    if (y >= currentY && y < currentY + height) {
-      // Calculate if top (0-30) or bottom (30-60)
-      const relativeY = y - currentY
-      const minutes = relativeY < height / 2 ? 0 : 30
-      return { hour: h, minutes }
-    }
-    currentY += height
-  }
-  return null
-}
 
 export const AgendaDayView = ({
   currentDate,
@@ -96,6 +42,7 @@ export const AgendaDayView = ({
 }: AgendaDayViewProps) => {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isExpanded, setIsExpanded] = useState(false)
   const [hoveredSlot, setHoveredSlot] = useState<{
     hour: number
     minutes: number
@@ -117,9 +64,40 @@ export const AgendaDayView = ({
     fetchData()
   }, [selectedProfessional, currentDate])
 
+  const hours = useMemo(() => {
+    if (isExpanded) {
+      return Array.from({ length: 24 }, (_, i) => i)
+    }
+    return Array.from({ length: 15 }, (_, i) => i + 6) // 06:00 to 20:59
+  }, [isExpanded])
+
+  const getTopOffset = (time: Date) => {
+    const timeStr = formatInTimeZone(time, 'HH:mm')
+    const [h, m] = timeStr.split(':').map(Number)
+
+    let effectiveH = h
+    if (!isExpanded) {
+      if (h < 6) effectiveH = 6
+      if (h > 20) effectiveH = 20
+    }
+
+    const startHour = isExpanded ? 0 : 6
+    const hoursPassed = Math.max(0, effectiveH - startHour)
+
+    return hoursPassed * NORMAL_HEIGHT + (m / 60) * NORMAL_HEIGHT
+  }
+
+  const getDurationHeight = (startTime: Date, durationMinutes: number) => {
+    return (durationMinutes / 60) * NORMAL_HEIGHT
+  }
+
   const dayAppointments = useMemo(() => {
     const filtered = appointments.filter((appt) => {
       if (!appt.schedules?.start_time) return false
+      // Filter collapsed hours
+      const h = parseInt(formatInTimeZone(appt.schedules.start_time, 'HH'))
+      if (!isExpanded && (h < 6 || h >= 21)) return false
+
       return (
         formatInTimeZone(appt.schedules.start_time, 'yyyy-MM-dd') ===
         format(currentDate, 'yyyy-MM-dd')
@@ -127,30 +105,30 @@ export const AgendaDayView = ({
     })
 
     return computeEventLayout(filtered, getTopOffset, getDurationHeight)
-  }, [appointments, currentDate])
+  }, [appointments, currentDate, isExpanded])
 
   const nextDay = () => onDateChange(addDays(currentDate, 1))
   const prevDay = () => onDateChange(subDays(currentDate, 1))
 
-  const hours = Array.from(
-    { length: END_HOUR - START_HOUR },
-    (_, i) => i + START_HOUR,
-  )
-
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const y = e.clientY - rect.top
-    const slot = getSlotFromY(y)
 
-    if (slot) {
-      if (
-        hoveredSlot?.hour !== slot.hour ||
-        hoveredSlot?.minutes !== slot.minutes
-      ) {
-        setHoveredSlot(slot)
-      }
-    } else {
+    const startHour = isExpanded ? 0 : 6
+    const hourIndex = Math.floor(y / NORMAL_HEIGHT)
+    const currentHour = startHour + hourIndex
+
+    const maxHour = isExpanded ? 23 : 20
+    if (currentHour > maxHour) {
       setHoveredSlot(null)
+      return
+    }
+
+    const relativeY = y % NORMAL_HEIGHT
+    const minutes = relativeY < NORMAL_HEIGHT / 2 ? 0 : 30
+
+    if (hoveredSlot?.hour !== currentHour || hoveredSlot?.minutes !== minutes) {
+      setHoveredSlot({ hour: currentHour, minutes })
     }
   }
 
@@ -161,14 +139,30 @@ export const AgendaDayView = ({
   return (
     <div className="p-4 border rounded-lg flex flex-col h-[800px]">
       <div className="flex justify-between items-center mb-4 shrink-0">
-        <Button variant="outline" size="icon" onClick={prevDay}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <h2 className="text-xl font-semibold capitalize">
-          {format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-        </h2>
-        <Button variant="outline" size="icon" onClick={nextDay}>
-          <ChevronRight className="h-4 w-4" />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={prevDay}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="text-lg md:text-xl font-semibold capitalize w-[250px] text-center">
+            {format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+          </h2>
+          <Button variant="outline" size="icon" onClick={nextDay}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="text-muted-foreground"
+        >
+          {isExpanded ? (
+            <Minimize2 className="mr-2 h-4 w-4" />
+          ) : (
+            <Maximize2 className="mr-2 h-4 w-4" />
+          )}
+          {isExpanded ? 'Recolher Horários' : 'Expandir Dia'}
         </Button>
       </div>
 
@@ -177,18 +171,15 @@ export const AgendaDayView = ({
       ) : (
         <div className="flex-1 overflow-y-auto relative border rounded-md bg-white">
           <div className="flex relative min-h-full">
-            {/* Time Column */}
+            {/* Time Column - Centered Alignment */}
             <div className="w-20 shrink-0 border-r bg-muted/10 sticky left-0 z-30 bg-background">
               {hours.map((h) => (
                 <div
                   key={h}
-                  style={{ height: getHourHeight(h) }}
-                  className="border-b text-xs text-muted-foreground text-right pr-3 pt-2 relative"
+                  style={{ height: NORMAL_HEIGHT }}
+                  className="border-b text-xs text-muted-foreground flex items-center justify-center relative"
                 >
-                  <span className="-top-3 relative">{h}:00</span>
-                  <span className="absolute top-[50%] right-3 -translate-y-[50%] text-[10px] opacity-30 hidden group-hover:block">
-                    :30
-                  </span>
+                  {h}:00
                 </div>
               ))}
             </div>
@@ -204,7 +195,7 @@ export const AgendaDayView = ({
                 {hours.map((h) => (
                   <div
                     key={h}
-                    style={{ height: getHourHeight(h) }}
+                    style={{ height: NORMAL_HEIGHT }}
                     className="border-b border-dashed relative"
                   >
                     {/* 30-min subtle line */}
@@ -231,7 +222,7 @@ export const AgendaDayView = ({
                       left: `${left}%`,
                       width: adjustedWidth,
                       position: 'absolute',
-                      padding: '2px', // Gap
+                      padding: '2px',
                     }}
                     className="z-10"
                   >
@@ -288,24 +279,21 @@ export const AgendaDayView = ({
                   className="absolute w-full z-20 pointer-events-none"
                   style={{ top: 0, height: '100%' }}
                 >
-                  {hours.map((h) => {
-                    if (h !== hoveredSlot.hour) return null
-                    let offset = 0
-                    for (let i = START_HOUR; i < h; i++) {
-                      offset += getHourHeight(i)
-                    }
-
-                    // Adjust offset for minutes
+                  {/* Calculate offset for single hovered slot */}
+                  {(() => {
+                    const startHour = isExpanded ? 0 : 6
+                    const h = hoveredSlot.hour
+                    const offsetRows = h - startHour
+                    let offset = offsetRows * NORMAL_HEIGHT
                     if (hoveredSlot.minutes === 30) {
-                      offset += getHourHeight(h) / 2
+                      offset += NORMAL_HEIGHT / 2
                     }
 
                     return (
                       <div
-                        key={`${h}-${hoveredSlot.minutes}`}
                         style={{
                           top: offset,
-                          height: getHourHeight(h) / 2,
+                          height: NORMAL_HEIGHT / 2,
                         }}
                         className="absolute w-full flex items-center justify-center bg-black/5"
                       >
@@ -324,7 +312,7 @@ export const AgendaDayView = ({
                         </Button>
                       </div>
                     )
-                  })}
+                  })()}
                 </div>
               )}
             </div>

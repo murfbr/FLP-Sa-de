@@ -17,7 +17,10 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { Professional, Client } from '@/types'
-import { getAllProfessionals } from '@/services/professionals'
+import {
+  getAllProfessionals,
+  getProfessionalById,
+} from '@/services/professionals'
 import { getAllClients } from '@/services/clients'
 import { UpcomingAppointments } from '@/components/admin/UpcomingAppointments'
 import { ProfessionalsList } from '@/components/admin/ProfessionalsList'
@@ -39,11 +42,12 @@ import {
 } from '@/components/ui/select'
 import { BirthdaysList } from '@/components/admin/BirthdaysList'
 import { ClientOnboardingDialog } from '@/components/admin/ClientOnboardingDialog'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 type ClientStatusFilter = 'all' | 'active' | 'inactive'
 
 const AdminDashboard = () => {
-  const { user } = useAuth()
+  const { user, professionalId } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [clients, setClients] = useState<Client[]>([])
@@ -57,8 +61,20 @@ const AdminDashboard = () => {
   const [newlyCreatedClient, setNewlyCreatedClient] = useState<Client | null>(
     null,
   )
+  const [userName, setUserName] = useState<string>('')
+  const isMobile = useIsMobile()
 
   const currentTab = searchParams.get('tab') || 'overview'
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      if (professionalId) {
+        const { data } = await getProfessionalById(professionalId)
+        if (data) setUserName(data.name)
+      }
+    }
+    fetchUserName()
+  }, [professionalId])
 
   const fetchData = async () => {
     setIsLoading(true)
@@ -94,15 +110,25 @@ const AdminDashboard = () => {
     )
   })
 
+  const tabOptions = [
+    { value: 'overview', label: 'Visão Geral', icon: BarChart },
+    { value: 'kpi', label: 'Indicadores', icon: LayoutDashboard },
+    { value: 'agenda', label: 'Agenda', icon: Calendar },
+    { value: 'professionals', label: 'Profissionais', icon: Briefcase },
+    { value: 'patients', label: 'Pacientes', icon: Users },
+    { value: 'services', label: 'Serviços e Pacotes', icon: Stethoscope },
+    { value: 'partnerships', label: 'Parcerias', icon: Handshake },
+  ]
+
   return (
     <>
-      <div className="container mx-auto py-8 px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold font-sans">
+      <div className="container mx-auto py-6 px-4">
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold font-sans tracking-tight">
             Dashboard Administrativo
           </h1>
-          <p className="text-md md:text-lg text-muted-foreground">
-            Bem-vindo, {user?.email || 'Administrador'}.
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
+            Bem-vindo, {userName || user?.email || 'Administrador'}.
           </p>
         </div>
 
@@ -111,39 +137,37 @@ const AdminDashboard = () => {
           onValueChange={handleTabChange}
           className="w-full"
         >
-          <ScrollArea className="w-full whitespace-nowrap">
-            <TabsList className="inline-flex h-auto p-1 mb-6 w-max flex-wrap sm:flex-nowrap">
-              <TabsTrigger value="overview">
-                <BarChart className="w-4 h-4 mr-2" />
-                Visão Geral
-              </TabsTrigger>
-              <TabsTrigger value="kpi">
-                <LayoutDashboard className="w-4 h-4 mr-2" />
-                Indicadores
-              </TabsTrigger>
-              <TabsTrigger value="agenda">
-                <Calendar className="w-4 h-4 mr-2" />
-                Agenda
-              </TabsTrigger>
-              <TabsTrigger value="professionals">
-                <Briefcase className="w-4 h-4 mr-2" />
-                Profissionais
-              </TabsTrigger>
-              <TabsTrigger value="patients">
-                <Users className="w-4 h-4 mr-2" />
-                Pacientes
-              </TabsTrigger>
-              <TabsTrigger value="services">
-                <Stethoscope className="w-4 h-4 mr-2" />
-                Serviços e Pacotes
-              </TabsTrigger>
-              <TabsTrigger value="partnerships">
-                <Handshake className="w-4 h-4 mr-2" />
-                Parcerias
-              </TabsTrigger>
-            </TabsList>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          {isMobile ? (
+            <div className="mb-6">
+              <Select value={currentTab} onValueChange={handleTabChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione uma seção" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tabOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center gap-2">
+                        <option.icon className="h-4 w-4" />
+                        {option.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <ScrollArea className="w-full whitespace-nowrap">
+              <TabsList className="inline-flex h-auto p-1 mb-6 w-max flex-wrap sm:flex-nowrap">
+                {tabOptions.map((option) => (
+                  <TabsTrigger key={option.value} value={option.value}>
+                    <option.icon className="w-4 h-4 mr-2" />
+                    {option.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          )}
 
           <TabsContent value="overview">
             <div className="grid gap-6 md:grid-cols-3">
@@ -194,10 +218,7 @@ const AdminDashboard = () => {
 
           <TabsContent value="agenda">
             <Card>
-              <CardHeader>
-                <CardTitle>Agenda Centralizada</CardTitle>
-              </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6">
                 <AgendaView />
               </CardContent>
             </Card>
