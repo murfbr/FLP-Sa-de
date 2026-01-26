@@ -76,6 +76,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/providers/AuthProvider'
 import { ClientSelector } from './ClientSelector'
 import { getFriendlyErrorMessage } from '@/lib/error-mapping'
+import { Badge } from '@/components/ui/badge'
 
 const appointmentSchema = z
   .object({
@@ -277,7 +278,13 @@ export const AppointmentFormDialog = ({
         form.setValue('packageId', matchingPackages[0].id)
         form.setValue('usePackage', true)
       } else {
+        // If subscription is active, usePackage is moot, but we can uncheck it or leave it.
+        // If nothing active, default to unchecked (casual).
         form.setValue('packageId', undefined)
+        // If no packages, usePackage doesn't matter, but good to keep state clean
+        if (matchingPackages.length === 0) {
+          form.setValue('usePackage', false)
+        }
       }
 
       setCheckingEntitlements(false)
@@ -331,10 +338,19 @@ export const AppointmentFormDialog = ({
   }
 
   const onSubmit = async (values: AppointmentFormValues) => {
-    const packageIdToUse =
-      values.usePackage && !activeSubscription && availablePackages.length > 0
-        ? values.packageId
-        : undefined
+    // Determine coverage at submission time to ensure data consistency
+    const hasActiveSubscription = !!activeSubscription
+    // Only use package if NO subscription is active and user opted to use package
+    const usesPackage =
+      values.usePackage &&
+      !hasActiveSubscription &&
+      availablePackages.length > 0
+
+    const packageIdToUse = usesPackage ? values.packageId : undefined
+
+    // If covered by plan or package, discount/price fields should be ignored/zeroed
+    const discountToUse =
+      hasActiveSubscription || usesPackage ? 0 : values.discount || 0
 
     try {
       let result
@@ -350,7 +366,7 @@ export const AppointmentFormDialog = ({
           values.startTime,
           values.recurrenceWeeks,
           packageIdToUse,
-          values.discount,
+          discountToUse,
         )
       } else {
         result = await bookAppointment(
@@ -360,7 +376,7 @@ export const AppointmentFormDialog = ({
           values.startTime,
           packageIdToUse,
           values.isRecurring,
-          values.discount,
+          discountToUse,
         )
       }
 
@@ -386,6 +402,12 @@ export const AppointmentFormDialog = ({
 
   const originalPrice = selectedService?.price || 0
   const finalPrice = Math.max(0, originalPrice - discount)
+
+  // Helpers for render logic
+  const isPackageMode =
+    !activeSubscription && usePackage && availablePackages.length > 0
+  const isSubscriptionMode = !!activeSubscription
+  const isCasualMode = !isSubscriptionMode && !isPackageMode
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -493,7 +515,7 @@ export const AppointmentFormDialog = ({
               )}
             />
 
-            {/* Financial Section */}
+            {/* Financial Section - Dynamic Visibility */}
             {clientId && serviceId && (
               <div className="p-4 bg-muted/30 rounded-lg border">
                 <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
@@ -501,131 +523,163 @@ export const AppointmentFormDialog = ({
                   Financeiro
                 </h4>
 
-                {/* Always visible Discount Field */}
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="discount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Desconto Pontual (R$)</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              type="number"
-                              className="pl-9"
-                              placeholder="0,00"
-                              min={0}
-                              step="0.01"
-                              {...field}
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Entitlements Info (Package/Sub) */}
-                  {!checkingEntitlements && (
-                    <div className="border-t pt-4">
-                      {activeSubscription ? (
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-center text-green-600 gap-2 text-sm font-medium">
-                            <CheckCircle className="w-4 h-4" />
-                            <span>Plano Ativo</span>
-                          </div>
-                          <div className="text-sm text-muted-foreground ml-6">
-                            {activeSubscription.subscription_plans?.name ||
-                              'Assinatura Mensal'}
-                          </div>
-                        </div>
-                      ) : availablePackages.length > 0 ? (
-                        <>
-                          <FormField
-                            control={form.control}
-                            name="usePackage"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 mb-3">
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                                <div className="space-y-1 leading-none">
-                                  <FormLabel>Usar Pacote de Sessões</FormLabel>
-                                  <FormDescription>
-                                    {availablePackages.length} pacote(s)
-                                    disponível.
-                                  </FormDescription>
-                                </div>
-                              </FormItem>
-                            )}
-                          />
-
-                          {usePackage && (
-                            <FormField
-                              control={form.control}
-                              name="packageId"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <Select
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                    value={field.value}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Selecione o pacote" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {availablePackages.map((pkg) => (
-                                        <SelectItem key={pkg.id} value={pkg.id}>
-                                          {pkg.packages.name} (
-                                          {pkg.sessions_remaining} restantes)
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          )}
-                        </>
-                      ) : (
-                        <div className="text-sm text-muted-foreground flex flex-col gap-2">
-                          <p>Sem planos ou pacotes ativos.</p>
-                          <Button
-                            variant="link"
-                            className="p-0 h-auto text-xs justify-start"
-                            onClick={handleNavigateToProfile}
-                            type="button"
-                          >
-                            Gerenciar Contratos do Cliente{' '}
-                            <ExternalLink className="w-3 h-3 ml-1" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Price Summary */}
-                  <div className="flex justify-between items-center text-sm pt-2 border-t mt-2">
-                    <span className="text-muted-foreground">Preço Final:</span>
-                    <div className="flex flex-col items-end">
-                      <span className="line-through text-xs text-muted-foreground">
-                        R$ {originalPrice.toFixed(2)}
-                      </span>
-                      <span className="font-bold text-green-600">
-                        R$ {finalPrice.toFixed(2)}
-                      </span>
-                    </div>
+                {checkingEntitlements ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Verificando planos ativos...
                   </div>
-                </div>
+                ) : (
+                  <>
+                    {/* Subscription Mode */}
+                    {isSubscriptionMode && (
+                      <div className="flex flex-col gap-2 p-3 bg-green-50 border border-green-100 rounded-md">
+                        <div className="flex items-center text-green-700 gap-2 text-sm font-medium">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Coberto por Assinatura</span>
+                        </div>
+                        <div className="text-sm text-green-600 ml-6">
+                          {activeSubscription?.subscription_plans?.name ||
+                            'Plano Mensal Ativo'}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Package Option Toggle - Only show if NO subscription and packages exist */}
+                    {!isSubscriptionMode && availablePackages.length > 0 && (
+                      <FormField
+                        control={form.control}
+                        name="usePackage"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 mb-3">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Usar Pacote de Sessões</FormLabel>
+                              <FormDescription>
+                                {availablePackages.length} pacote(s) disponível.
+                              </FormDescription>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {/* Package Mode */}
+                    {isPackageMode && (
+                      <div className="space-y-3 animate-in fade-in slide-in-from-top-1">
+                        <FormField
+                          control={form.control}
+                          name="packageId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                value={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecione o pacote" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {availablePackages.map((pkg) => (
+                                    <SelectItem key={pkg.id} value={pkg.id}>
+                                      {pkg.packages.name} (
+                                      {pkg.sessions_remaining} restantes)
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="p-3 bg-blue-50 border border-blue-100 rounded-md text-blue-700 text-sm flex gap-2 items-center">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>
+                            Sessão coberta por pacote. Nenhum pagamento avulso
+                            necessário.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Casual Mode - Financial Fields */}
+                    {isCasualMode && (
+                      <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-1">
+                        <div className="flex items-center justify-between">
+                          <Badge
+                            variant="outline"
+                            className="text-amber-600 border-amber-200 bg-amber-50"
+                          >
+                            Sessão Avulsa
+                          </Badge>
+                          {availablePackages.length === 0 && (
+                            <Button
+                              variant="link"
+                              className="p-0 h-auto text-xs"
+                              onClick={handleNavigateToProfile}
+                              type="button"
+                            >
+                              Ver Contratos{' '}
+                              <ExternalLink className="w-3 h-3 ml-1" />
+                            </Button>
+                          )}
+                        </div>
+
+                        <FormField
+                          control={form.control}
+                          name="discount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Desconto Pontual (R$)</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                  <Input
+                                    type="number"
+                                    className="pl-9"
+                                    placeholder="0,00"
+                                    min={0}
+                                    step="0.01"
+                                    {...field}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="space-y-1 pt-2 border-t">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">
+                              Valor do Serviço:
+                            </span>
+                            <span>R$ {originalPrice.toFixed(2)}</span>
+                          </div>
+                          {discount > 0 && (
+                            <div className="flex justify-between items-center text-sm text-red-500">
+                              <span>Desconto:</span>
+                              <span>- R$ {discount.toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between items-center text-base pt-1">
+                            <span className="font-medium">Total a Pagar:</span>
+                            <span className="font-bold text-green-600">
+                              R$ {finalPrice.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
