@@ -42,6 +42,7 @@ import {
   Loader2,
   ExternalLink,
   DollarSign,
+  Percent,
 } from 'lucide-react'
 import { cn, formatInTimeZone } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -54,6 +55,7 @@ import {
   Schedule,
   ClientPackageWithDetails,
   ClientSubscription,
+  PartnershipDiscount,
 } from '@/types'
 import {
   getAllClients,
@@ -71,6 +73,7 @@ import {
   bookAppointment,
   bookRecurringAppointments,
 } from '@/services/appointments'
+import { getDiscountsForPartnership } from '@/services/partnerships'
 import { AvailableSlots } from '@/components/AvailableSlots'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/providers/AuthProvider'
@@ -144,13 +147,15 @@ export const AppointmentFormDialog = ({
     dates: false,
   })
 
-  // Entitlements
+  // Entitlements & Discounts
   const [availablePackages, setAvailablePackages] = useState<
     ClientPackageWithDetails[]
   >([])
   const [activeSubscription, setActiveSubscription] =
     useState<ClientSubscription | null>(null)
   const [checkingEntitlements, setCheckingEntitlements] = useState(false)
+  const [appliedPartnershipDiscount, setAppliedPartnershipDiscount] =
+    useState<PartnershipDiscount | null>(null)
 
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
@@ -176,6 +181,7 @@ export const AppointmentFormDialog = ({
   const discount = form.watch('discount') || 0
 
   const selectedService = services.find((s) => s.id === serviceId)
+  const selectedClient = clients.find((c) => c.id === clientId)
 
   // Initialize form
   useEffect(() => {
@@ -213,6 +219,7 @@ export const AppointmentFormDialog = ({
       setProfessionals([])
       setAvailablePackages([])
       setActiveSubscription(null)
+      setAppliedPartnershipDiscount(null)
     }
   }, [isOpen, initialDate, form, preselectedProfessionalId, isSpecificTimeSlot])
 
@@ -248,12 +255,14 @@ export const AppointmentFormDialog = ({
     fetchProfessionals()
   }, [serviceId, initialDate, isSpecificTimeSlot, form])
 
-  // Check entitlements (Subscriptions & Packages)
+  // Check entitlements (Subscriptions, Packages) and Discounts
   useEffect(() => {
-    const checkEntitlements = async () => {
+    const checkEntitlementsAndDiscounts = async () => {
       if (!clientId || !serviceId) {
         setAvailablePackages([])
         setActiveSubscription(null)
+        setAppliedPartnershipDiscount(null)
+        form.setValue('discount', 0)
         return
       }
 
@@ -271,17 +280,41 @@ export const AppointmentFormDialog = ({
         pkgs?.filter((pkg) => pkg.packages.service_id === serviceId) || []
       setAvailablePackages(matchingPackages)
 
-      // Default logic:
-      // If subscription exists, UI shows it automatically.
-      // If not, but packages exist, select the first one.
+      // 3. Check Partnership Discounts
+      let foundDiscount: PartnershipDiscount | null = null
+      const client = clients.find((c) => c.id === clientId)
+      const service = services.find((s) => s.id === serviceId)
+
+      if (client?.partnership_id && service) {
+        const { data: discounts } = await getDiscountsForPartnership(
+          client.partnership_id,
+        )
+        // Find specific service discount or global partnership discount
+        foundDiscount =
+          discounts?.find(
+            (d) => d.service_id === serviceId || d.service_id === null,
+          ) || null
+
+        if (foundDiscount) {
+          const discountAmount =
+            service.price * (foundDiscount.discount_percentage / 100)
+          form.setValue('discount', parseFloat(discountAmount.toFixed(2)))
+          setAppliedPartnershipDiscount(foundDiscount)
+        } else {
+          form.setValue('discount', 0)
+          setAppliedPartnershipDiscount(null)
+        }
+      } else {
+        form.setValue('discount', 0)
+        setAppliedPartnershipDiscount(null)
+      }
+
+      // Default logic for packages/subscription selection
       if (!matchingSub && matchingPackages.length > 0) {
         form.setValue('packageId', matchingPackages[0].id)
         form.setValue('usePackage', true)
       } else {
-        // If subscription is active, usePackage is moot, but we can uncheck it or leave it.
-        // If nothing active, default to unchecked (casual).
         form.setValue('packageId', undefined)
-        // If no packages, usePackage doesn't matter, but good to keep state clean
         if (matchingPackages.length === 0) {
           form.setValue('usePackage', false)
         }
@@ -290,8 +323,8 @@ export const AppointmentFormDialog = ({
       setCheckingEntitlements(false)
     }
 
-    checkEntitlements()
-  }, [clientId, serviceId, form])
+    checkEntitlementsAndDiscounts()
+  }, [clientId, serviceId, form, clients, services])
 
   // Available Dates & Slots (Manual Mode)
   useEffect(() => {
@@ -338,9 +371,7 @@ export const AppointmentFormDialog = ({
   }
 
   const onSubmit = async (values: AppointmentFormValues) => {
-    // Determine coverage at submission time to ensure data consistency
     const hasActiveSubscription = !!activeSubscription
-    // Only use package if NO subscription is active and user opted to use package
     const usesPackage =
       values.usePackage &&
       !hasActiveSubscription &&
@@ -348,7 +379,7 @@ export const AppointmentFormDialog = ({
 
     const packageIdToUse = usesPackage ? values.packageId : undefined
 
-    // If covered by plan or package, discount/price fields should be ignored/zeroed
+    // If covered by plan or package, discount/price fields should be ignored/zeroed in terms of payment
     const discountToUse =
       hasActiveSubscription || usesPackage ? 0 : values.discount || 0
 
@@ -403,7 +434,6 @@ export const AppointmentFormDialog = ({
   const originalPrice = selectedService?.price || 0
   const finalPrice = Math.max(0, originalPrice - discount)
 
-  // Helpers for render logic
   const isPackageMode =
     !activeSubscription && usePackage && availablePackages.length > 0
   const isSubscriptionMode = !!activeSubscription
@@ -515,7 +545,7 @@ export const AppointmentFormDialog = ({
               )}
             />
 
-            {/* Financial Section - Dynamic Visibility */}
+            {/* Financial Section */}
             {clientId && serviceId && (
               <div className="p-4 bg-muted/30 rounded-lg border">
                 <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
@@ -526,7 +556,7 @@ export const AppointmentFormDialog = ({
                 {checkingEntitlements ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    Verificando planos ativos...
+                    Verificando planos e descontos...
                   </div>
                 ) : (
                   <>
@@ -544,7 +574,7 @@ export const AppointmentFormDialog = ({
                       </div>
                     )}
 
-                    {/* Package Option Toggle - Only show if NO subscription and packages exist */}
+                    {/* Package Option */}
                     {!isSubscriptionMode && availablePackages.length > 0 && (
                       <FormField
                         control={form.control}
@@ -609,16 +639,29 @@ export const AppointmentFormDialog = ({
                       </div>
                     )}
 
-                    {/* Casual Mode - Financial Fields */}
+                    {/* Casual Mode (or Paid) */}
                     {isCasualMode && (
                       <div className="space-y-4 pt-2 animate-in fade-in slide-in-from-top-1">
                         <div className="flex items-center justify-between">
-                          <Badge
-                            variant="outline"
-                            className="text-amber-600 border-amber-200 bg-amber-50"
-                          >
-                            Sessão Avulsa
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className="text-amber-600 border-amber-200 bg-amber-50"
+                            >
+                              Sessão Avulsa
+                            </Badge>
+                            {appliedPartnershipDiscount && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-green-100 text-green-800 border-green-200 flex items-center gap-1"
+                              >
+                                <Percent className="w-3 h-3" />
+                                Parceria {selectedClient?.partnerships?.name} (
+                                {appliedPartnershipDiscount.discount_percentage}
+                                %)
+                              </Badge>
+                            )}
+                          </div>
                           {availablePackages.length === 0 && (
                             <Button
                               variant="link"
@@ -637,7 +680,7 @@ export const AppointmentFormDialog = ({
                           name="discount"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Desconto Pontual (R$)</FormLabel>
+                              <FormLabel>Desconto (R$)</FormLabel>
                               <FormControl>
                                 <div className="relative">
                                   <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -651,6 +694,11 @@ export const AppointmentFormDialog = ({
                                   />
                                 </div>
                               </FormControl>
+                              <FormDescription>
+                                {appliedPartnershipDiscount
+                                  ? 'Desconto aplicado automaticamente pela parceria.'
+                                  : 'Insira um valor se houver desconto manual.'}
+                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -664,7 +712,7 @@ export const AppointmentFormDialog = ({
                             <span>R$ {originalPrice.toFixed(2)}</span>
                           </div>
                           {discount > 0 && (
-                            <div className="flex justify-between items-center text-sm text-red-500">
+                            <div className="flex justify-between items-center text-sm text-green-600">
                               <span>Desconto:</span>
                               <span>- R$ {discount.toFixed(2)}</span>
                             </div>
