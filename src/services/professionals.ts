@@ -24,15 +24,22 @@ export async function getProfessionalsByService(
   return { data: professionals || null, error: null }
 }
 
-export async function getAllProfessionals(): Promise<{
+export async function getAllProfessionals(options?: {
+  activeOnly?: boolean
+}): Promise<{
   data: Professional[] | null
   error: any
 }> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('professionals')
     .select('*')
     .order('name', { ascending: true })
 
+  if (options?.activeOnly) {
+    query = query.eq('is_active', true)
+  }
+
+  const { data, error } = await query
   return { data, error }
 }
 

@@ -37,7 +37,8 @@ export const AdminTimeEntry = ({ onSuccess }: AdminTimeEntryProps) => {
   const { toast } = useToast()
 
   useEffect(() => {
-    getAllProfessionals().then(({ data }) => {
+    // Only fetch active professionals for manual entry
+    getAllProfessionals({ activeOnly: true }).then(({ data }) => {
       setProfessionals(data || [])
     })
   }, [])
@@ -54,25 +55,35 @@ export const AdminTimeEntry = ({ onSuccess }: AdminTimeEntryProps) => {
     }
 
     setIsSubmitting(true)
-    const { error } = await upsertTimeRecord(
-      selectedProfessional,
-      date,
-      clockIn + ':00', // Ensure seconds format
-      clockOut ? clockOut + ':00' : null,
-    )
+    try {
+      const { error } = await upsertTimeRecord(
+        selectedProfessional,
+        date,
+        clockIn + ':00', // Ensure seconds format
+        clockOut ? clockOut + ':00' : null,
+      )
 
-    if (error) {
+      if (error) {
+        toast({
+          title: 'Erro ao registrar ponto',
+          description: error.message,
+          variant: 'destructive',
+        })
+      } else {
+        toast({ title: 'Ponto registrado com sucesso!' })
+        onSuccess()
+        // Reset only relevant fields, keep professional and date for easier bulk entry
+      }
+    } catch (err: any) {
+      console.error('Submission error:', err)
       toast({
-        title: 'Erro ao registrar ponto',
-        description: error.message,
+        title: 'Erro inesperado',
+        description: 'Ocorreu um erro ao processar a solicitação.',
         variant: 'destructive',
       })
-    } else {
-      toast({ title: 'Ponto registrado com sucesso!' })
-      onSuccess()
-      // Reset some fields? Keep date and times for ease of batch entry
+    } finally {
+      setIsSubmitting(false)
     }
-    setIsSubmitting(false)
   }
 
   return (
@@ -80,7 +91,7 @@ export const AdminTimeEntry = ({ onSuccess }: AdminTimeEntryProps) => {
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Registro Manual de Ponto</CardTitle>
         <CardDescription>
-          Adicione ou corrija registros de horas para qualquer profissional.
+          Adicione ou corrija registros de horas para profissionais ativos.
         </CardDescription>
       </CardHeader>
       <CardContent>

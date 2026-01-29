@@ -14,12 +14,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getTodayRecord, upsertTimeRecord } from '@/services/time-tracking'
+import {
+  getTodayRecord,
+  upsertTimeRecord,
+  getTimeTrackingHistory,
+} from '@/services/time-tracking'
 import { TimeRecord } from '@/types'
 import { useToast } from '@/hooks/use-toast'
-import { Clock, Loader2, Save, AlertCircle } from 'lucide-react'
-import { format } from 'date-fns'
+import { Clock, Loader2, Save, AlertCircle, History } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface TimeTrackerProps {
   professionalId: string
@@ -27,15 +39,17 @@ interface TimeTrackerProps {
 
 export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
   const [isLoading, setIsLoading] = useState(true)
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
   const [clockIn, setClockIn] = useState<string>('')
   const [clockOut, setClockOut] = useState<string>('')
+  const [history, setHistory] = useState<TimeRecord[]>([])
   const { toast } = useToast()
   const [currentTime, setCurrentTime] = useState(new Date())
 
-  // Generate 30-min interval times options
-  const timeOptions = Array.from({ length: 48 }, (_, i) => {
-    const hours = Math.floor(i / 2)
+  // Generate 30-min interval times options starting from 06:00
+  const timeOptions = Array.from({ length: 36 }, (_, i) => {
+    const hours = 6 + Math.floor(i / 2)
     const minutes = i % 2 === 0 ? '00' : '30'
     return `${String(hours).padStart(2, '0')}:${minutes}`
   })
@@ -48,6 +62,7 @@ export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
 
   useEffect(() => {
     fetchStatus()
+    fetchHistory()
   }, [professionalId])
 
   const fetchStatus = async () => {
@@ -58,6 +73,13 @@ export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
       if (data.clock_out) setClockOut(data.clock_out.substring(0, 5))
     }
     setIsLoading(false)
+  }
+
+  const fetchHistory = async () => {
+    setIsHistoryLoading(true)
+    const { data } = await getTimeTrackingHistory(professionalId)
+    setHistory(data || [])
+    setIsHistoryLoading(false)
   }
 
   const handleSave = async () => {
@@ -90,6 +112,7 @@ export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
         title: 'Registro Salvo',
         description: 'Seus horários foram atualizados com sucesso.',
       })
+      fetchHistory() // Refresh history after save
     }
     setIsProcessing(false)
   }
@@ -112,7 +135,7 @@ export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
         <CardHeader>
           <CardTitle>Registro de Horas</CardTitle>
           <CardDescription>
-            Selecione seus horários de entrada e saída.
+            Selecione seus horários de entrada e saída (início às 06:00).
           </CardDescription>
         </CardHeader>
 
@@ -184,6 +207,54 @@ export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
           horários a qualquer momento durante o dia.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <History className="w-5 h-5" />
+            Histórico Recente
+          </CardTitle>
+          <CardDescription>Seus últimos registros de ponto.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isHistoryLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : history.length === 0 ? (
+            <p className="text-center text-muted-foreground py-4">
+              Nenhum registro encontrado.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Entrada</TableHead>
+                  <TableHead>Saída</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell className="font-medium capitalize">
+                      {format(
+                        parseISO(`${record.date}T00:00:00`),
+                        'EEE, dd/MM/yyyy',
+                        {
+                          locale: ptBR,
+                        },
+                      )}
+                    </TableCell>
+                    <TableCell>{record.clock_in}</TableCell>
+                    <TableCell>{record.clock_out || '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

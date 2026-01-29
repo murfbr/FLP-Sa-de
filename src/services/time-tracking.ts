@@ -122,3 +122,17 @@ export async function getMonthlyTimeRecords(
 
   return { data: data as TimeRecord[], error }
 }
+
+export async function getTimeTrackingHistory(
+  professionalId: string,
+  limit = 20,
+): Promise<{ data: TimeRecord[] | null; error: any }> {
+  const { data, error } = await supabase
+    .from('time_tracking')
+    .select('*')
+    .eq('professional_id', professionalId)
+    .order('date', { ascending: false })
+    .limit(limit)
+
+  return { data: data as TimeRecord[], error }
+}
