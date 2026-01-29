@@ -94,8 +94,16 @@ export const RescheduleDialog = ({
           setProfessionals(res.data || [])
           // Ensure current professional is selected if in list, otherwise default to first or keep empty
           if (res.data && res.data.length > 0) {
-            if (!selectedProfessionalId) {
+            // Check if current professionalId is in the list of available professionals for this service
+            const isCurrentProAvailable = res.data.some(
+              (p) => p.id === professionalId,
+            )
+            if (isCurrentProAvailable) {
               setSelectedProfessionalId(professionalId)
+            } else if (!selectedProfessionalId && res.data.length > 0) {
+              // If previously selected pro is not available (unlikely but possible), default to first?
+              // Or keep empty to force selection
+              // For better UX, we try to keep the passed professionalId if possible
             }
           }
         })

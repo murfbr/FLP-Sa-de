@@ -13,7 +13,7 @@ export async function getFilteredAvailableSchedules(
   date: Date,
 ): Promise<{ data: Schedule[] | null; error: any }> {
   // Enforce Sao Paulo timezone for the full day range.
-  // We use the date string (YYYY-MM-DD) which represents the user's selected day,
+  // We use the date string (YYYY-MM-DD) which represents the user's selected day from the calendar (local),
   // and append the -03:00 offset to ensure the DB query covers the correct 24h period in Brazil.
   const dateStr = format(date, 'yyyy-MM-dd')
 

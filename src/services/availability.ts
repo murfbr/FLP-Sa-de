@@ -142,8 +142,8 @@ export async function blockDay(
 }
 
 /**
- * Fetches available dates for a given range.
- * Automatically aligns with Brasília Timezone.
+ * Fetches available dates for a given range using dynamic availability logic.
+ * Automatically aligns with Brasília Timezone (America/Sao_Paulo).
  */
 export async function getAvailableDatesForRange(
   professionalId: string,
