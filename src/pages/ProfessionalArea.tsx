@@ -7,6 +7,7 @@ import { Client } from '@/types'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/providers/AuthProvider'
 import { Agenda } from '@/components/professional/Agenda'
+import { TimeTracker } from '@/components/professional/TimeTracker'
 
 const ProfessionalArea = () => {
   const { toast } = useToast()
@@ -78,9 +79,10 @@ const ProfessionalArea = () => {
       </div>
 
       <Tabs defaultValue="schedule">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="schedule">Agenda</TabsTrigger>
           <TabsTrigger value="clients">Pacientes</TabsTrigger>
+          <TabsTrigger value="time-tracking">Ponto</TabsTrigger>
         </TabsList>
 
         <TabsContent value="schedule">
@@ -89,6 +91,10 @@ const ProfessionalArea = () => {
 
         <TabsContent value="clients">
           <ClientsTable clients={clients} />
+        </TabsContent>
+
+        <TabsContent value="time-tracking">
+          <TimeTracker professionalId={professionalId} />
         </TabsContent>
       </Tabs>
     </div>

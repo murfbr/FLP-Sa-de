@@ -123,6 +123,9 @@ export interface ClientSubscription {
   updated_at: string
   services?: Service
   subscription_plans?: SubscriptionPlan | null
+  clients?: Client
+  payment_status?: 'paid' | 'overdue' | 'pending' // UI helper field
+  last_payment_date?: string | null // UI helper field
 }
 
 export interface FinancialRecord {
@@ -131,6 +134,7 @@ export interface FinancialRecord {
   professional_id: string
   appointment_id: string | null
   client_package_id: string | null
+  client_subscription_id?: string | null
   amount: number
   payment_date: string
   description: string | null
@@ -162,5 +166,14 @@ export interface PartnershipDiscount {
   partnership_id: string
   service_id: string | null
   discount_percentage: number
+  created_at: string
+}
+
+export interface TimeRecord {
+  id: string
+  professional_id: string
+  date: string
+  clock_in: string
+  clock_out: string | null
   created_at: string
 }

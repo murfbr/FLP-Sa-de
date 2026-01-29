@@ -14,6 +14,9 @@ import {
   Handshake,
   PlusCircle,
   Search,
+  FileText,
+  CreditCard,
+  Clock,
 } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
 import { Professional, Client } from '@/types'
@@ -29,6 +32,8 @@ import { ServicesManager } from '@/components/admin/ServicesManager'
 import { AgendaView } from '@/components/admin/AgendaView'
 import { KpiDashboard } from '@/components/admin/KpiDashboard'
 import { PartnershipsManager } from '@/components/admin/PartnershipsManager'
+import { SubscriptionManagement } from '@/components/admin/SubscriptionManagement'
+import { TimeSheetReport } from '@/components/admin/TimeSheetReport'
 import { Button } from '@/components/ui/button'
 import { PatientFormDialog } from '@/components/admin/PatientFormDialog'
 import { ProfessionalFormDialog } from '@/components/admin/ProfessionalFormDialog'
@@ -129,6 +134,8 @@ const AdminDashboard = () => {
     { value: 'agenda', label: 'Agenda', icon: Calendar },
     { value: 'professionals', label: 'Profissionais', icon: Briefcase },
     { value: 'patients', label: 'Pacientes', icon: Users },
+    { value: 'subscriptions', label: 'Assinaturas', icon: CreditCard },
+    { value: 'timesheets', label: 'Ponto Eletrônico', icon: Clock },
     { value: 'services', label: 'Serviços e Pacotes', icon: Stethoscope },
     { value: 'partnerships', label: 'Parcerias', icon: Handshake },
   ]
@@ -308,6 +315,14 @@ const AdminDashboard = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="subscriptions">
+            <SubscriptionManagement />
+          </TabsContent>
+
+          <TabsContent value="timesheets">
+            <TimeSheetReport />
           </TabsContent>
 
           <TabsContent value="services">
