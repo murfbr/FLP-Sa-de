@@ -141,9 +141,9 @@ const AdminDashboard = () => {
 
   return (
     <>
-      <div className="container mx-auto py-4 px-4">
+      <div className="container mx-auto py-4 px-4 print:p-0 print:max-w-none print:w-full">
         {/* Header - Simplified and Personalized */}
-        <div className="mb-6">
+        <div className="mb-6 print:hidden">
           <h1 className="text-xl md:text-2xl font-bold font-sans tracking-tight">
             Bem-vindo, {userName}.
           </h1>
@@ -155,7 +155,7 @@ const AdminDashboard = () => {
           className="w-full"
         >
           {isMobile ? (
-            <div className="mb-6">
+            <div className="mb-6 print:hidden">
               <Select value={currentTab} onValueChange={handleTabChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione uma seção" />
@@ -173,7 +173,7 @@ const AdminDashboard = () => {
               </Select>
             </div>
           ) : (
-            <ScrollArea className="w-full whitespace-nowrap">
+            <ScrollArea className="w-full whitespace-nowrap print:hidden">
               <TabsList className="inline-flex h-auto p-1 mb-6 w-max flex-wrap sm:flex-nowrap">
                 {tabOptions.map((option) => (
                   <TabsTrigger key={option.value} value={option.value}>

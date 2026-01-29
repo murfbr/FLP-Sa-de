@@ -18,9 +18,9 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background font-sans text-foreground">
+    <div className="flex flex-col min-h-screen bg-background font-sans text-foreground print:block print:h-auto print:overflow-visible print:bg-white">
       <Header />
-      <main className="flex-grow">
+      <main className="flex-grow print:h-auto print:overflow-visible">
         <Outlet />
       </main>
       <Footer />

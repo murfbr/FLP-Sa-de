@@ -88,7 +88,7 @@ export const TimeSheetReport = () => {
     'Profissional'
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 print:space-y-0 print:w-full">
       <div className="print:hidden">
         <AdminTimeEntry onSuccess={handleGenerate} />
       </div>
@@ -159,11 +159,13 @@ export const TimeSheetReport = () => {
       </Card>
 
       {(records.length > 0 || isLoading) && (
-        <Card className="print:shadow-none print:border-none">
-          <CardHeader className="flex flex-row items-start justify-between">
-            <div>
-              <CardTitle className="text-2xl">Folha de Ponto</CardTitle>
-              <CardDescription>
+        <Card className="print:shadow-none print:border-none print:bg-white print:w-full">
+          <CardHeader className="flex flex-row items-start justify-between print:px-0">
+            <div className="print:text-black">
+              <CardTitle className="text-2xl print:text-3xl font-bold text-primary print:text-black">
+                Folha de Ponto
+              </CardTitle>
+              <CardDescription className="print:text-black print:text-lg">
                 {professionalName} -{' '}
                 <span className="capitalize">
                   {format(
@@ -186,7 +188,7 @@ export const TimeSheetReport = () => {
               Imprimir
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="print:px-0">
             {isLoading ? (
               <Skeleton className="h-64 w-full" />
             ) : records.length === 0 ? (
@@ -195,14 +197,22 @@ export const TimeSheetReport = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                <Table>
+                <Table className="print:w-full">
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Dia da Semana</TableHead>
-                      <TableHead>Entrada</TableHead>
-                      <TableHead>Saída</TableHead>
-                      <TableHead className="text-right">
+                    <TableRow className="print:border-black">
+                      <TableHead className="print:text-black font-bold">
+                        Data
+                      </TableHead>
+                      <TableHead className="print:text-black font-bold">
+                        Dia da Semana
+                      </TableHead>
+                      <TableHead className="print:text-black font-bold">
+                        Entrada
+                      </TableHead>
+                      <TableHead className="print:text-black font-bold">
+                        Saída
+                      </TableHead>
+                      <TableHead className="text-right print:text-black font-bold">
                         Horas Trabalhadas
                       </TableHead>
                     </TableRow>
@@ -214,49 +224,67 @@ export const TimeSheetReport = () => {
                         record.clock_out,
                       )
                       return (
-                        <TableRow key={record.id}>
-                          <TableCell>
+                        <TableRow
+                          key={record.id}
+                          className="print:border-gray-300"
+                        >
+                          <TableCell className="print:text-black">
                             {format(
                               parseISO(`${record.date}T00:00:00`),
                               'dd/MM/yyyy',
                             )}
                           </TableCell>
-                          <TableCell className="capitalize">
+                          <TableCell className="capitalize print:text-black">
                             {format(
                               parseISO(`${record.date}T00:00:00`),
                               'EEEE',
                               { locale: ptBR },
                             )}
                           </TableCell>
-                          <TableCell>{record.clock_in}</TableCell>
-                          <TableCell>{record.clock_out || '-'}</TableCell>
-                          <TableCell className="text-right font-mono">
+                          <TableCell className="print:text-black">
+                            {record.clock_in}
+                          </TableCell>
+                          <TableCell className="print:text-black">
+                            {record.clock_out || '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-mono print:text-black">
                             {formatHours(hours)}
                           </TableCell>
                         </TableRow>
                       )
                     })}
-                    <TableRow className="bg-muted/50 font-bold">
-                      <TableCell colSpan={4} className="text-right">
+                    <TableRow className="bg-muted/50 font-bold print:bg-transparent print:border-black">
+                      <TableCell
+                        colSpan={4}
+                        className="text-right print:text-black"
+                      >
                         Total Mensal:
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right print:text-black">
                         {formatHours(totalHours)}
                       </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
 
-                <div className="hidden print:block pt-16 mt-8 border-t">
+                <div className="hidden print:block pt-16 mt-8 border-t print:border-transparent">
                   <div className="grid grid-cols-2 gap-12">
                     <div className="text-center border-t border-black pt-2">
-                      <p>{professionalName}</p>
-                      <p className="text-sm text-gray-500">Funcionário</p>
+                      <p className="font-bold text-black">{professionalName}</p>
+                      <p className="text-sm text-black">Funcionário</p>
                     </div>
                     <div className="text-center border-t border-black pt-2">
-                      <p>FPL Saúde</p>
-                      <p className="text-sm text-gray-500">Empregador</p>
+                      <p className="font-bold text-black">FPL Saúde</p>
+                      <p className="text-sm text-black">Empregador</p>
                     </div>
+                  </div>
+                  <div className="mt-8 text-center text-xs text-gray-500">
+                    <p>
+                      Documento gerado eletronicamente em{' '}
+                      {format(new Date(), "dd/MM/yyyy 'às' HH:mm", {
+                        locale: ptBR,
+                      })}
+                    </p>
                   </div>
                 </div>
               </div>
