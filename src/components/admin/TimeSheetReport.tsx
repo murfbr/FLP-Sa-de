@@ -27,8 +27,9 @@ import { getMonthlyTimeRecords } from '@/services/time-tracking'
 import { Professional, TimeRecord } from '@/types'
 import { format, parseISO, differenceInMinutes } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Printer, FileText, Search } from 'lucide-react'
+import { Printer, Search } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AdminTimeEntry } from './AdminTimeEntry'
 
 export const TimeSheetReport = () => {
   const [professionals, setProfessionals] = useState<Professional[]>([])
@@ -62,7 +63,6 @@ export const TimeSheetReport = () => {
 
   const calculateHours = (inTime: string, outTime: string | null) => {
     if (!outTime) return 0
-    // Mock date to calculate difference purely on time
     const d1 = parseISO(`2000-01-01T${inTime}`)
     const d2 = parseISO(`2000-01-01T${outTime}`)
     const diff = differenceInMinutes(d2, d1)
@@ -89,6 +89,10 @@ export const TimeSheetReport = () => {
 
   return (
     <div className="space-y-6">
+      <div className="print:hidden">
+        <AdminTimeEntry onSuccess={handleGenerate} />
+      </div>
+
       <Card className="print:hidden">
         <CardHeader>
           <CardTitle>Relatório de Ponto</CardTitle>
@@ -154,7 +158,6 @@ export const TimeSheetReport = () => {
         </CardContent>
       </Card>
 
-      {/* Report View */}
       {(records.length > 0 || isLoading) && (
         <Card className="print:shadow-none print:border-none">
           <CardHeader className="flex flex-row items-start justify-between">

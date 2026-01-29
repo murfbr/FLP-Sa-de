@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import { ClientSubscription } from '@/types'
-import { format, startOfMonth, endOfMonth } from 'date-fns'
+import { startOfMonth, endOfMonth, format } from 'date-fns'
 
 export async function getInvoicedValue(
   startDate: string,
@@ -61,7 +61,7 @@ export async function getSubscriptionPayments(
 
   const { data, error } = await supabase
     .from('financial_records')
-    .select('client_subscription_id, payment_date')
+    .select('id, client_subscription_id, payment_date')
     .in('client_subscription_id', subscriptionIds)
     .gte('payment_date', start)
     .lte('payment_date', end)
@@ -84,8 +84,19 @@ export async function paySubscription(
     amount: amount,
     payment_date: new Date().toISOString(),
     description: description,
-    payment_method: 'manual', // Could be enhanced later
+    payment_method: 'manual',
   } as any)
+
+  return { error }
+}
+
+export async function deleteSubscriptionPayment(
+  recordId: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from('financial_records')
+    .delete()
+    .eq('id', recordId)
 
   return { error }
 }

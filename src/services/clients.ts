@@ -101,6 +101,19 @@ export async function getClientPackages(
   return { data: data as ClientPackageWithDetails[] | null, error }
 }
 
+export async function getAllActiveClientPackages(): Promise<{
+  data: any[] | null
+  error: any
+}> {
+  const { data, error } = await supabase
+    .from('client_packages')
+    .select('*, packages(*), clients(name)')
+    .gt('sessions_remaining', 0)
+    .order('purchase_date', { ascending: true })
+
+  return { data, error }
+}
+
 export async function assignPackageToClient(
   clientId: string,
   packageId: string,

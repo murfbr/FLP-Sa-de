@@ -11,11 +11,9 @@ export async function getTodayRecord(
     .select('*')
     .eq('professional_id', professionalId)
     .eq('date', today)
-    .is('clock_out', null)
     .order('created_at', { ascending: false })
     .maybeSingle()
 
-  // Cast to TimeRecord because database types might not be updated yet in local
   return { data: data as TimeRecord | null, error }
 }
 
@@ -57,20 +55,61 @@ export async function clockOut(
   return { data: data as TimeRecord, error }
 }
 
+export async function upsertTimeRecord(
+  professionalId: string,
+  date: string,
+  clockInTime: string,
+  clockOutTime: string | null,
+): Promise<{ data: TimeRecord | null; error: any }> {
+  // Check if record exists
+  const { data: existing } = await supabase
+    .from('time_tracking')
+    .select('id')
+    .eq('professional_id', professionalId)
+    .eq('date', date)
+    .maybeSingle()
+
+  let result
+  if (existing) {
+    result = await supabase
+      .from('time_tracking')
+      .update({
+        clock_in: clockInTime,
+        clock_out: clockOutTime,
+      } as any)
+      .eq('id', existing.id)
+      .select()
+      .single()
+  } else {
+    result = await supabase
+      .from('time_tracking')
+      .insert({
+        professional_id: professionalId,
+        date: date,
+        clock_in: clockInTime,
+        clock_out: clockOutTime,
+      } as any)
+      .select()
+      .single()
+  }
+
+  return { data: result.data as TimeRecord, error: result.error }
+}
+
 export async function getMonthlyTimeRecords(
   professionalId: string,
   year: number,
   month: number,
 ): Promise<{ data: TimeRecord[] | null; error: any }> {
-  // Month is 0-indexed in JS Date but usually 1-indexed in UI. Let's assume 1-indexed input.
-  // Construct date range
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-  // End date logic: get first day of next month, then subtract 1 day?
-  // Or just query by string comparison
-  const endDateStr =
-    month === 12
-      ? `${year + 1}-01-01`
-      : `${year}-${String(month + 1).padStart(2, '0')}-01`
+  // Simple next month calculation
+  let endYear = year
+  let endMonth = month + 1
+  if (endMonth > 12) {
+    endMonth = 1
+    endYear = year + 1
+  }
+  const endDateStr = `${endYear}-${String(endMonth).padStart(2, '0')}-01`
 
   const { data, error } = await supabase
     .from('time_tracking')

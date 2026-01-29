@@ -7,10 +7,17 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { clockIn, clockOut, getTodayRecord } from '@/services/time-tracking'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { getTodayRecord, upsertTimeRecord } from '@/services/time-tracking'
 import { TimeRecord } from '@/types'
 import { useToast } from '@/hooks/use-toast'
-import { Clock, LogIn, LogOut, Loader2, AlertCircle } from 'lucide-react'
+import { Clock, Loader2, Save, AlertCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -19,13 +26,21 @@ interface TimeTrackerProps {
 }
 
 export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
-  const [activeRecord, setActiveRecord] = useState<TimeRecord | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [clockIn, setClockIn] = useState<string>('')
+  const [clockOut, setClockOut] = useState<string>('')
   const { toast } = useToast()
   const [currentTime, setCurrentTime] = useState(new Date())
 
-  // Update clock every second
+  // Generate 30-min interval times options
+  const timeOptions = Array.from({ length: 48 }, (_, i) => {
+    const hours = Math.floor(i / 2)
+    const minutes = i % 2 === 0 ? '00' : '30'
+    return `${String(hours).padStart(2, '0')}:${minutes}`
+  })
+
+  // Update clock
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
@@ -38,45 +53,43 @@ export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
   const fetchStatus = async () => {
     setIsLoading(true)
     const { data } = await getTodayRecord(professionalId)
-    setActiveRecord(data)
+    if (data) {
+      if (data.clock_in) setClockIn(data.clock_in.substring(0, 5)) // Remove seconds if present
+      if (data.clock_out) setClockOut(data.clock_out.substring(0, 5))
+    }
     setIsLoading(false)
   }
 
-  const handleClockIn = async () => {
-    setIsProcessing(true)
-    const { data, error } = await clockIn(professionalId)
-    if (error) {
+  const handleSave = async () => {
+    if (!clockIn) {
       toast({
-        title: 'Erro ao registrar entrada',
-        description: 'Não foi possível registrar o ponto. Tente novamente.',
+        title: 'Horário de Entrada Obrigatório',
+        description: 'Por favor, selecione um horário de entrada.',
         variant: 'destructive',
       })
-    } else {
-      toast({
-        title: 'Entrada registrada',
-        description: `Entrada registrada às ${data?.clock_in}`,
-      })
-      setActiveRecord(data)
+      return
     }
-    setIsProcessing(false)
-  }
 
-  const handleClockOut = async () => {
-    if (!activeRecord) return
     setIsProcessing(true)
-    const { data, error } = await clockOut(activeRecord.id)
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const { error } = await upsertTimeRecord(
+      professionalId,
+      today,
+      clockIn + ':00',
+      clockOut ? clockOut + ':00' : null,
+    )
+
     if (error) {
       toast({
-        title: 'Erro ao registrar saída',
-        description: 'Não foi possível registrar o ponto. Tente novamente.',
+        title: 'Erro ao salvar registro',
+        description: 'Não foi possível salvar o ponto. Tente novamente.',
         variant: 'destructive',
       })
     } else {
       toast({
-        title: 'Saída registrada',
-        description: `Saída registrada às ${data?.clock_out}`,
+        title: 'Registro Salvo',
+        description: 'Seus horários foram atualizados com sucesso.',
       })
-      setActiveRecord(null) // Reset active record as we closed it
     }
     setIsProcessing(false)
   }
@@ -96,65 +109,69 @@ export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
           </p>
         </div>
 
-        <CardContent className="pt-8">
+        <CardHeader>
+          <CardTitle>Registro de Horas</CardTitle>
+          <CardDescription>
+            Selecione seus horários de entrada e saída.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
           {isLoading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
-          ) : activeRecord ? (
-            <div className="space-y-6">
-              <div className="flex flex-col items-center space-y-2 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg">
-                <div className="flex items-center gap-2 text-green-700 dark:text-green-400 font-medium">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  Em Jornada de Trabalho
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Entrada registrada às{' '}
-                  <span className="font-bold text-foreground">
-                    {activeRecord.clock_in}
-                  </span>
-                </p>
-              </div>
-
-              <Button
-                size="lg"
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white h-16 text-lg"
-                onClick={handleClockOut}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                ) : (
-                  <LogOut className="mr-2 h-6 w-6" />
-                )}
-                Registrar Saída
-              </Button>
-            </div>
           ) : (
-            <div className="space-y-6">
-              <div className="flex flex-col items-center space-y-2 p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                  <AlertCircle className="w-4 h-4" />
-                  Fora de Jornada
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Nenhum registro ativo no momento.
-                </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Horário de Entrada
+                </label>
+                <Select value={clockIn} onValueChange={setClockIn}>
+                  <SelectTrigger className="h-12 text-lg">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {timeOptions.map((time) => (
+                      <SelectItem key={`in-${time}`} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              <Button
-                size="lg"
-                className="w-full h-16 text-lg"
-                onClick={handleClockIn}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                ) : (
-                  <LogIn className="mr-2 h-6 w-6" />
-                )}
-                Registrar Entrada
-              </Button>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Horário de Saída</label>
+                <Select value={clockOut} onValueChange={setClockOut}>
+                  <SelectTrigger className="h-12 text-lg">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {timeOptions.map((time) => (
+                      <SelectItem key={`out-${time}`} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="md:col-span-2 pt-4">
+                <Button
+                  size="lg"
+                  className="w-full h-12 text-lg"
+                  onClick={handleSave}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-6 w-6" />
+                  )}
+                  Salvar Registro
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -163,9 +180,8 @@ export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
       <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground border">
         <p className="flex items-start gap-2">
           <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-          Lembre-se de registrar seus horários corretamente. O sistema calcula
-          suas horas trabalhadas com base nestes registros para o fechamento da
-          folha.
+          Mantenha seu registro atualizado diariamente. Você pode ajustar os
+          horários a qualquer momento durante o dia.
         </p>
       </div>
     </div>

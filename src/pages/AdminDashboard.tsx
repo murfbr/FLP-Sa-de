@@ -14,7 +14,6 @@ import {
   Handshake,
   PlusCircle,
   Search,
-  FileText,
   CreditCard,
   Clock,
 } from 'lucide-react'
@@ -32,7 +31,7 @@ import { ServicesManager } from '@/components/admin/ServicesManager'
 import { AgendaView } from '@/components/admin/AgendaView'
 import { KpiDashboard } from '@/components/admin/KpiDashboard'
 import { PartnershipsManager } from '@/components/admin/PartnershipsManager'
-import { SubscriptionManagement } from '@/components/admin/SubscriptionManagement'
+import { FinancialManagement } from '@/components/admin/FinancialManagement'
 import { TimeSheetReport } from '@/components/admin/TimeSheetReport'
 import { Button } from '@/components/ui/button'
 import { PatientFormDialog } from '@/components/admin/PatientFormDialog'
@@ -132,9 +131,9 @@ const AdminDashboard = () => {
     { value: 'overview', label: 'Visão Geral', icon: BarChart },
     { value: 'kpi', label: 'Indicadores', icon: LayoutDashboard },
     { value: 'agenda', label: 'Agenda', icon: Calendar },
+    { value: 'financials', label: 'Gestão Financeira', icon: CreditCard },
     { value: 'professionals', label: 'Profissionais', icon: Briefcase },
     { value: 'patients', label: 'Pacientes', icon: Users },
-    { value: 'subscriptions', label: 'Assinaturas', icon: CreditCard },
     { value: 'timesheets', label: 'Ponto Eletrônico', icon: Clock },
     { value: 'services', label: 'Serviços e Pacotes', icon: Stethoscope },
     { value: 'partnerships', label: 'Parcerias', icon: Handshake },
@@ -317,8 +316,13 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="financials">
+            <FinancialManagement />
+          </TabsContent>
+
+          {/* Fallback for old link compatibility */}
           <TabsContent value="subscriptions">
-            <SubscriptionManagement />
+            <FinancialManagement />
           </TabsContent>
 
           <TabsContent value="timesheets">
