@@ -54,11 +54,17 @@ export const RescheduleDialog = ({
   onRescheduleSuccess,
 }: RescheduleDialogProps) => {
   const { toast } = useToast()
+
+  // Selection State
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [selectedSlotTime, setSelectedSlotTime] = useState<string | null>(null)
+
+  // Data State
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [availableDates, setAvailableDates] = useState<string[] | null>(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
+
+  // Loading State
   const [isLoadingDates, setIsLoadingDates] = useState(false)
   const [isLoadingSchedules, setIsLoadingSchedules] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -69,56 +75,62 @@ export const RescheduleDialog = ({
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [isLoadingProfessionals, setIsLoadingProfessionals] = useState(false)
 
-  // Initialize and fetch professionals
+  // 1. Initialize and fetch professionals when dialog opens
   useEffect(() => {
     if (isOpen) {
       setCurrentMonth(new Date())
       setDate(undefined)
       setSelectedSlotTime(null)
       setSchedules([])
+      setAvailableDates(null)
       // Reset professional to the one currently assigned to the appointment
       setSelectedProfessionalId(professionalId)
 
       setIsLoadingProfessionals(true)
-      getProfessionalsByService(service.id).then((res) => {
-        setProfessionals(res.data || [])
-        setIsLoadingProfessionals(false)
-      })
+      getProfessionalsByService(service.id)
+        .then((res) => {
+          setProfessionals(res.data || [])
+        })
+        .finally(() => {
+          setIsLoadingProfessionals(false)
+        })
     }
   }, [isOpen, professionalId, service.id])
 
-  // Fetch available dates when professional or month changes
+  // 2. Fetch available dates when professional or month changes
   useEffect(() => {
-    if (isOpen && selectedProfessionalId) {
+    if (isOpen && selectedProfessionalId && service.id) {
       setIsLoadingDates(true)
       getAvailableDatesForProfessional(
         selectedProfessionalId,
         service.id,
         currentMonth,
-      ).then((res) => {
-        setAvailableDates(res.data || [])
-        setIsLoadingDates(false)
-      })
+      )
+        .then((res) => {
+          setAvailableDates(res.data || [])
+        })
+        .finally(() => {
+          setIsLoadingDates(false)
+        })
     }
   }, [isOpen, selectedProfessionalId, service.id, currentMonth])
 
-  // Fetch schedules when date changes
+  // 3. Fetch schedules (slots) when date changes
   useEffect(() => {
-    if (date && selectedProfessionalId) {
+    if (isOpen && date && selectedProfessionalId && service.id) {
       setIsLoadingSchedules(true)
-      getFilteredAvailableSchedules(
-        selectedProfessionalId,
-        service.id,
-        date,
-      ).then((res) => {
-        setSchedules(res.data || [])
-        setSelectedSlotTime(null)
-        setIsLoadingSchedules(false)
-      })
+      getFilteredAvailableSchedules(selectedProfessionalId, service.id, date)
+        .then((res) => {
+          setSchedules(res.data || [])
+          setSelectedSlotTime(null)
+        })
+        .finally(() => {
+          setIsLoadingSchedules(false)
+        })
     } else {
       setSchedules([])
     }
-  }, [date, selectedProfessionalId, service.id])
+  }, [isOpen, date, selectedProfessionalId, service.id])
 
   const handleReschedule = async () => {
     if (!selectedSlotTime || !date || !selectedProfessionalId) return
@@ -154,6 +166,7 @@ export const RescheduleDialog = ({
             {client.name} ({service.name}).
           </DialogDescription>
         </DialogHeader>
+
         <div className="space-y-4 py-4">
           <div className="flex flex-col space-y-2">
             <label className="text-sm font-medium">Profissional</label>
@@ -164,17 +177,25 @@ export const RescheduleDialog = ({
                 setDate(undefined)
                 setSchedules([])
               }}
-              disabled={isLoadingProfessionals}
+              disabled={isLoadingProfessionals || isSubmitting}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o profissional" />
               </SelectTrigger>
               <SelectContent>
-                {professionals.map((prof) => (
-                  <SelectItem key={prof.id} value={prof.id}>
-                    {prof.name}
-                  </SelectItem>
-                ))}
+                {professionals.length === 0 ? (
+                  <div className="p-2 text-sm text-muted-foreground text-center">
+                    {isLoadingProfessionals
+                      ? 'Carregando...'
+                      : 'Nenhum profissional disponível'}
+                  </div>
+                ) : (
+                  professionals.map((prof) => (
+                    <SelectItem key={prof.id} value={prof.id}>
+                      {prof.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -189,7 +210,7 @@ export const RescheduleDialog = ({
                     'w-full pl-3 text-left font-normal',
                     !date && 'text-muted-foreground',
                   )}
-                  disabled={!selectedProfessionalId}
+                  disabled={!selectedProfessionalId || isSubmitting}
                 >
                   {date ? (
                     format(date, 'PPP', { locale: ptBR })
@@ -207,11 +228,15 @@ export const RescheduleDialog = ({
                   month={currentMonth}
                   onMonthChange={setCurrentMonth}
                   disabled={(day) => {
+                    // Always disable past dates
                     if (day < new Date(new Date().setHours(0, 0, 0, 0)))
                       return true
+                    // If available dates are loaded, disable any date not in the list
                     if (availableDates) {
                       return !availableDates.includes(format(day, 'yyyy-MM-dd'))
                     }
+                    // If strictly waiting for loading, we could disable
+                    // returning isLoadingDates might block interaction during fetch
                     return isLoadingDates
                   }}
                   initialFocus
@@ -234,20 +259,29 @@ export const RescheduleDialog = ({
               {selectedSlotTime && (
                 <p className="text-sm text-muted-foreground mt-2">
                   Horário selecionado:{' '}
-                  {formatInTimeZone(selectedSlotTime, 'HH:mm')}
+                  {formatInTimeZone(
+                    selectedSlotTime,
+                    "dd 'de' MMMM 'às' HH:mm",
+                  )}
                 </p>
               )}
             </div>
           )}
         </div>
+
         <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
+            Cancelar
+          </Button>
           <Button
             onClick={handleReschedule}
             disabled={!selectedSlotTime || isSubmitting}
           >
-            {isSubmitting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isSubmitting ? 'Remarcando...' : 'Confirmar Remarcação'}
           </Button>
         </DialogFooter>
