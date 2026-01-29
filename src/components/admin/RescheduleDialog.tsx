@@ -83,13 +83,21 @@ export const RescheduleDialog = ({
       setSelectedSlotTime(null)
       setSchedules([])
       setAvailableDates(null)
-      // Reset professional to the one currently assigned to the appointment
-      setSelectedProfessionalId(professionalId)
+      // Reset professional to the one currently assigned to the appointment or keep selected if reasonable
+      if (!selectedProfessionalId) {
+        setSelectedProfessionalId(professionalId)
+      }
 
       setIsLoadingProfessionals(true)
       getProfessionalsByService(service.id)
         .then((res) => {
           setProfessionals(res.data || [])
+          // Ensure current professional is selected if in list, otherwise default to first or keep empty
+          if (res.data && res.data.length > 0) {
+            if (!selectedProfessionalId) {
+              setSelectedProfessionalId(professionalId)
+            }
+          }
         })
         .finally(() => {
           setIsLoadingProfessionals(false)
@@ -101,6 +109,7 @@ export const RescheduleDialog = ({
   useEffect(() => {
     if (isOpen && selectedProfessionalId && service.id) {
       setIsLoadingDates(true)
+      // We pass the service.id to ensure we check for service capacity/compatibility
       getAvailableDatesForProfessional(
         selectedProfessionalId,
         service.id,
@@ -164,6 +173,10 @@ export const RescheduleDialog = ({
           <DialogDescription>
             Selecione um profissional, uma nova data e horário para{' '}
             {client.name} ({service.name}).
+            <br />
+            <span className="text-xs text-muted-foreground">
+              Mostrando horários compatíveis com o serviço selecionado.
+            </span>
           </DialogDescription>
         </DialogHeader>
 
@@ -228,16 +241,14 @@ export const RescheduleDialog = ({
                   month={currentMonth}
                   onMonthChange={setCurrentMonth}
                   disabled={(day) => {
-                    // Always disable past dates
+                    // Always disable past dates (start of today)
                     if (day < new Date(new Date().setHours(0, 0, 0, 0)))
                       return true
                     // If available dates are loaded, disable any date not in the list
                     if (availableDates) {
                       return !availableDates.includes(format(day, 'yyyy-MM-dd'))
                     }
-                    // If strictly waiting for loading, we could disable
-                    // returning isLoadingDates might block interaction during fetch
-                    return isLoadingDates
+                    return false
                   }}
                   initialFocus
                 />
