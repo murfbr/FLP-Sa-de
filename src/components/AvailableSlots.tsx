@@ -28,9 +28,9 @@ export const AvailableSlots = ({
 
   if (!schedules || schedules.length === 0) {
     return (
-      <div className="text-center text-muted-foreground py-8 border border-dashed rounded-lg">
+      <div className="text-center text-muted-foreground py-8 border border-dashed rounded-lg bg-gray-50">
         <p>Nenhum horário disponível para esta data.</p>
-        <p className="text-sm">Por favor, selecione outro dia.</p>
+        <p className="text-sm mt-1">Por favor, selecione outro dia.</p>
       </div>
     )
   }
@@ -39,40 +39,51 @@ export const AvailableSlots = ({
     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
       {schedules.map((schedule) => {
         const isSelected = selectedSlotTime === schedule.start_time
-        const isPartial =
-          (schedule.current_count || 0) > 0 &&
-          (schedule.current_count || 0) < (schedule.max_capacity || 1)
+        const maxCapacity = schedule.max_capacity || 1
+        const currentCount = schedule.current_count || 0
+        const isPartial = currentCount > 0 && currentCount < maxCapacity
+        const spotsLeft = maxCapacity - currentCount
 
-        const spotsLeft =
-          schedule.max_capacity && schedule.max_capacity > 1
-            ? schedule.max_capacity - (schedule.current_count || 0)
-            : null
-
-        const capacityText = spotsLeft !== null ? `${spotsLeft} vagas` : null
+        // Show capacity text if it's a group session (max > 1)
+        const showCapacity = maxCapacity > 1
 
         return (
           <Button
-            key={schedule.start_time} // Use start_time as key since id might be missing
+            key={schedule.start_time}
             variant={isSelected ? 'default' : 'outline'}
             className={cn(
-              'flex flex-col items-center h-auto py-2 gap-0.5 relative overflow-hidden',
+              'flex flex-col items-center h-auto py-2 px-1 gap-0.5 relative overflow-hidden transition-all',
               isSelected && 'ring-2 ring-primary ring-offset-2',
+              // Visual treatment for partially full slots
               isPartial &&
                 !isSelected &&
-                'border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-900',
+                'border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-950',
+              // Regular slots
+              !isPartial &&
+                !isSelected &&
+                'hover:bg-accent hover:text-accent-foreground',
             )}
             onClick={() => onSlotSelect(schedule)}
             type="button"
           >
-            {isPartial && (
-              <div className="absolute top-0 right-0 w-2 h-2 rounded-full bg-orange-400 m-1" />
-            )}
-            <span className="text-sm font-medium">
+            {/* Start Time */}
+            <span className="text-sm font-semibold">
               {formatInTimeZone(schedule.start_time, 'HH:mm')}
             </span>
-            {capacityText && (
-              <span className="text-[10px] opacity-80 font-normal">
-                {capacityText}
+
+            {/* Capacity Indicator */}
+            {showCapacity && (
+              <span
+                className={cn(
+                  'text-[10px] px-1.5 py-0.5 rounded-full mt-0.5 font-medium leading-none',
+                  isSelected
+                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                    : isPartial
+                      ? 'bg-orange-200 text-orange-900'
+                      : 'bg-gray-100 text-gray-500',
+                )}
+              >
+                {spotsLeft} {spotsLeft === 1 ? 'vaga' : 'vagas'}
               </span>
             )}
           </Button>

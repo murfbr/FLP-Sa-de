@@ -195,6 +195,11 @@ export const RescheduleDialog = ({
             <br />
             <span className="text-xs text-muted-foreground">
               Mostrando apenas horários a partir das 07:00.
+              {service.max_attendees > 1 && (
+                <span className="block mt-1 text-orange-700 font-medium">
+                  Nota: Horários com vagas parciais são indicados em laranja.
+                </span>
+              )}
             </span>
           </DialogDescription>
         </DialogHeader>
