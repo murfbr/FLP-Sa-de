@@ -47,7 +47,7 @@ export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
   const { toast } = useToast()
   const [currentTime, setCurrentTime] = useState(new Date())
 
-  // Generate 30-min interval times options starting from 06:00
+  // Generate 30-min interval times options starting from 06:00 to 23:30
   const timeOptions = Array.from({ length: 36 }, (_, i) => {
     const hours = 6 + Math.floor(i / 2)
     const minutes = i % 2 === 0 ? '00' : '30'
@@ -61,8 +61,10 @@ export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
   }, [])
 
   useEffect(() => {
-    fetchStatus()
-    fetchHistory()
+    if (professionalId) {
+      fetchStatus()
+      fetchHistory()
+    }
   }, [professionalId])
 
   const fetchStatus = async () => {
@@ -102,9 +104,10 @@ export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
     )
 
     if (error) {
+      console.error('Time record save error:', error)
       toast({
         title: 'Erro ao salvar registro',
-        description: 'Não foi possível salvar o ponto. Tente novamente.',
+        description: 'Não foi possível salvar o ponto. Verifique sua conexão.',
         variant: 'destructive',
       })
     } else {
@@ -212,7 +215,7 @@ export const TimeTracker = ({ professionalId }: TimeTrackerProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <History className="w-5 h-5" />
-            Histórico Recente
+            Registros Anteriores
           </CardTitle>
           <CardDescription>Seus últimos registros de ponto.</CardDescription>
         </CardHeader>

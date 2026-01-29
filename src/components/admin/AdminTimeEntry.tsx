@@ -37,7 +37,7 @@ export const AdminTimeEntry = ({ onSuccess }: AdminTimeEntryProps) => {
   const { toast } = useToast()
 
   useEffect(() => {
-    // Only fetch active professionals for manual entry
+    // Only fetch active professionals for manual entry to ensure reliable data entry
     getAllProfessionals({ activeOnly: true }).then(({ data }) => {
       setProfessionals(data || [])
     })
@@ -56,11 +56,16 @@ export const AdminTimeEntry = ({ onSuccess }: AdminTimeEntryProps) => {
 
     setIsSubmitting(true)
     try {
+      // Append :00 for seconds to match TIME format in Supabase
+      const formattedClockIn = clockIn.length === 5 ? `${clockIn}:00` : clockIn
+      const formattedClockOut =
+        clockOut && clockOut.length === 5 ? `${clockOut}:00` : clockOut
+
       const { error } = await upsertTimeRecord(
         selectedProfessional,
         date,
-        clockIn + ':00', // Ensure seconds format
-        clockOut ? clockOut + ':00' : null,
+        formattedClockIn,
+        formattedClockOut || null,
       )
 
       if (error) {
@@ -70,9 +75,12 @@ export const AdminTimeEntry = ({ onSuccess }: AdminTimeEntryProps) => {
           variant: 'destructive',
         })
       } else {
-        toast({ title: 'Ponto registrado com sucesso!' })
+        toast({
+          title: 'Ponto registrado com sucesso!',
+          description: 'O registro foi salvo na base de dados.',
+        })
         onSuccess()
-        // Reset only relevant fields, keep professional and date for easier bulk entry
+        // We do not clear professional or date to allow easier bulk entry for same person/day
       }
     } catch (err: any) {
       console.error('Submission error:', err)
@@ -109,11 +117,17 @@ export const AdminTimeEntry = ({ onSuccess }: AdminTimeEntryProps) => {
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
-                {professionals.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
+                {professionals.length === 0 ? (
+                  <SelectItem value="none" disabled>
+                    Nenhum profissional ativo
                   </SelectItem>
-                ))}
+                ) : (
+                  professionals.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
