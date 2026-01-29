@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase/client'
 import { RecurringAvailability, AvailabilityOverride } from '@/types'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
+import { formatInTimeZone } from '@/lib/utils'
 
 export async function getRecurringAvailability(
   professionalId: string,
@@ -140,23 +141,29 @@ export async function blockDay(
   return { error }
 }
 
-export async function getAvailableDatesForProfessional(
+/**
+ * Fetches available dates for a given range.
+ * Automatically aligns with Brasília Timezone.
+ */
+export async function getAvailableDatesForRange(
   professionalId: string,
   serviceId: string,
-  month: Date,
+  startDate: Date,
+  endDate: Date,
 ): Promise<{ data: string[] | null; error: any }> {
-  const startDate = format(startOfMonth(month), 'yyyy-MM-dd')
-  const endDate = format(endOfMonth(month), 'yyyy-MM-dd')
-
   // Enforce Sao Paulo Timezone for availability query
-  const startDateStr = `${startDate}T00:00:00-03:00`
-  const endDateStr = `${endDate}T23:59:59-03:00`
+  // formatInTimeZone correctly shifts the date to represent the date in Brazil
+  const startDateStr = formatInTimeZone(startDate, 'yyyy-MM-dd')
+  const endDateStr = formatInTimeZone(endDate, 'yyyy-MM-dd')
+
+  const startDateTime = `${startDateStr}T00:00:00-03:00`
+  const endDateTime = `${endDateStr}T23:59:59-03:00`
 
   const { data, error } = await supabase.rpc('get_available_dates_dynamic', {
     p_professional_id: professionalId,
     p_service_id: serviceId,
-    p_start_date: startDateStr,
-    p_end_date: endDateStr,
+    p_start_date: startDateTime,
+    p_end_date: endDateTime,
   })
 
   if (error) {
@@ -167,4 +174,20 @@ export async function getAvailableDatesForProfessional(
   const availableDates =
     data?.map((d: { available_date: string }) => d.available_date) || []
   return { data: availableDates, error: null }
+}
+
+export async function getAvailableDatesForProfessional(
+  professionalId: string,
+  serviceId: string,
+  month: Date,
+): Promise<{ data: string[] | null; error: any }> {
+  const startDate = startOfMonth(month)
+  const endDate = endOfMonth(month)
+
+  return getAvailableDatesForRange(
+    professionalId,
+    serviceId,
+    startDate,
+    endDate,
+  )
 }

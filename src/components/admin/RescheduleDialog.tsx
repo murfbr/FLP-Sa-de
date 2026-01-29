@@ -23,12 +23,12 @@ import {
 } from '@/components/ui/select'
 import { CalendarIcon, Loader2 } from 'lucide-react'
 import { cn, formatInTimeZone } from '@/lib/utils'
-import { format } from 'date-fns'
+import { format, addDays, endOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
 import { Schedule, Client, Service, Professional } from '@/types'
 import { getFilteredAvailableSchedules } from '@/services/schedules'
-import { getAvailableDatesForProfessional } from '@/services/availability'
+import { getAvailableDatesForRange } from '@/services/availability'
 import { rescheduleAppointment } from '@/services/appointments'
 import { getProfessionalsByService } from '@/services/professionals'
 import { AvailableSlots } from '@/components/AvailableSlots'
@@ -105,15 +105,30 @@ export const RescheduleDialog = ({
     }
   }, [isOpen, professionalId, service.id])
 
-  // 2. Fetch available dates when professional or month changes
+  // 2. Fetch available dates
+  // Fetches a wide range (starting today + 60 days) to allow flexibility in rescheduling.
+  // Also ensures the currently viewed month is covered.
   useEffect(() => {
     if (isOpen && selectedProfessionalId && service.id) {
       setIsLoadingDates(true)
-      // We pass the service.id to ensure we check for service capacity/compatibility
-      getAvailableDatesForProfessional(
+
+      const today = new Date()
+      const rangeStart = today
+
+      // Minimum 60 days window as per requirements
+      let rangeEnd = addDays(today, 60)
+
+      // Ensure we cover the currently viewed month if it extends beyond 60 days
+      const currentMonthEnd = endOfMonth(currentMonth)
+      if (currentMonthEnd > rangeEnd) {
+        rangeEnd = currentMonthEnd
+      }
+
+      getAvailableDatesForRange(
         selectedProfessionalId,
         service.id,
-        currentMonth,
+        rangeStart,
+        rangeEnd,
       )
         .then((res) => {
           setAvailableDates(res.data || [])
@@ -241,12 +256,15 @@ export const RescheduleDialog = ({
                   month={currentMonth}
                   onMonthChange={setCurrentMonth}
                   disabled={(day) => {
-                    // Always disable past dates (start of today)
-                    if (day < new Date(new Date().setHours(0, 0, 0, 0)))
-                      return true
+                    // Check against Brazil time "Today" to handle client timezone differences
+                    const dateStr = format(day, 'yyyy-MM-dd')
+                    const todayStr = formatInTimeZone(new Date(), 'yyyy-MM-dd')
+
+                    if (dateStr < todayStr) return true
+
                     // If available dates are loaded, disable any date not in the list
                     if (availableDates) {
-                      return !availableDates.includes(format(day, 'yyyy-MM-dd'))
+                      return !availableDates.includes(dateStr)
                     }
                     return false
                   }}
