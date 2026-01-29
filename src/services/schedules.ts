@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase/client'
 import { Schedule, Professional } from '@/types'
 import { format } from 'date-fns'
+import { formatInTimeZone } from '@/lib/utils'
 
 /**
  * Fetches available schedules for a specific service and date,
@@ -39,12 +40,13 @@ export async function getFilteredAvailableSchedules(
 
   if (error) {
     console.error('[ScheduleService] Error fetching dynamic schedules:', error)
+    return { data: null, error }
   } else {
     console.log(`[ScheduleService] Found ${data?.length || 0} slots`)
   }
 
   // Map response to Schedule type including capacity info
-  const mappedData: Schedule[] =
+  let mappedData: Schedule[] =
     data?.map((slot: any) => ({
       id: slot.schedule_id, // Might be null for virtual slots
       professional_id: professionalId,
@@ -54,7 +56,16 @@ export async function getFilteredAvailableSchedules(
       max_capacity: slot.max_capacity,
     })) || []
 
-  return { data: mappedData, error }
+  // Feature: Time-Restricted Slot Display
+  // Filter out slots earlier than 07:00 AM (Brasília Time)
+  mappedData = mappedData.filter((slot) => {
+    // We use formatInTimeZone to check the hour in Brazil context regardless of user's local time
+    const timeStr = formatInTimeZone(slot.start_time, 'HH:mm')
+    const [hours] = timeStr.split(':').map(Number)
+    return hours >= 7
+  })
+
+  return { data: mappedData, error: null }
 }
 
 export async function getAvailableSchedules(

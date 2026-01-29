@@ -100,10 +100,6 @@ export const RescheduleDialog = ({
             )
             if (isCurrentProAvailable) {
               setSelectedProfessionalId(professionalId)
-            } else if (!selectedProfessionalId && res.data.length > 0) {
-              // If previously selected pro is not available (unlikely but possible), default to first?
-              // Or keep empty to force selection
-              // For better UX, we try to keep the passed professionalId if possible
             }
           }
         })
@@ -198,7 +194,7 @@ export const RescheduleDialog = ({
             {client.name} ({service.name}).
             <br />
             <span className="text-xs text-muted-foreground">
-              Mostrando horários compatíveis com o serviço selecionado.
+              Mostrando apenas horários a partir das 07:00.
             </span>
           </DialogDescription>
         </DialogHeader>
