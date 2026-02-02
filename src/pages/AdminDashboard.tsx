@@ -51,17 +51,20 @@ import { useIsMobile } from '@/hooks/use-mobile'
 type ClientStatusFilter = 'all' | 'active' | 'inactive'
 
 const AdminDashboard = () => {
-  const { user, professionalId } = useAuth()
+  const { user, professionalId, role, loading } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  // Modal State Management - Explicit initialization to false
   const [isPatientFormOpen, setIsPatientFormOpen] = useState(false)
   const [isProfessionalFormOpen, setIsProfessionalFormOpen] = useState(false)
+  const [isOnboardingDialogOpen, setIsOnboardingDialogOpen] = useState(false)
+
   const [clientStatusFilter, setClientStatusFilter] =
     useState<ClientStatusFilter>('active')
   const [clientSearch, setClientSearch] = useState('')
-  const [isOnboardingDialogOpen, setIsOnboardingDialogOpen] = useState(false)
   const [newlyCreatedClient, setNewlyCreatedClient] = useState<Client | null>(
     null,
   )
@@ -70,9 +73,28 @@ const AdminDashboard = () => {
 
   const currentTab = searchParams.get('tab') || 'overview'
 
+  // AUTOMATED OVERLAY CLEANUP
+  // This effect ensures that if the component mounts (e.g. after a redirect),
+  // any lingering style locks from Radix UI are removed.
+  useEffect(() => {
+    // Force cleanup of any pointer-events or overflow styles on the body
+    // that might have persisted from a previous unmount/remount cycle.
+    const cleanupGhostOverlays = () => {
+      document.body.style.pointerEvents = ''
+      document.body.style.overflow = ''
+    }
+
+    // Run immediately on mount
+    cleanupGhostOverlays()
+
+    return () => {
+      // Also run on unmount to be safe
+      cleanupGhostOverlays()
+    }
+  }, [])
+
   useEffect(() => {
     const fetchUserName = async () => {
-      // Prioritize Professional Name
       if (professionalId) {
         const { data } = await getProfessionalById(professionalId)
         if (data) {
@@ -80,13 +102,11 @@ const AdminDashboard = () => {
           return
         }
       }
-      // Fallback to metadata name
       if (user?.user_metadata?.full_name) {
         setUserName(user.user_metadata.full_name)
       } else if (user?.user_metadata?.name) {
         setUserName(user.user_metadata.name)
       } else {
-        // Last resort fallback
         setUserName('Administrador')
       }
     }
@@ -139,10 +159,19 @@ const AdminDashboard = () => {
     { value: 'partnerships', label: 'Parcerias', icon: Handshake },
   ]
 
+  // Role-Based Rendering Check: Wait for profile to be fully loaded
+  if (loading || !role) {
+    return (
+      <div className="container mx-auto py-8 px-4 space-y-4">
+        <Skeleton className="h-12 w-1/3" />
+        <Skeleton className="h-[500px] w-full" />
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="container mx-auto py-4 px-4 print:p-0 print:max-w-none print:w-full">
-        {/* Header - Simplified and Personalized */}
         <div className="mb-6 print:hidden">
           <h1 className="text-xl md:text-2xl font-bold font-sans tracking-tight">
             Bem-vindo, {userName}.
@@ -320,7 +349,6 @@ const AdminDashboard = () => {
             <FinancialManagement />
           </TabsContent>
 
-          {/* Fallback for old link compatibility */}
           <TabsContent value="subscriptions">
             <FinancialManagement />
           </TabsContent>
@@ -352,21 +380,27 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
-      <PatientFormDialog
-        isOpen={isPatientFormOpen}
-        onOpenChange={setIsPatientFormOpen}
-        onPatientCreated={handlePatientCreated}
-      />
-      <ProfessionalFormDialog
-        isOpen={isProfessionalFormOpen}
-        onOpenChange={setIsProfessionalFormOpen}
-        onProfessionalCreated={fetchData}
-      />
-      <ClientOnboardingDialog
-        client={newlyCreatedClient}
-        isOpen={isOnboardingDialogOpen}
-        onOpenChange={setIsOnboardingDialogOpen}
-      />
+
+      {/* Synchronized Modal Management: Only render when needed and safe */}
+      {!loading && role === 'admin' && (
+        <>
+          <PatientFormDialog
+            isOpen={isPatientFormOpen}
+            onOpenChange={setIsPatientFormOpen}
+            onPatientCreated={handlePatientCreated}
+          />
+          <ProfessionalFormDialog
+            isOpen={isProfessionalFormOpen}
+            onOpenChange={setIsProfessionalFormOpen}
+            onProfessionalCreated={fetchData}
+          />
+          <ClientOnboardingDialog
+            client={newlyCreatedClient}
+            isOpen={isOnboardingDialogOpen}
+            onOpenChange={setIsOnboardingDialogOpen}
+          />
+        </>
+      )}
     </>
   )
 }

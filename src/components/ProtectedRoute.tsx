@@ -17,7 +17,7 @@ interface ProtectedRouteProps {
   allowedRoles?: UserRole[]
 }
 
-const TIMEOUT_MS = 10000 // 10 seconds timeout as per acceptance criteria
+const TIMEOUT_MS = 10000 // 10 seconds timeout
 
 export const ProtectedRoute = ({
   children,
@@ -34,8 +34,8 @@ export const ProtectedRoute = ({
     let timer2: NodeJS.Timeout
 
     if (loading) {
-      // 1. Show "waiting" message after 3 seconds
-      timer1 = setTimeout(() => setShowLongLoadingMessage(true), 3000)
+      // 1. Show "waiting" message after 2 seconds (slightly faster feedback)
+      timer1 = setTimeout(() => setShowLongLoadingMessage(true), 2000)
 
       // 2. Force timeout state after 10 seconds
       timer2 = setTimeout(() => setIsTimedOut(true), TIMEOUT_MS)
@@ -52,11 +52,10 @@ export const ProtectedRoute = ({
 
   const handleForceLogout = async () => {
     await signOut()
-    // Explicitly redirect to login
     window.location.href = '/login'
   }
 
-  // 1. Error State (from AuthProvider or Timeout)
+  // 1. Error State
   if (error || isTimedOut) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 animate-fade-in">
@@ -67,7 +66,7 @@ export const ProtectedRoute = ({
             <AlertDescription>
               {error
                 ? error.message
-                : 'Erro ao carregar perfil. Verifique sua conexão ou tente novamente.'}
+                : 'Demora na resposta do servidor. Verifique sua conexão.'}
             </AlertDescription>
           </Alert>
           <div className="flex gap-3 justify-center">
@@ -107,11 +106,6 @@ export const ProtectedRoute = ({
                 'Verificando perfil...'
               )}
             </p>
-            {showLongLoadingMessage && (
-              <p className="text-xs text-muted-foreground max-w-[250px]">
-                Isso está demorando um pouco mais que o normal.
-              </p>
-            )}
           </div>
         </div>
       </div>
@@ -124,7 +118,6 @@ export const ProtectedRoute = ({
   }
 
   // 4. Role Integrity Check
-  // If user exists but role is missing (and not loading/error), it's a data consistency issue
   if (!role) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 text-center">
