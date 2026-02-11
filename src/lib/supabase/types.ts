@@ -11,7 +11,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: '13.0.5'
   }
   public: {
     Tables: {
@@ -42,7 +42,7 @@ export type Database = {
           professional_id: string
           schedule_id: string
           service_id: string
-          status: Database["public"]["Enums"]["appointment_status"]
+          status: Database['public']['Enums']['appointment_status']
         }
         Insert: {
           client_id: string
@@ -55,7 +55,7 @@ export type Database = {
           professional_id: string
           schedule_id: string
           service_id: string
-          status?: Database["public"]["Enums"]["appointment_status"]
+          status?: Database['public']['Enums']['appointment_status']
         }
         Update: {
           client_id?: string
@@ -68,85 +68,85 @@ export type Database = {
           professional_id?: string
           schedule_id?: string
           service_id?: string
-          status?: Database["public"]["Enums"]["appointment_status"]
+          status?: Database['public']['Enums']['appointment_status']
         }
         Relationships: [
           {
-            foreignKeyName: "appointments_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'appointments_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'appointments_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["client_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['client_id']
           },
           {
-            foreignKeyName: "appointments_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'appointments_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "v_clients_with_partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_clients_with_partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_client_package_id_fkey"
-            columns: ["client_package_id"]
+            foreignKeyName: 'appointments_client_package_id_fkey'
+            columns: ['client_package_id']
             isOneToOne: false
-            referencedRelation: "client_packages"
-            referencedColumns: ["id"]
+            referencedRelation: 'client_packages'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'appointments_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'appointments_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["professional_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['professional_id']
           },
           {
-            foreignKeyName: "appointments_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'appointments_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_schedule_id_fkey"
-            columns: ["schedule_id"]
+            foreignKeyName: 'appointments_schedule_id_fkey'
+            columns: ['schedule_id']
             isOneToOne: false
-            referencedRelation: "schedules"
-            referencedColumns: ["id"]
+            referencedRelation: 'schedules'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'appointments_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
+            referencedRelation: 'services'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'appointments_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["service_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['service_id']
           },
           {
-            foreignKeyName: "appointments_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'appointments_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -174,39 +174,39 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "client_packages_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'client_packages_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_packages_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'client_packages_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["client_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['client_id']
           },
           {
-            foreignKeyName: "client_packages_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'client_packages_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "v_clients_with_partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_clients_with_partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_packages_package_id_fkey"
-            columns: ["package_id"]
+            foreignKeyName: 'client_packages_package_id_fkey'
+            columns: ['package_id']
             isOneToOne: false
-            referencedRelation: "packages"
-            referencedColumns: ["id"]
+            referencedRelation: 'packages'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_packages_package_id_fkey"
-            columns: ["package_id"]
+            foreignKeyName: 'client_packages_package_id_fkey'
+            columns: ['package_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["package_id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['package_id']
           },
         ]
       }
@@ -218,7 +218,7 @@ export type Database = {
           id: string
           service_id: string
           start_date: string
-          status: Database["public"]["Enums"]["subscription_status"]
+          status: Database['public']['Enums']['subscription_status']
           subscription_plan_id: string | null
           updated_at: string
         }
@@ -229,7 +229,7 @@ export type Database = {
           id?: string
           service_id: string
           start_date: string
-          status?: Database["public"]["Enums"]["subscription_status"]
+          status?: Database['public']['Enums']['subscription_status']
           subscription_plan_id?: string | null
           updated_at?: string
         }
@@ -240,66 +240,66 @@ export type Database = {
           id?: string
           service_id?: string
           start_date?: string
-          status?: Database["public"]["Enums"]["subscription_status"]
+          status?: Database['public']['Enums']['subscription_status']
           subscription_plan_id?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "client_subscriptions_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'client_subscriptions_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_subscriptions_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'client_subscriptions_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["client_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['client_id']
           },
           {
-            foreignKeyName: "client_subscriptions_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'client_subscriptions_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "v_clients_with_partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_clients_with_partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_subscriptions_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'client_subscriptions_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
+            referencedRelation: 'services'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_subscriptions_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'client_subscriptions_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["service_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['service_id']
           },
           {
-            foreignKeyName: "client_subscriptions_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'client_subscriptions_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_subscriptions_subscription_plan_id_fkey"
-            columns: ["subscription_plan_id"]
+            foreignKeyName: 'client_subscriptions_subscription_plan_id_fkey'
+            columns: ['subscription_plan_id']
             isOneToOne: false
-            referencedRelation: "subscription_plans"
-            referencedColumns: ["id"]
+            referencedRelation: 'subscription_plans'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_subscriptions_subscription_plan_id_fkey"
-            columns: ["subscription_plan_id"]
+            foreignKeyName: 'client_subscriptions_subscription_plan_id_fkey'
+            columns: ['subscription_plan_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["subscription_plan_id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['subscription_plan_id']
           },
         ]
       }
@@ -345,18 +345,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "clients_partnership_id_fkey"
-            columns: ["partnership_id"]
+            foreignKeyName: 'clients_partnership_id_fkey'
+            columns: ['partnership_id']
             isOneToOne: false
-            referencedRelation: "partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "clients_partnership_id_fkey"
-            columns: ["partnership_id"]
+            foreignKeyName: 'clients_partnership_id_fkey'
+            columns: ['partnership_id']
             isOneToOne: false
-            referencedRelation: "v_partnerships_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_partnerships_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -402,74 +402,74 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "financial_records_appointment_id_fkey"
-            columns: ["appointment_id"]
+            foreignKeyName: 'financial_records_appointment_id_fkey'
+            columns: ['appointment_id']
             isOneToOne: false
-            referencedRelation: "appointments"
-            referencedColumns: ["id"]
+            referencedRelation: 'appointments'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_appointment_id_fkey"
-            columns: ["appointment_id"]
+            foreignKeyName: 'financial_records_appointment_id_fkey'
+            columns: ['appointment_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'financial_records_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'financial_records_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["client_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['client_id']
           },
           {
-            foreignKeyName: "financial_records_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'financial_records_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "v_clients_with_partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_clients_with_partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_client_package_id_fkey"
-            columns: ["client_package_id"]
+            foreignKeyName: 'financial_records_client_package_id_fkey'
+            columns: ['client_package_id']
             isOneToOne: false
-            referencedRelation: "client_packages"
-            referencedColumns: ["id"]
+            referencedRelation: 'client_packages'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_client_subscription_id_fkey"
-            columns: ["client_subscription_id"]
+            foreignKeyName: 'financial_records_client_subscription_id_fkey'
+            columns: ['client_subscription_id']
             isOneToOne: false
-            referencedRelation: "client_subscriptions"
-            referencedColumns: ["id"]
+            referencedRelation: 'client_subscriptions'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'financial_records_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'financial_records_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["professional_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['professional_id']
           },
           {
-            foreignKeyName: "financial_records_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'financial_records_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -503,25 +503,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "packages_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'packages_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
+            referencedRelation: 'services'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "packages_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'packages_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["service_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['service_id']
           },
           {
-            foreignKeyName: "packages_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'packages_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -549,39 +549,39 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "partnership_discounts_partnership_id_fkey"
-            columns: ["partnership_id"]
+            foreignKeyName: 'partnership_discounts_partnership_id_fkey'
+            columns: ['partnership_id']
             isOneToOne: false
-            referencedRelation: "partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "partnership_discounts_partnership_id_fkey"
-            columns: ["partnership_id"]
+            foreignKeyName: 'partnership_discounts_partnership_id_fkey'
+            columns: ['partnership_id']
             isOneToOne: false
-            referencedRelation: "v_partnerships_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_partnerships_list'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "partnership_discounts_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'partnership_discounts_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
+            referencedRelation: 'services'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "partnership_discounts_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'partnership_discounts_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["service_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['service_id']
           },
           {
-            foreignKeyName: "partnership_discounts_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'partnership_discounts_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -639,25 +639,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "professional_availability_overrides_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_availability_overrides_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "professional_availability_overrides_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_availability_overrides_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["professional_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['professional_id']
           },
           {
-            foreignKeyName: "professional_availability_overrides_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_availability_overrides_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -670,7 +670,7 @@ export type Database = {
           message: string
           professional_id: string
           related_entity_id: string | null
-          type: Database["public"]["Enums"]["notification_type"]
+          type: Database['public']['Enums']['notification_type']
         }
         Insert: {
           created_at?: string
@@ -680,7 +680,7 @@ export type Database = {
           message: string
           professional_id: string
           related_entity_id?: string | null
-          type: Database["public"]["Enums"]["notification_type"]
+          type: Database['public']['Enums']['notification_type']
         }
         Update: {
           created_at?: string
@@ -690,29 +690,29 @@ export type Database = {
           message?: string
           professional_id?: string
           related_entity_id?: string | null
-          type?: Database["public"]["Enums"]["notification_type"]
+          type?: Database['public']['Enums']['notification_type']
         }
         Relationships: [
           {
-            foreignKeyName: "professional_notifications_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_notifications_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "professional_notifications_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_notifications_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["professional_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['professional_id']
           },
           {
-            foreignKeyName: "professional_notifications_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_notifications_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -746,25 +746,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "professional_recurring_availability_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_recurring_availability_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "professional_recurring_availability_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_recurring_availability_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["professional_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['professional_id']
           },
           {
-            foreignKeyName: "professional_recurring_availability_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_recurring_availability_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -783,46 +783,46 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "professional_services_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_services_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "professional_services_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_services_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["professional_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['professional_id']
           },
           {
-            foreignKeyName: "professional_services_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_services_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "professional_services_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'professional_services_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
+            referencedRelation: 'services'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "professional_services_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'professional_services_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["service_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['service_id']
           },
           {
-            foreignKeyName: "professional_services_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'professional_services_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -863,17 +863,17 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          role: Database["public"]["Enums"]["user_role"]
+          role: Database['public']['Enums']['user_role']
         }
         Insert: {
           created_at?: string
           id: string
-          role: Database["public"]["Enums"]["user_role"]
+          role: Database['public']['Enums']['user_role']
         }
         Update: {
           created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["user_role"]
+          role?: Database['public']['Enums']['user_role']
         }
         Relationships: []
       }
@@ -901,25 +901,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "schedules_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'schedules_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "schedules_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'schedules_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["professional_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['professional_id']
           },
           {
-            foreignKeyName: "schedules_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'schedules_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -932,7 +932,7 @@ export type Database = {
           max_attendees: number
           name: string
           price: number
-          value_type: Database["public"]["Enums"]["service_value_type"]
+          value_type: Database['public']['Enums']['service_value_type']
         }
         Insert: {
           created_at?: string
@@ -942,7 +942,7 @@ export type Database = {
           max_attendees?: number
           name: string
           price: number
-          value_type?: Database["public"]["Enums"]["service_value_type"]
+          value_type?: Database['public']['Enums']['service_value_type']
         }
         Update: {
           created_at?: string
@@ -952,7 +952,7 @@ export type Database = {
           max_attendees?: number
           name?: string
           price?: number
-          value_type?: Database["public"]["Enums"]["service_value_type"]
+          value_type?: Database['public']['Enums']['service_value_type']
         }
         Relationships: []
       }
@@ -986,25 +986,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "subscription_plans_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'subscription_plans_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
+            referencedRelation: 'services'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "subscription_plans_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'subscription_plans_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["service_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['service_id']
           },
           {
-            foreignKeyName: "subscription_plans_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'subscription_plans_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1035,25 +1035,25 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "time_tracking_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'time_tracking_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "time_tracking_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'time_tracking_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["professional_id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['professional_id']
           },
           {
-            foreignKeyName: "time_tracking_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'time_tracking_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1095,7 +1095,7 @@ export type Database = {
           service_id: string | null
           service_name: string | null
           start_time: string | null
-          status: Database["public"]["Enums"]["appointment_status"] | null
+          status: Database['public']['Enums']['appointment_status'] | null
         }
         Relationships: []
       }
@@ -1117,18 +1117,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "clients_partnership_id_fkey"
-            columns: ["partnership_id"]
+            foreignKeyName: 'clients_partnership_id_fkey'
+            columns: ['partnership_id']
             isOneToOne: false
-            referencedRelation: "partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "clients_partnership_id_fkey"
-            columns: ["partnership_id"]
+            foreignKeyName: 'clients_partnership_id_fkey'
+            columns: ['partnership_id']
             isOneToOne: false
-            referencedRelation: "v_partnerships_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_partnerships_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1193,7 +1193,7 @@ export type Database = {
           subscription_plan_id: string | null
           subscription_plan_name: string | null
           subscription_plan_price: number | null
-          value_type: Database["public"]["Enums"]["service_value_type"] | null
+          value_type: Database['public']['Enums']['service_value_type'] | null
         }
         Relationships: []
       }
@@ -1373,8 +1373,8 @@ export type Database = {
           user_id: string | null
         }[]
         SetofOptions: {
-          from: "*"
-          to: "clients"
+          from: '*'
+          to: 'clients'
           isOneToOne: false
           isSetofReturn: true
         }
@@ -1451,23 +1451,23 @@ export type Database = {
     }
     Enums: {
       appointment_status:
-        | "scheduled"
-        | "confirmed"
-        | "completed"
-        | "cancelled"
-        | "no_show"
+        | 'scheduled'
+        | 'confirmed'
+        | 'completed'
+        | 'cancelled'
+        | 'no_show'
       notification_type:
-        | "missing_notes"
-        | "schedule_changed"
-        | "admin_override"
-        | "new_service"
-        | "new_appointment"
-        | "rescheduled_appointment"
-        | "cancelled_appointment"
-        | "package_renewal"
-      service_value_type: "session" | "monthly"
-      subscription_status: "active" | "paused" | "cancelled" | "expired"
-      user_role: "client" | "professional" | "admin"
+        | 'missing_notes'
+        | 'schedule_changed'
+        | 'admin_override'
+        | 'new_service'
+        | 'new_appointment'
+        | 'rescheduled_appointment'
+        | 'cancelled_appointment'
+        | 'package_renewal'
+      service_value_type: 'session' | 'monthly'
+      subscription_status: 'active' | 'paused' | 'cancelled' | 'expired'
+      user_role: 'client' | 'professional' | 'admin'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1475,33 +1475,33 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] &
+        DefaultSchema['Views'])
+    ? (DefaultSchema['Tables'] &
+        DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -1510,23 +1510,23 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
+    | keyof DefaultSchema['Tables']
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -1535,23 +1535,23 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
+    | keyof DefaultSchema['Tables']
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -1560,62 +1560,61 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
+    | keyof DefaultSchema['Enums']
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
+    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
+    | keyof DefaultSchema['CompositeTypes']
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
+    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
   public: {
     Enums: {
       appointment_status: [
-        "scheduled",
-        "confirmed",
-        "completed",
-        "cancelled",
-        "no_show",
+        'scheduled',
+        'confirmed',
+        'completed',
+        'cancelled',
+        'no_show',
       ],
       notification_type: [
-        "missing_notes",
-        "schedule_changed",
-        "admin_override",
-        "new_service",
-        "new_appointment",
-        "rescheduled_appointment",
-        "cancelled_appointment",
-        "package_renewal",
+        'missing_notes',
+        'schedule_changed',
+        'admin_override',
+        'new_service',
+        'new_appointment',
+        'rescheduled_appointment',
+        'cancelled_appointment',
+        'package_renewal',
       ],
-      service_value_type: ["session", "monthly"],
-      subscription_status: ["active", "paused", "cancelled", "expired"],
-      user_role: ["client", "professional", "admin"],
+      service_value_type: ['session', 'monthly'],
+      subscription_status: ['active', 'paused', 'cancelled', 'expired'],
+      user_role: ['client', 'professional', 'admin'],
     },
   },
 } as const
-
