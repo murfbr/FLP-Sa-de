@@ -18,12 +18,13 @@ import {
   Clock,
 } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
-import { Professional, Client } from '@/types'
+import { Professional, Client, Service } from '@/types'
 import {
   getAllProfessionals,
   getProfessionalById,
 } from '@/services/professionals'
 import { getAllClients } from '@/services/clients'
+import { getAllServices } from '@/services/services'
 import { UpcomingAppointments } from '@/components/admin/UpcomingAppointments'
 import { ProfessionalsList } from '@/components/admin/ProfessionalsList'
 import { PatientsList } from '@/components/admin/PatientsList'
@@ -55,6 +56,7 @@ const AdminDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [clients, setClients] = useState<Client[]>([])
+  const [services, setServices] = useState<Service[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // Modal State Management - Explicit initialization to false
@@ -64,6 +66,7 @@ const AdminDashboard = () => {
 
   const [clientStatusFilter, setClientStatusFilter] =
     useState<ClientStatusFilter>('active')
+  const [clientServiceFilter, setClientServiceFilter] = useState<string>('all')
   const [clientSearch, setClientSearch] = useState('')
   const [newlyCreatedClient, setNewlyCreatedClient] = useState<Client | null>(
     null,
@@ -74,21 +77,13 @@ const AdminDashboard = () => {
   const currentTab = searchParams.get('tab') || 'overview'
 
   // AUTOMATED OVERLAY CLEANUP
-  // This effect ensures that if the component mounts (e.g. after a redirect),
-  // any lingering style locks from Radix UI are removed.
   useEffect(() => {
-    // Force cleanup of any pointer-events or overflow styles on the body
-    // that might have persisted from a previous unmount/remount cycle.
     const cleanupGhostOverlays = () => {
       document.body.style.pointerEvents = ''
       document.body.style.overflow = ''
     }
-
-    // Run immediately on mount
     cleanupGhostOverlays()
-
     return () => {
-      // Also run on unmount to be safe
       cleanupGhostOverlays()
     }
   }, [])
@@ -113,11 +108,23 @@ const AdminDashboard = () => {
     fetchUserName()
   }, [professionalId, user])
 
+  // Fetch Services for Filter
+  useEffect(() => {
+    const fetchServices = async () => {
+      const { data } = await getAllServices()
+      if (data) setServices(data)
+    }
+    fetchServices()
+  }, [])
+
   const fetchData = async () => {
     setIsLoading(true)
     const [profRes, clientRes] = await Promise.all([
       getAllProfessionals(),
-      getAllClients({ status: clientStatusFilter }),
+      getAllClients({
+        status: clientStatusFilter,
+        serviceId: clientServiceFilter,
+      }),
     ])
     if (profRes.data) setProfessionals(profRes.data)
     if (clientRes.data) setClients(clientRes.data)
@@ -126,7 +133,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchData()
-  }, [clientStatusFilter])
+  }, [clientStatusFilter, clientServiceFilter])
 
   const handlePatientCreated = (client: Client) => {
     fetchData()
@@ -323,6 +330,22 @@ const AdminDashboard = () => {
                         <SelectItem value="active">Ativos</SelectItem>
                         <SelectItem value="inactive">Inativos</SelectItem>
                         <SelectItem value="all">Todos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={clientServiceFilter}
+                      onValueChange={setClientServiceFilter}
+                    >
+                      <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Serviço" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os Serviços</SelectItem>
+                        {services.map((service) => (
+                          <SelectItem key={service.id} value={service.id}>
+                            {service.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <Button
