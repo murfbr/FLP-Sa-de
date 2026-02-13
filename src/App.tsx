@@ -1,10 +1,12 @@
 /* Main App Component - Handles routing (using react-router-dom), query client and other providers */
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/providers/AuthProvider'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { RoleGuard } from '@/components/RoleGuard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import Layout from './components/Layout'
 import PublicLayout from './components/PublicLayout'
@@ -26,17 +28,31 @@ import AdminDashboard from './pages/AdminDashboard'
 
 console.log('App.tsx: Initializing application...')
 
+// Helper component to clean up overlays on route change
+const OverlayCleanup = () => {
+  const location = useLocation()
+  useEffect(() => {
+    // Force cleanup of any pointer-events or overflow styles on the body
+    // that might have persisted from a previous unmount/remount cycle
+    // specially from Radix UI Dialogs/Sheets
+    document.body.style.pointerEvents = ''
+    document.body.style.overflow = ''
+  }, [location.pathname])
+  return null
+}
+
 const App = () => (
   <ErrorBoundary>
     <BrowserRouter
       future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
     >
+      <OverlayCleanup />
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
           <Routes>
-            {/* Public Routes - Use PublicLayout to isolate from authenticated header logic */}
+            {/* Public Routes */}
             <Route element={<PublicLayout />}>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
@@ -49,7 +65,7 @@ const App = () => (
               <Route path="/access-denied" element={<AccessDenied />} />
             </Route>
 
-            {/* Protected Routes - Structure Refactoring to avoid redundancy */}
+            {/* Protected Routes - Flattened structure using RoleGuard for inner routes */}
             <Route
               element={
                 <ProtectedRoute>
@@ -57,69 +73,69 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
-              {/* Index Route - Controller for redirection */}
+              {/* Index Route */}
               <Route path="/" element={<Index />} />
 
-              {/* Admin Routes - Strictly Admin Only */}
+              {/* Admin Routes - Using RoleGuard instead of nested ProtectedRoute */}
               <Route path="/admin">
                 <Route
                   index
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <RoleGuard allowedRoles={['admin']}>
                       <AdminDashboard />
-                    </ProtectedRoute>
+                    </RoleGuard>
                   }
                 />
                 <Route
                   path="pacientes"
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <RoleGuard allowedRoles={['admin']}>
                       <Patients />
-                    </ProtectedRoute>
+                    </RoleGuard>
                   }
                 />
                 <Route
                   path="pacientes/:id"
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <RoleGuard allowedRoles={['admin']}>
                       <PatientDetail />
-                    </ProtectedRoute>
+                    </RoleGuard>
                   }
                 />
                 <Route
                   path="profissionais/:id"
                   element={
-                    <ProtectedRoute allowedRoles={['admin']}>
+                    <RoleGuard allowedRoles={['admin']}>
                       <ProfessionalDetail />
-                    </ProtectedRoute>
+                    </RoleGuard>
                   }
                 />
               </Route>
 
-              {/* Professional Routes - Accessible by Professional and Admin */}
+              {/* Professional Routes */}
               <Route path="/profissional">
                 <Route
                   index
                   element={
-                    <ProtectedRoute allowedRoles={['professional', 'admin']}>
+                    <RoleGuard allowedRoles={['professional', 'admin']}>
                       <ProfessionalArea />
-                    </ProtectedRoute>
+                    </RoleGuard>
                   }
                 />
                 <Route
                   path="pacientes/:id"
                   element={
-                    <ProtectedRoute allowedRoles={['professional', 'admin']}>
+                    <RoleGuard allowedRoles={['professional', 'admin']}>
                       <ProfessionalPatientDetail />
-                    </ProtectedRoute>
+                    </RoleGuard>
                   }
                 />
                 <Route
                   path="notifications"
                   element={
-                    <ProtectedRoute allowedRoles={['professional', 'admin']}>
+                    <RoleGuard allowedRoles={['professional', 'admin']}>
                       <NotificationsPage />
-                    </ProtectedRoute>
+                    </RoleGuard>
                   }
                 />
               </Route>

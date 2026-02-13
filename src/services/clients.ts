@@ -90,15 +90,20 @@ export async function deleteClient(clientId: string): Promise<{ error: any }> {
 
 export async function getClientPackages(
   clientId: string,
-): Promise<{ data: ClientPackageWithDetails[] | null; error: any }> {
+): Promise<{
+  data: (ClientPackageWithDetails & { status?: string })[] | null
+  error: any
+}> {
+  // We remove the filter gt('sessions_remaining', 0) to fetch cancelled or completed ones too if needed,
+  // but usually we want to see active ones. However, with status introduced, we should check logic.
+  // Requirement says: "Cancelled packages should be visually distinguished". So we need to fetch them.
   const { data, error } = await supabase
     .from('client_packages')
     .select('*, packages(*)')
     .eq('client_id', clientId)
-    .gt('sessions_remaining', 0)
-    .order('purchase_date', { ascending: true })
+    .order('purchase_date', { ascending: false })
 
-  return { data: data as ClientPackageWithDetails[] | null, error }
+  return { data: data as any, error }
 }
 
 export async function getAllActiveClientPackages(): Promise<{
@@ -108,6 +113,7 @@ export async function getAllActiveClientPackages(): Promise<{
   const { data, error } = await supabase
     .from('client_packages')
     .select('*, packages(*), clients(name)')
+    .eq('status', 'active')
     .gt('sessions_remaining', 0)
     .order('purchase_date', { ascending: true })
 
@@ -118,13 +124,27 @@ export async function assignPackageToClient(
   clientId: string,
   packageId: string,
   sessions: number,
+  purchaseDate?: Date,
 ): Promise<{ error: any }> {
   const { error } = await supabase.from('client_packages').insert({
     client_id: clientId,
     package_id: packageId,
     sessions_remaining: sessions,
-    purchase_date: new Date().toISOString(),
+    purchase_date: purchaseDate
+      ? purchaseDate.toISOString()
+      : new Date().toISOString(),
+    status: 'active',
   })
+  return { error }
+}
+
+export async function cancelClientPackage(
+  clientPackageId: string,
+): Promise<{ error: any }> {
+  const { error } = await supabase
+    .from('client_packages')
+    .update({ status: 'cancelled' })
+    .eq('id', clientPackageId)
   return { error }
 }
 

@@ -20,7 +20,16 @@ import { useToast } from '@/hooks/use-toast'
 import { Package } from '@/types'
 import { getPackages } from '@/services/packages'
 import { assignPackageToClient } from '@/services/clients'
-import { Loader2 } from 'lucide-react'
+import { Loader2, CalendarIcon } from 'lucide-react'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
+import { cn } from '@/lib/utils'
 
 interface AssignPackageDialogProps {
   clientId: string
@@ -38,12 +47,15 @@ export const AssignPackageDialog = ({
   const { toast } = useToast()
   const [packages, setPackages] = useState<Package[]>([])
   const [selectedPackageId, setSelectedPackageId] = useState<string>('')
+  const [purchaseDate, setPurchaseDate] = useState<Date | undefined>(new Date())
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (isOpen) {
       setIsLoading(true)
+      // Reset date to today on open
+      setPurchaseDate(new Date())
       getPackages().then(({ data }) => {
         setPackages(data || [])
         setIsLoading(false)
@@ -62,6 +74,7 @@ export const AssignPackageDialog = ({
       clientId,
       selectedPkg.id,
       selectedPkg.session_count,
+      purchaseDate,
     )
 
     if (error) {
@@ -81,11 +94,11 @@ export const AssignPackageDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md overflow-visible">
         <DialogHeader>
           <DialogTitle>Adicionar Pacote ao Cliente</DialogTitle>
           <DialogDescription>
-            Selecione um pacote de serviços para atribuir a este cliente.
+            Selecione um pacote e a data de início para atribuir a este cliente.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -114,11 +127,47 @@ export const AssignPackageDialog = ({
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2 flex flex-col">
+            <Label>Data de Início</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={'outline'}
+                  className={cn(
+                    'w-full pl-3 text-left font-normal',
+                    !purchaseDate && 'text-muted-foreground',
+                  )}
+                >
+                  {purchaseDate ? (
+                    format(purchaseDate, 'PPP', { locale: ptBR })
+                  ) : (
+                    <span>Selecione uma data</span>
+                  )}
+                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={purchaseDate}
+                  onSelect={setPurchaseDate}
+                  disabled={(date) =>
+                    date >
+                    new Date(
+                      new Date().setFullYear(new Date().getFullYear() + 1),
+                    )
+                  }
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
         <DialogFooter>
           <Button
             onClick={handleAssign}
-            disabled={isSubmitting || !selectedPackageId}
+            disabled={isSubmitting || !selectedPackageId || !purchaseDate}
           >
             {isSubmitting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
