@@ -21,6 +21,7 @@ export interface SubscriptionPlan {
   price: number
   sessions_per_week: number | null
   created_at: string
+  is_active: boolean
 }
 
 export interface Professional {
@@ -96,6 +97,7 @@ export interface Package {
   service_id: string | null
   session_count: number
   price: number
+  is_active: boolean
   services?: Service | null
 }
 
