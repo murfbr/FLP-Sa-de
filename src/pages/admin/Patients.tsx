@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
 import { getAllClients } from '@/services/clients'
-import { Client } from '@/types'
+import { getAllServices } from '@/services/services'
+import { Client, Service } from '@/types'
 import { PatientsList } from '@/components/admin/PatientsList'
 import { Input } from '@/components/ui/input'
 import { Search } from 'lucide-react'
 import { cleanCPF } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export default function Patients() {
   const [clients, setClients] = useState<Client[]>([])
@@ -13,19 +21,45 @@ export default function Patients() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
+  // Filters
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'active' | 'inactive'
+  >('active')
+  const [serviceFilter, setServiceFilter] = useState<string>('all')
+  const [services, setServices] = useState<Service[]>([])
+
+  // Fetch available services for the filter
+  useEffect(() => {
+    const fetchServices = async () => {
+      const { data } = await getAllServices()
+      if (data) {
+        setServices(data)
+      }
+    }
+    fetchServices()
+  }, [])
+
+  // Fetch clients when status or service filters change
   useEffect(() => {
     const fetchClients = async () => {
       setIsLoading(true)
-      const { data } = await getAllClients()
+      const { data } = await getAllClients({
+        status: statusFilter,
+        serviceId: serviceFilter,
+      })
       if (data) {
         setClients(data)
         setFilteredClients(data)
+      } else {
+        setClients([])
+        setFilteredClients([])
       }
       setIsLoading(false)
     }
     fetchClients()
-  }, [])
+  }, [statusFilter, serviceFilter])
 
+  // Apply local search filter
   useEffect(() => {
     const lowerTerm = searchTerm.toLowerCase()
     const cleanTerm = cleanCPF(searchTerm)
@@ -49,14 +83,46 @@ export default function Patients() {
         </h1>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome ou CPF..."
-          className="pl-8 max-w-sm"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome ou CPF..."
+            className="pl-8 w-full"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <Select
+          value={statusFilter}
+          onValueChange={(value: 'all' | 'active' | 'inactive') =>
+            setStatusFilter(value)
+          }
+        >
+          <SelectTrigger className="w-full md:w-[180px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Ativos</SelectItem>
+            <SelectItem value="inactive">Inativos</SelectItem>
+            <SelectItem value="all">Todos</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={serviceFilter} onValueChange={setServiceFilter}>
+          <SelectTrigger className="w-full md:w-[220px]">
+            <SelectValue placeholder="Serviço" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os Serviços</SelectItem>
+            {services.map((service) => (
+              <SelectItem key={service.id} value={service.id}>
+                {service.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (

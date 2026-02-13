@@ -31,7 +31,44 @@ export async function getClientsByProfessional(
 
 export async function getAllClients(filter?: {
   status?: 'all' | 'active' | 'inactive'
+  serviceId?: string
 }): Promise<{ data: Client[] | null; error: any }> {
+  let clientIds: string[] | null = null
+
+  // If filtering by service, we need to find clients associated with that service
+  if (filter?.serviceId && filter.serviceId !== 'all') {
+    // 1. Get clients with subscriptions to this service
+    const { data: subData, error: subError } = await supabase
+      .from('client_subscriptions')
+      .select('client_id')
+      .eq('service_id', filter.serviceId)
+
+    if (subError) {
+      return { data: null, error: subError }
+    }
+
+    // 2. Get clients with packages that belong to this service
+    // We use the foreign key relationship to filter by package -> service_id
+    const { data: pkgData, error: pkgError } = await supabase
+      .from('client_packages')
+      .select('client_id, packages!inner(service_id)')
+      .eq('packages.service_id', filter.serviceId)
+
+    if (pkgError) {
+      return { data: null, error: pkgError }
+    }
+
+    // Combine unique client IDs from both sources
+    const subIds = subData?.map((d) => d.client_id) || []
+    const pkgIds = pkgData?.map((d) => d.client_id) || []
+    clientIds = [...new Set([...subIds, ...pkgIds])]
+
+    // If no clients found for this service, we can return empty immediately
+    if (clientIds.length === 0) {
+      return { data: [], error: null }
+    }
+  }
+
   let query = supabase
     .from('clients')
     .select('*, partnerships(*)')
@@ -41,6 +78,11 @@ export async function getAllClients(filter?: {
     query = query.eq('is_active', true)
   } else if (filter?.status === 'inactive') {
     query = query.eq('is_active', false)
+  }
+
+  // If we have a list of client IDs from the service filter, apply it
+  if (clientIds !== null) {
+    query = query.in('id', clientIds)
   }
 
   const { data, error } = await query
@@ -88,15 +130,10 @@ export async function deleteClient(clientId: string): Promise<{ error: any }> {
   return { error }
 }
 
-export async function getClientPackages(
-  clientId: string,
-): Promise<{
+export async function getClientPackages(clientId: string): Promise<{
   data: (ClientPackageWithDetails & { status?: string })[] | null
   error: any
 }> {
-  // We remove the filter gt('sessions_remaining', 0) to fetch cancelled or completed ones too if needed,
-  // but usually we want to see active ones. However, with status introduced, we should check logic.
-  // Requirement says: "Cancelled packages should be visually distinguished". So we need to fetch them.
   const { data, error } = await supabase
     .from('client_packages')
     .select('*, packages(*)')
