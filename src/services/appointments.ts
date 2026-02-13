@@ -153,10 +153,10 @@ export async function getAppointmentsPaginated(
 
   let query = supabase.from('appointments').select(
     `
-      id, status, notes, discount_amount, created_at,
+      id, status, notes, discount_amount, created_at, client_package_id,
       clients (id, name, email),
       professionals (id, name),
-      services (id, name, duration_minutes, max_attendees, price),
+      services (id, name, duration_minutes, max_attendees, price, value_type),
       schedules!inner (start_time, end_time)
     `,
     { count: 'exact' },
@@ -195,10 +195,10 @@ export async function getAppointmentsForRange(
     .from('appointments')
     .select(
       `
-      id, status, notes, discount_amount, created_at,
+      id, status, notes, discount_amount, created_at, client_package_id,
       clients (id, name, email),
       professionals (id, name),
-      services (id, name, duration_minutes, max_attendees, price),
+      services (id, name, duration_minutes, max_attendees, price, value_type),
       schedules!inner (start_time, end_time)
     `,
     )
@@ -229,8 +229,9 @@ export async function getAppointmentsByProfessional(
       id,
       status,
       created_at,
+      client_package_id,
       clients (id, name, email),
-      services (id, name, duration_minutes, max_attendees),
+      services (id, name, duration_minutes, max_attendees, value_type),
       schedules (start_time, end_time)
     `,
     )
@@ -256,8 +257,9 @@ export async function getAppointmentsByProfessionalForRange(
       client_id,
       professional_id,
       schedule_id,
+      client_package_id,
       clients:clients (id, name, email),
-      services:services (id, name, duration_minutes, max_attendees),
+      services:services (id, name, duration_minutes, max_attendees, value_type),
       schedules:schedules (id, start_time, end_time)
     `,
     )
@@ -278,9 +280,10 @@ export async function getAllAppointments(
       id,
       status,
       notes,
+      client_package_id,
       clients (id, name, email),
       professionals (id, name),
-      services (id, name, duration_minutes, max_attendees),
+      services (id, name, duration_minutes, max_attendees, value_type),
       schedules (start_time, end_time)
     `,
     )
@@ -307,9 +310,10 @@ export async function getUpcomingAppointments(): Promise<{
       id,
       status,
       notes,
+      client_package_id,
       clients (id, name),
       professionals (id, name),
-      services (id, name, duration_minutes, max_attendees),
+      services (id, name, duration_minutes, max_attendees, value_type),
       schedules (start_time)
     `,
     )
@@ -332,8 +336,9 @@ export async function getAppointmentsByClientId(
       status,
       notes,
       created_at,
+      client_package_id,
       professionals (id, name),
-      services (id, name, duration_minutes, max_attendees),
+      services (id, name, duration_minutes, max_attendees, value_type),
       schedules (start_time, end_time)
     `,
     )
@@ -435,8 +440,9 @@ export async function getAppointmentsByScheduleId(
       client_id,
       professional_id,
       schedule_id,
+      client_package_id,
       clients:clients (id, name, email),
-      services:services (id, name, duration_minutes, max_attendees),
+      services:services (id, name, duration_minutes, max_attendees, value_type),
       schedules:schedules (id, start_time, end_time)
     `,
     )

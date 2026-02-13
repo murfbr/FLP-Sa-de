@@ -28,6 +28,8 @@ import {
   Edit2,
   Check,
   X,
+  PackageCheck,
+  CreditCard,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -214,9 +216,20 @@ export const AppointmentDetailDialog = ({
   const startTime = appointment.schedules.start_time
   const duration = appointment.services.duration_minutes || 30
   const calculatedEndTime = addMinutes(new Date(startTime), duration)
+
+  // Use 'as any' to safely access potentially extended properties that might not be in the strict type yet
+  const clientPackageId = (appointment as any).client_package_id
+  const serviceValueType = (appointment.services as any).value_type
+
+  const isPackage = !!clientPackageId
+  const isMonthlySubscription = serviceValueType === 'monthly'
+  const isZeroCost = isPackage || isMonthlySubscription
+
   const servicePrice = appointment.services.price || 0
   const currentDiscount = parseFloat(discountValue) || 0
-  const finalPrice = Math.max(0, servicePrice - currentDiscount)
+  const finalPrice = isZeroCost
+    ? 0
+    : Math.max(0, servicePrice - currentDiscount)
 
   // Use local status for display to support optimistic updates
   const displayStatus = localStatus || appointment.status
@@ -266,9 +279,19 @@ export const AppointmentDetailDialog = ({
                 value={
                   <div className="flex flex-col">
                     <span>{appointment.services.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      Valor Base: R$ {servicePrice.toFixed(2)}
-                    </span>
+                    {isPackage ? (
+                      <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
+                        <PackageCheck className="h-3 w-3" /> Sessão de Pacote
+                      </span>
+                    ) : isMonthlySubscription ? (
+                      <span className="text-xs text-purple-600 font-medium flex items-center gap-1">
+                        <CreditCard className="h-3 w-3" /> Assinatura Mensal
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        Valor Base: R$ {servicePrice.toFixed(2)}
+                      </span>
+                    )}
                   </div>
                 }
               />
@@ -331,7 +354,7 @@ export const AppointmentDetailDialog = ({
                     <p className="text-sm text-muted-foreground font-medium">
                       Financeiro
                     </p>
-                    {canEdit && !isEditingDiscount && (
+                    {canEdit && !isEditingDiscount && !isZeroCost && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -344,7 +367,20 @@ export const AppointmentDetailDialog = ({
                     )}
                   </div>
 
-                  {isEditingDiscount ? (
+                  {isZeroCost ? (
+                    <div className="flex flex-col gap-1">
+                      <div className="flex justify-between text-sm">
+                        <span>Método de Pagamento:</span>
+                        <span className="font-medium text-blue-600">
+                          {isPackage ? 'Pacote Pré-pago' : 'Assinatura Mensal'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm font-bold border-t pt-1 mt-1">
+                        <span>Valor Final (Sessão):</span>
+                        <span>R$ 0,00</span>
+                      </div>
+                    </div>
+                  ) : isEditingDiscount ? (
                     <div className="flex items-center gap-2 mt-2">
                       <div className="flex-1">
                         <Label htmlFor="discount-edit" className="text-xs">
