@@ -3,7 +3,10 @@
 -- Updates financial records for data consistency
 
 -- 1. Update v_appointments_with_details view
-CREATE OR REPLACE VIEW v_appointments_with_details AS
+-- Drop view first to avoid "cannot change name of view column" errors when columns are reordered
+DROP VIEW IF EXISTS v_appointments_with_details CASCADE;
+
+CREATE VIEW v_appointments_with_details AS
 SELECT
   a.id,
   a.status,
@@ -35,6 +38,10 @@ JOIN clients c ON a.client_id = c.id
 JOIN professionals p ON a.professional_id = p.id
 JOIN services s ON a.service_id = s.id
 JOIN schedules sch ON a.schedule_id = sch.id;
+
+-- Restore permissions
+GRANT SELECT ON v_appointments_with_details TO authenticated;
+GRANT SELECT ON v_appointments_with_details TO service_role;
 
 -- 2. Update complete_appointment function to correctly handle package/subscription pricing
 CREATE OR REPLACE FUNCTION complete_appointment(p_appointment_id UUID)
@@ -202,4 +209,3 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
