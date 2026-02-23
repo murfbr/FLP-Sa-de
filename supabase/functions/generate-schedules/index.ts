@@ -64,12 +64,12 @@ serve(async (req: Request) => {
     }
 
     const supabaseAdmin = createSupabaseAdminClient()
-
+    
     // Calculate "today" in Brazil Timezone to ensure correct start date
     const nowUtc = new Date()
     const nowBrazil = toZonedTime(nowUtc, TIMEZONE)
     const todayBrazil = startOfDay(nowBrazil)
-
+    
     // Ensure we cover 12 months from today
     const targetEndDateBrazil = add(todayBrazil, { months: MONTHS_TO_GENERATE })
 
@@ -151,14 +151,11 @@ serve(async (req: Request) => {
 
           // Helper to create UTC date from Brazil date + Time string
           const createUtcDate = (timeStr: string) => {
-            const dateTimeStr = `${dateStr} ${timeStr}`
-            return fromZonedTime(dateTimeStr, TIMEZONE)
+             const dateTimeStr = `${dateStr} ${timeStr}`
+             return fromZonedTime(dateTimeStr, TIMEZONE)
           }
 
-          const addSlotsFromRange = (
-            startTimeStr: string,
-            endTimeStr: string,
-          ) => {
+          const addSlotsFromRange = (startTimeStr: string, endTimeStr: string) => {
             let s = createUtcDate(startTimeStr)
             const end = createUtcDate(endTimeStr)
 
@@ -177,7 +174,7 @@ serve(async (req: Request) => {
                 if (!isBlocked) {
                   const startIso = s.toISOString()
                   const endIso = e.toISOString()
-
+                  
                   // Ensure we don't have duplicates
                   expectedSlots.add(startIso)
                   expectedSlotsList.push({
@@ -218,15 +215,9 @@ serve(async (req: Request) => {
         // Fetch existing slots
         // Note: we fetch based on the UTC range covered by our Brazil date range
         // Start of todayBrazil in UTC
-        const utcStartRange = fromZonedTime(
-          format(todayBrazil, 'yyyy-MM-dd') + ' 00:00:00',
-          TIMEZONE,
-        )
+        const utcStartRange = fromZonedTime(format(todayBrazil, 'yyyy-MM-dd') + ' 00:00:00', TIMEZONE)
         // End of targetEndDateBrazil in UTC
-        const utcEndRange = fromZonedTime(
-          format(targetEndDateBrazil, 'yyyy-MM-dd') + ' 23:59:59',
-          TIMEZONE,
-        )
+        const utcEndRange = fromZonedTime(format(targetEndDateBrazil, 'yyyy-MM-dd') + ' 23:59:59', TIMEZONE)
 
         const { data: existingSlots, error: fetchError } = await supabaseAdmin
           .from('schedules')
