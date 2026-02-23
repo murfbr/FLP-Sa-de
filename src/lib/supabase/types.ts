@@ -11,7 +11,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: '13.0.5'
   }
   public: {
     Tables: {
@@ -42,7 +42,7 @@ export type Database = {
           professional_id: string
           schedule_id: string
           service_id: string
-          status: Database["public"]["Enums"]["appointment_status"]
+          status: Database['public']['Enums']['appointment_status']
         }
         Insert: {
           client_id: string
@@ -55,7 +55,7 @@ export type Database = {
           professional_id: string
           schedule_id: string
           service_id: string
-          status?: Database["public"]["Enums"]["appointment_status"]
+          status?: Database['public']['Enums']['appointment_status']
         }
         Update: {
           client_id?: string
@@ -68,64 +68,64 @@ export type Database = {
           professional_id?: string
           schedule_id?: string
           service_id?: string
-          status?: Database["public"]["Enums"]["appointment_status"]
+          status?: Database['public']['Enums']['appointment_status']
         }
         Relationships: [
           {
-            foreignKeyName: "appointments_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'appointments_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'appointments_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "v_clients_with_partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_clients_with_partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_client_package_id_fkey"
-            columns: ["client_package_id"]
+            foreignKeyName: 'appointments_client_package_id_fkey'
+            columns: ['client_package_id']
             isOneToOne: false
-            referencedRelation: "client_packages"
-            referencedColumns: ["id"]
+            referencedRelation: 'client_packages'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'appointments_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'appointments_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_schedule_id_fkey"
-            columns: ["schedule_id"]
+            foreignKeyName: 'appointments_schedule_id_fkey'
+            columns: ['schedule_id']
             isOneToOne: false
-            referencedRelation: "schedules"
-            referencedColumns: ["id"]
+            referencedRelation: 'schedules'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'appointments_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
+            referencedRelation: 'services'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'appointments_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -156,32 +156,32 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "client_packages_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'client_packages_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_packages_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'client_packages_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "v_clients_with_partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_clients_with_partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_packages_package_id_fkey"
-            columns: ["package_id"]
+            foreignKeyName: 'client_packages_package_id_fkey'
+            columns: ['package_id']
             isOneToOne: false
-            referencedRelation: "packages"
-            referencedColumns: ["id"]
+            referencedRelation: 'packages'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_packages_package_id_fkey"
-            columns: ["package_id"]
+            foreignKeyName: 'client_packages_package_id_fkey'
+            columns: ['package_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["package_id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['package_id']
           },
         ]
       }
@@ -193,7 +193,7 @@ export type Database = {
           id: string
           service_id: string
           start_date: string
-          status: Database["public"]["Enums"]["subscription_status"]
+          status: Database['public']['Enums']['subscription_status']
           subscription_plan_id: string | null
           updated_at: string
         }
@@ -204,7 +204,7 @@ export type Database = {
           id?: string
           service_id: string
           start_date: string
-          status?: Database["public"]["Enums"]["subscription_status"]
+          status?: Database['public']['Enums']['subscription_status']
           subscription_plan_id?: string | null
           updated_at?: string
         }
@@ -215,52 +215,52 @@ export type Database = {
           id?: string
           service_id?: string
           start_date?: string
-          status?: Database["public"]["Enums"]["subscription_status"]
+          status?: Database['public']['Enums']['subscription_status']
           subscription_plan_id?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "client_subscriptions_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'client_subscriptions_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_subscriptions_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'client_subscriptions_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "v_clients_with_partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_clients_with_partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_subscriptions_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'client_subscriptions_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
+            referencedRelation: 'services'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_subscriptions_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'client_subscriptions_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_subscriptions_subscription_plan_id_fkey"
-            columns: ["subscription_plan_id"]
+            foreignKeyName: 'client_subscriptions_subscription_plan_id_fkey'
+            columns: ['subscription_plan_id']
             isOneToOne: false
-            referencedRelation: "subscription_plans"
-            referencedColumns: ["id"]
+            referencedRelation: 'subscription_plans'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "client_subscriptions_subscription_plan_id_fkey"
-            columns: ["subscription_plan_id"]
+            foreignKeyName: 'client_subscriptions_subscription_plan_id_fkey'
+            columns: ['subscription_plan_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["subscription_plan_id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['subscription_plan_id']
           },
         ]
       }
@@ -306,18 +306,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "clients_partnership_id_fkey"
-            columns: ["partnership_id"]
+            foreignKeyName: 'clients_partnership_id_fkey'
+            columns: ['partnership_id']
             isOneToOne: false
-            referencedRelation: "partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "clients_partnership_id_fkey"
-            columns: ["partnership_id"]
+            foreignKeyName: 'clients_partnership_id_fkey'
+            columns: ['partnership_id']
             isOneToOne: false
-            referencedRelation: "v_partnerships_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_partnerships_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -363,60 +363,60 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "financial_records_appointment_id_fkey"
-            columns: ["appointment_id"]
+            foreignKeyName: 'financial_records_appointment_id_fkey'
+            columns: ['appointment_id']
             isOneToOne: false
-            referencedRelation: "appointments"
-            referencedColumns: ["id"]
+            referencedRelation: 'appointments'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_appointment_id_fkey"
-            columns: ["appointment_id"]
+            foreignKeyName: 'financial_records_appointment_id_fkey'
+            columns: ['appointment_id']
             isOneToOne: false
-            referencedRelation: "v_appointments_with_details"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_appointments_with_details'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'financial_records_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'financial_records_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "v_clients_with_partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_clients_with_partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_client_package_id_fkey"
-            columns: ["client_package_id"]
+            foreignKeyName: 'financial_records_client_package_id_fkey'
+            columns: ['client_package_id']
             isOneToOne: false
-            referencedRelation: "client_packages"
-            referencedColumns: ["id"]
+            referencedRelation: 'client_packages'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_client_subscription_id_fkey"
-            columns: ["client_subscription_id"]
+            foreignKeyName: 'financial_records_client_subscription_id_fkey'
+            columns: ['client_subscription_id']
             isOneToOne: false
-            referencedRelation: "client_subscriptions"
-            referencedColumns: ["id"]
+            referencedRelation: 'client_subscriptions'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'financial_records_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "financial_records_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'financial_records_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -453,18 +453,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "packages_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'packages_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
+            referencedRelation: 'services'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "packages_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'packages_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -492,32 +492,32 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "partnership_discounts_partnership_id_fkey"
-            columns: ["partnership_id"]
+            foreignKeyName: 'partnership_discounts_partnership_id_fkey'
+            columns: ['partnership_id']
             isOneToOne: false
-            referencedRelation: "partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "partnership_discounts_partnership_id_fkey"
-            columns: ["partnership_id"]
+            foreignKeyName: 'partnership_discounts_partnership_id_fkey'
+            columns: ['partnership_id']
             isOneToOne: false
-            referencedRelation: "v_partnerships_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_partnerships_list'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "partnership_discounts_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'partnership_discounts_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
+            referencedRelation: 'services'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "partnership_discounts_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'partnership_discounts_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -575,18 +575,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "professional_availability_overrides_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_availability_overrides_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "professional_availability_overrides_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_availability_overrides_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -599,7 +599,7 @@ export type Database = {
           message: string
           professional_id: string
           related_entity_id: string | null
-          type: Database["public"]["Enums"]["notification_type"]
+          type: Database['public']['Enums']['notification_type']
         }
         Insert: {
           created_at?: string
@@ -609,7 +609,7 @@ export type Database = {
           message: string
           professional_id: string
           related_entity_id?: string | null
-          type: Database["public"]["Enums"]["notification_type"]
+          type: Database['public']['Enums']['notification_type']
         }
         Update: {
           created_at?: string
@@ -619,22 +619,22 @@ export type Database = {
           message?: string
           professional_id?: string
           related_entity_id?: string | null
-          type?: Database["public"]["Enums"]["notification_type"]
+          type?: Database['public']['Enums']['notification_type']
         }
         Relationships: [
           {
-            foreignKeyName: "professional_notifications_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_notifications_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "professional_notifications_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_notifications_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -668,18 +668,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "professional_recurring_availability_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_recurring_availability_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "professional_recurring_availability_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_recurring_availability_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -698,32 +698,32 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "professional_services_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_services_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "professional_services_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'professional_services_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "professional_services_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'professional_services_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
+            referencedRelation: 'services'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "professional_services_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'professional_services_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -764,17 +764,17 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          role: Database["public"]["Enums"]["user_role"]
+          role: Database['public']['Enums']['user_role']
         }
         Insert: {
           created_at?: string
           id: string
-          role?: Database["public"]["Enums"]["user_role"]
+          role?: Database['public']['Enums']['user_role']
         }
         Update: {
           created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["user_role"]
+          role?: Database['public']['Enums']['user_role']
         }
         Relationships: []
       }
@@ -802,18 +802,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "schedules_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'schedules_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "schedules_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'schedules_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -826,7 +826,7 @@ export type Database = {
           max_attendees: number
           name: string
           price: number
-          value_type: Database["public"]["Enums"]["service_value_type"]
+          value_type: Database['public']['Enums']['service_value_type']
         }
         Insert: {
           created_at?: string
@@ -836,7 +836,7 @@ export type Database = {
           max_attendees?: number
           name: string
           price: number
-          value_type?: Database["public"]["Enums"]["service_value_type"]
+          value_type?: Database['public']['Enums']['service_value_type']
         }
         Update: {
           created_at?: string
@@ -846,7 +846,7 @@ export type Database = {
           max_attendees?: number
           name?: string
           price?: number
-          value_type?: Database["public"]["Enums"]["service_value_type"]
+          value_type?: Database['public']['Enums']['service_value_type']
         }
         Relationships: []
       }
@@ -883,18 +883,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "subscription_plans_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'subscription_plans_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
+            referencedRelation: 'services'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "subscription_plans_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'subscription_plans_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -925,18 +925,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "time_tracking_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'time_tracking_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "time_tracking_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'time_tracking_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -981,65 +981,65 @@ export type Database = {
           service_id: string | null
           service_name: string | null
           start_time: string | null
-          status: Database["public"]["Enums"]["appointment_status"] | null
-          value_type: Database["public"]["Enums"]["service_value_type"] | null
+          status: Database['public']['Enums']['appointment_status'] | null
+          value_type: Database['public']['Enums']['service_value_type'] | null
         }
         Relationships: [
           {
-            foreignKeyName: "appointments_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'appointments_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            referencedRelation: 'clients'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: 'appointments_client_id_fkey'
+            columns: ['client_id']
             isOneToOne: false
-            referencedRelation: "v_clients_with_partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_clients_with_partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_client_package_id_fkey"
-            columns: ["client_package_id"]
+            foreignKeyName: 'appointments_client_package_id_fkey'
+            columns: ['client_package_id']
             isOneToOne: false
-            referencedRelation: "client_packages"
-            referencedColumns: ["id"]
+            referencedRelation: 'client_packages'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'appointments_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "professionals"
-            referencedColumns: ["id"]
+            referencedRelation: 'professionals'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_professional_id_fkey"
-            columns: ["professional_id"]
+            foreignKeyName: 'appointments_professional_id_fkey'
+            columns: ['professional_id']
             isOneToOne: false
-            referencedRelation: "v_professionals_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_professionals_list'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_schedule_id_fkey"
-            columns: ["schedule_id"]
+            foreignKeyName: 'appointments_schedule_id_fkey'
+            columns: ['schedule_id']
             isOneToOne: false
-            referencedRelation: "schedules"
-            referencedColumns: ["id"]
+            referencedRelation: 'schedules'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'appointments_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
+            referencedRelation: 'services'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "appointments_service_id_fkey"
-            columns: ["service_id"]
+            foreignKeyName: 'appointments_service_id_fkey'
+            columns: ['service_id']
             isOneToOne: false
-            referencedRelation: "v_services_with_children"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_services_with_children'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1061,18 +1061,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "clients_partnership_id_fkey"
-            columns: ["partnership_id"]
+            foreignKeyName: 'clients_partnership_id_fkey'
+            columns: ['partnership_id']
             isOneToOne: false
-            referencedRelation: "partnerships"
-            referencedColumns: ["id"]
+            referencedRelation: 'partnerships'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "clients_partnership_id_fkey"
-            columns: ["partnership_id"]
+            foreignKeyName: 'clients_partnership_id_fkey'
+            columns: ['partnership_id']
             isOneToOne: false
-            referencedRelation: "v_partnerships_list"
-            referencedColumns: ["id"]
+            referencedRelation: 'v_partnerships_list'
+            referencedColumns: ['id']
           },
         ]
       }
@@ -1137,7 +1137,7 @@ export type Database = {
           subscription_plan_id: string | null
           subscription_plan_name: string | null
           subscription_plan_price: number | null
-          value_type: Database["public"]["Enums"]["service_value_type"] | null
+          value_type: Database['public']['Enums']['service_value_type'] | null
         }
         Relationships: []
       }
@@ -1307,8 +1307,8 @@ export type Database = {
           user_id: string | null
         }[]
         SetofOptions: {
-          from: "*"
-          to: "clients"
+          from: '*'
+          to: 'clients'
           isOneToOne: false
           isSetofReturn: true
         }
@@ -1385,23 +1385,23 @@ export type Database = {
     }
     Enums: {
       appointment_status:
-        | "scheduled"
-        | "confirmed"
-        | "completed"
-        | "cancelled"
-        | "no_show"
+        | 'scheduled'
+        | 'confirmed'
+        | 'completed'
+        | 'cancelled'
+        | 'no_show'
       notification_type:
-        | "missing_notes"
-        | "schedule_changed"
-        | "admin_override"
-        | "new_service"
-        | "new_appointment"
-        | "rescheduled_appointment"
-        | "cancelled_appointment"
-        | "package_renewal"
-      service_value_type: "session" | "monthly"
-      subscription_status: "active" | "paused" | "cancelled" | "expired"
-      user_role: "client" | "professional" | "admin"
+        | 'missing_notes'
+        | 'schedule_changed'
+        | 'admin_override'
+        | 'new_service'
+        | 'new_appointment'
+        | 'rescheduled_appointment'
+        | 'cancelled_appointment'
+        | 'package_renewal'
+      service_value_type: 'session' | 'monthly'
+      subscription_status: 'active' | 'paused' | 'cancelled' | 'expired'
+      user_role: 'client' | 'professional' | 'admin'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1409,33 +1409,33 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] &
+        DefaultSchema['Views'])
+    ? (DefaultSchema['Tables'] &
+        DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -1444,23 +1444,23 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
+    | keyof DefaultSchema['Tables']
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -1469,23 +1469,23 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
+    | keyof DefaultSchema['Tables']
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -1494,65 +1494,64 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
+    | keyof DefaultSchema['Enums']
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
+    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
+    | keyof DefaultSchema['CompositeTypes']
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
+    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
   public: {
     Enums: {
       appointment_status: [
-        "scheduled",
-        "confirmed",
-        "completed",
-        "cancelled",
-        "no_show",
+        'scheduled',
+        'confirmed',
+        'completed',
+        'cancelled',
+        'no_show',
       ],
       notification_type: [
-        "missing_notes",
-        "schedule_changed",
-        "admin_override",
-        "new_service",
-        "new_appointment",
-        "rescheduled_appointment",
-        "cancelled_appointment",
-        "package_renewal",
+        'missing_notes',
+        'schedule_changed',
+        'admin_override',
+        'new_service',
+        'new_appointment',
+        'rescheduled_appointment',
+        'cancelled_appointment',
+        'package_renewal',
       ],
-      service_value_type: ["session", "monthly"],
-      subscription_status: ["active", "paused", "cancelled", "expired"],
-      user_role: ["client", "professional", "admin"],
+      service_value_type: ['session', 'monthly'],
+      subscription_status: ['active', 'paused', 'cancelled', 'expired'],
+      user_role: ['client', 'professional', 'admin'],
     },
   },
 } as const
-
 
 // ====== DATABASE EXTENDED CONTEXT (auto-generated) ======
 // This section contains constraints, RLS policies, functions, triggers,
@@ -2319,38 +2318,38 @@ export const Constants = {
 //     v_schedule_id UUID;
 //   BEGIN
 //     -- 1. Get service details
-//     SELECT duration_minutes, price, value_type, max_attendees 
+//     SELECT duration_minutes, price, value_type, max_attendees
 //     INTO v_service_duration, v_service_price, v_service_value_type, v_service_max_attendees
 //     FROM public.services
 //     WHERE id = p_service_id;
-//   
+//
 //     IF NOT FOUND THEN
 //       RAISE EXCEPTION 'Serviço não encontrado.';
 //     END IF;
-//   
+//
 //     -- 2. Get the start time and professional ID from the initial schedule slot
 //     SELECT start_time, professional_id INTO v_start_time, v_professional_id
 //     FROM public.schedules
 //     WHERE id = p_schedule_id;
-//   
+//
 //     IF NOT FOUND THEN
 //       RAISE EXCEPTION 'Horário de início inválido.';
 //     END IF;
-//   
+//
 //     -- 3. Calculate the appointment end time
 //     v_end_time := v_start_time + (v_service_duration * interval '1 minute');
-//   
+//
 //     -- 4. Identify all schedule slots required for this appointment
 //     SELECT array_agg(id) INTO v_slots_to_book
 //     FROM public.schedules
 //     WHERE professional_id = v_professional_id
 //       AND start_time >= v_start_time
 //       AND start_time < v_end_time;
-//   
+//
 //     IF v_slots_to_book IS NULL OR array_length(v_slots_to_book, 1) = 0 THEN
 //         RAISE EXCEPTION 'Não foram encontrados horários suficientes na agenda do profissional.';
 //     END IF;
-//   
+//
 //     -- 5. VALIDATION: Check Client Availability (Avoid double booking for the client)
 //     -- Checks if client has any active appointment that overlaps with the requested time
 //     IF EXISTS (
@@ -2361,14 +2360,14 @@ export const Constants = {
 //       WHERE a.client_id = p_client_id
 //         AND a.status NOT IN ('cancelled', 'no_show')
 //         AND (
-//           s.start_time < v_end_time 
-//           AND 
+//           s.start_time < v_end_time
+//           AND
 //           (s.start_time + (srv.duration_minutes * interval '1 minute')) > v_start_time
 //         )
 //     ) THEN
 //       RAISE EXCEPTION 'Cliente já está agendado neste horário.';
 //     END IF;
-//   
+//
 //     -- 6. VALIDATION: Check Professional Capacity for EACH slot required
 //     -- We loop through required slots to check if any of them is full
 //     FOREACH v_schedule_id IN ARRAY v_slots_to_book LOOP
@@ -2376,12 +2375,12 @@ export const Constants = {
 //         FROM public.appointments
 //         WHERE schedule_id = v_schedule_id
 //           AND status NOT IN ('cancelled', 'no_show');
-//         
+//
 //         IF v_current_attendees >= v_service_max_attendees THEN
 //            RAISE EXCEPTION 'Turma lotada para o horário de %.', v_start_time;
 //         END IF;
 //     END LOOP;
-//   
+//
 //     -- 7. Determine Price and Validation based on Service Type
 //     IF v_service_value_type = 'monthly' THEN
 //       -- Check for active subscription
@@ -2391,13 +2390,13 @@ export const Constants = {
 //         AND service_id = p_service_id
 //         AND status = 'active'
 //         AND (end_date IS NULL OR end_date > NOW());
-//   
+//
 //       IF v_subscription_count = 0 THEN
 //         RAISE EXCEPTION 'Cliente não possui assinatura ativa para este serviço mensal.';
 //       END IF;
-//   
+//
 //       v_final_price := 0; -- Subscription covers the cost
-//   
+//
 //     ELSE -- 'session'
 //       IF p_client_package_id IS NOT NULL THEN
 //         -- Validate and use package
@@ -2406,79 +2405,79 @@ export const Constants = {
 //         WHERE id = p_client_package_id
 //           AND client_id = p_client_id
 //           FOR UPDATE; -- Lock row
-//   
+//
 //         IF NOT FOUND OR v_package_sessions <= 0 THEN
 //           RAISE EXCEPTION 'Pacote inválido ou sem sessões disponíveis.';
 //         END IF;
-//   
+//
 //         -- Decrement session
 //         UPDATE public.client_packages
 //         SET sessions_remaining = sessions_remaining - 1
 //         WHERE id = p_client_package_id;
-//   
+//
 //         v_final_price := 0; -- Paid via package
 //       ELSE
 //         -- Standard single session payment calculation
 //         SELECT partnership_id INTO v_client_partnership_id
 //         FROM public.clients
 //         WHERE id = p_client_id;
-//   
+//
 //         v_final_price := v_service_price;
-//   
+//
 //         IF v_client_partnership_id IS NOT NULL THEN
 //           SELECT discount_percentage INTO v_discount_percentage
 //           FROM public.partnership_discounts
 //           WHERE partnership_id = v_client_partnership_id AND (service_id = p_service_id OR service_id IS NULL)
 //           ORDER BY service_id IS NOT NULL DESC
 //           LIMIT 1;
-//   
+//
 //           IF FOUND AND v_discount_percentage IS NOT NULL THEN
 //             v_final_price := v_service_price * (1 - (v_discount_percentage / 100.0));
 //           END IF;
 //         END IF;
 //       END IF;
 //     END IF;
-//   
+//
 //     -- 8. Create the appointment
 //     INSERT INTO public.appointments (schedule_id, client_id, service_id, professional_id, client_package_id, is_recurring)
 //     VALUES (p_schedule_id, p_client_id, p_service_id, v_professional_id, p_client_package_id, p_is_recurring)
 //     RETURNING id INTO v_appointment_id;
-//   
+//
 //     -- 9. Update is_booked flag on schedules IF they reached capacity
 //     FOREACH v_schedule_id IN ARRAY v_slots_to_book LOOP
 //         SELECT count(*) INTO v_current_attendees
 //         FROM public.appointments
 //         WHERE schedule_id = v_schedule_id
 //           AND status NOT IN ('cancelled', 'no_show');
-//         
+//
 //         IF v_current_attendees >= v_service_max_attendees THEN
 //            UPDATE public.schedules SET is_booked = TRUE WHERE id = v_schedule_id;
 //         END IF;
 //     END LOOP;
-//   
+//
 //     -- 10. Create a financial record
 //     INSERT INTO public.financial_records (client_id, professional_id, appointment_id, client_package_id, amount, description, payment_method)
 //     VALUES (
-//       p_client_id, 
-//       v_professional_id, 
-//       v_appointment_id, 
-//       p_client_package_id, 
-//       v_final_price, 
-//       CASE 
+//       p_client_id,
+//       v_professional_id,
+//       v_appointment_id,
+//       p_client_package_id,
+//       v_final_price,
+//       CASE
 //         WHEN v_service_value_type = 'monthly' THEN 'Agendamento via Assinatura Mensal'
 //         WHEN p_client_package_id IS NOT NULL THEN 'Agendamento via Pacote'
 //         ELSE 'Pagamento por agendamento avulso'
 //       END,
-//       CASE 
+//       CASE
 //         WHEN v_service_value_type = 'monthly' OR p_client_package_id IS NOT NULL THEN 'Crédito/Assinatura'
 //         ELSE 'Pendente'
 //       END
 //     );
-//   
+//
 //     RETURN v_appointment_id;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION book_appointment_dynamic(uuid, uuid, uuid, timestamp with time zone, uuid, boolean)
 //   CREATE OR REPLACE FUNCTION public.book_appointment_dynamic(p_professional_id uuid, p_client_id uuid, p_service_id uuid, p_start_time timestamp with time zone, p_client_package_id uuid DEFAULT NULL::uuid, p_is_recurring boolean DEFAULT false)
 //    RETURNS uuid
@@ -2493,19 +2492,19 @@ export const Constants = {
 //     -- Get Duration
 //     SELECT duration_minutes INTO v_duration FROM services WHERE id = p_service_id;
 //     v_end_time := p_start_time + (v_duration || ' minutes')::interval;
-//   
+//
 //     -- 1. Ensure Schedule Exists
 //     -- We try to find an existing schedule at the exact start time
-//     SELECT id INTO v_schedule_id 
-//     FROM schedules 
+//     SELECT id INTO v_schedule_id
+//     FROM schedules
 //     WHERE professional_id = p_professional_id AND start_time = p_start_time;
-//   
+//
 //     IF v_schedule_id IS NULL THEN
 //       -- If no exact schedule, check if we can create one (no overlap with blocking events)
 //       -- We allow overlap with *appointments* if they are part of a multi-attendee slot (handled by book_appointment),
 //       -- BUT here we are creating a new schedule row. Usually, one schedule row per slot.
 //       -- If a schedule doesn't exist at this time, check if another staggered schedule blocks it.
-//       
+//
 //       IF EXISTS (
 //           SELECT 1 FROM schedules s
 //           WHERE s.professional_id = p_professional_id
@@ -2514,12 +2513,12 @@ export const Constants = {
 //       ) THEN
 //            RAISE EXCEPTION 'Conflito de horário com outro agendamento existente.';
 //       END IF;
-//   
+//
 //       INSERT INTO schedules (professional_id, start_time, end_time)
 //       VALUES (p_professional_id, p_start_time, v_end_time)
 //       RETURNING id INTO v_schedule_id;
 //     END IF;
-//   
+//
 //     -- 2. Call book_appointment (which performs capacity checks)
 //     v_appointment_id := book_appointment(
 //       p_schedule_id := v_schedule_id,
@@ -2528,11 +2527,11 @@ export const Constants = {
 //       p_client_package_id := p_client_package_id,
 //       p_is_recurring := p_is_recurring
 //     );
-//   
+//
 //     RETURN v_appointment_id;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION book_recurring_appointment_series(uuid, uuid, uuid, timestamp with time zone, uuid, integer)
 //   CREATE OR REPLACE FUNCTION public.book_recurring_appointment_series(p_professional_id uuid, p_client_id uuid, p_service_id uuid, p_start_time timestamp with time zone, p_client_package_id uuid DEFAULT NULL::uuid, p_occurrences integer DEFAULT 1)
 //    RETURNS void
@@ -2545,14 +2544,14 @@ export const Constants = {
 //     IF p_occurrences < 1 THEN
 //       RAISE EXCEPTION 'O número de ocorrências deve ser pelo menos 1.';
 //     END IF;
-//   
+//
 //     IF p_occurrences > 52 THEN
 //       RAISE EXCEPTION 'O número máximo de ocorrências é 52 (1 ano).';
 //     END IF;
-//   
+//
 //     FOR v_i IN 0..(p_occurrences - 1) LOOP
 //       v_current_start_time := p_start_time + (v_i * interval '1 week');
-//   
+//
 //       BEGIN
 //         -- Call the updated dynamic booking function
 //         PERFORM book_appointment_dynamic(
@@ -2566,11 +2565,11 @@ export const Constants = {
 //       EXCEPTION WHEN OTHERS THEN
 //          RAISE EXCEPTION 'Erro ao agendar para %: %', v_current_start_time::date, SQLERRM;
 //       END;
-//       
+//
 //     END LOOP;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION cancel_appointment(uuid)
 //   CREATE OR REPLACE FUNCTION public.cancel_appointment(p_appointment_id uuid)
 //    RETURNS void
@@ -2584,20 +2583,20 @@ export const Constants = {
 //     SELECT schedule_id INTO v_schedule_id
 //     FROM public.appointments
 //     WHERE id = p_appointment_id;
-//   
+//
 //     IF NOT FOUND THEN
 //       RAISE EXCEPTION 'Agendamento não encontrado.';
 //     END IF;
-//   
+//
 //     -- Update appointment status to cancelled
 //     UPDATE public.appointments
 //     SET status = 'cancelled'
 //     WHERE id = p_appointment_id;
-//   
+//
 //     -- REMOVED: Free up the schedule slot (is_booked) logic
 //   END;
 //   $function$
-//   
+//
 // FUNCTION check_daily_birthdays()
 //   CREATE OR REPLACE FUNCTION public.check_daily_birthdays()
 //    RETURNS void
@@ -2610,18 +2609,18 @@ export const Constants = {
 //     v_today_md TEXT;
 //   BEGIN
 //     v_today_md := to_char(NOW(), 'MM-DD');
-//   
+//
 //     FOR v_client_record IN
 //       SELECT id, name, birth_date
 //       FROM public.clients
-//       WHERE is_active = true 
-//         AND birth_date IS NOT NULL 
+//       WHERE is_active = true
+//         AND birth_date IS NOT NULL
 //         AND to_char(birth_date, 'MM-DD') = v_today_md
 //     LOOP
-//       
+//
 //       -- Notify all admins
-//       FOR v_admin_id IN 
-//         SELECT p.id 
+//       FOR v_admin_id IN
+//         SELECT p.id
 //         FROM public.professionals p
 //         JOIN public.profiles pr ON pr.id = p.user_id
 //         WHERE pr.role = 'admin'
@@ -2638,7 +2637,7 @@ export const Constants = {
 //           INSERT INTO public.professional_notifications (professional_id, type, message, related_entity_id, link)
 //           VALUES (
 //             v_admin_id,
-//             'new_appointment', -- Using 'new_appointment' as generic type since 'birthday' isn't in enum yet, or we add it. 
+//             'new_appointment', -- Using 'new_appointment' as generic type since 'birthday' isn't in enum yet, or we add it.
 //             -- Actually let's just use message text since frontend displays text. Or use 'schedule_changed' as generic info.
 //             -- Ideally we should alter enum, but for safety in this migration let's stick to existing or just cast.
 //             -- Wait, we added 'package_renewal' in previous file. Let's assume we can add 'birthday' here.
@@ -2649,11 +2648,11 @@ export const Constants = {
 //           );
 //         END IF;
 //       END LOOP;
-//   
+//
 //     END LOOP;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION complete_appointment(uuid)
 //   CREATE OR REPLACE FUNCTION public.complete_appointment(p_appointment_id uuid)
 //    RETURNS void
@@ -2675,27 +2674,27 @@ export const Constants = {
 //     FROM public.appointments a
 //     JOIN public.services s ON a.service_id = s.id
 //     WHERE a.id = p_appointment_id;
-//   
+//
 //     v_service_price := v_appointment.service_price;
 //     v_service_value_type := v_appointment.value_type;
-//   
+//
 //     IF NOT FOUND THEN
 //       RAISE EXCEPTION 'Agendamento com ID % não encontrado.', p_appointment_id;
 //     END IF;
-//   
+//
 //     -- Step 2: Update appointment status to 'completed'
 //     UPDATE public.appointments
 //     SET status = 'completed'
 //     WHERE id = p_appointment_id;
-//   
+//
 //     -- Step 3: Check if a financial record for this appointment already exists
 //     SELECT id INTO v_financial_record_id
 //     FROM public.financial_records
 //     WHERE appointment_id = p_appointment_id;
-//   
+//
 //     -- Step 4: Logic to determine final price
 //     v_final_price := v_service_price;
-//   
+//
 //     -- CHECK FOR PACKAGE OR SUBSCRIPTION
 //     IF v_appointment.client_package_id IS NOT NULL THEN
 //       v_final_price := 0;
@@ -2707,7 +2706,7 @@ export const Constants = {
 //       SELECT partnership_id INTO v_client_partnership_id
 //       FROM public.clients
 //       WHERE id = v_appointment.client_id;
-//   
+//
 //       IF v_client_partnership_id IS NOT NULL THEN
 //         -- Find the best matching discount (specific service > generic)
 //         SELECT discount_percentage INTO v_discount_percentage
@@ -2716,37 +2715,37 @@ export const Constants = {
 //           AND (service_id = v_appointment.service_id OR service_id IS NULL)
 //         ORDER BY service_id IS NOT NULL DESC
 //         LIMIT 1;
-//   
+//
 //         -- Apply discount if found
 //         IF FOUND AND v_discount_percentage IS NOT NULL THEN
 //           v_final_price := v_service_price * (1 - (v_discount_percentage / 100.0));
 //         END IF;
 //       END IF;
-//   
+//
 //       -- Apply manual discount if present (ensure non-negative)
 //       IF v_appointment.discount_amount IS NOT NULL THEN
 //           v_final_price := GREATEST(0, v_final_price - v_appointment.discount_amount);
 //       END IF;
 //     END IF;
-//   
+//
 //     -- Step 5: If a financial record does not exist, create one
 //     IF v_financial_record_id IS NULL THEN
 //       INSERT INTO public.financial_records (
-//         client_id, 
-//         professional_id, 
-//         appointment_id, 
+//         client_id,
+//         professional_id,
+//         appointment_id,
 //         client_package_id,
-//         amount, 
-//         description, 
-//         payment_method, 
+//         amount,
+//         description,
+//         payment_method,
 //         payment_date
 //       )
 //       VALUES (
-//         v_appointment.client_id, 
-//         v_appointment.professional_id, 
-//         p_appointment_id, 
+//         v_appointment.client_id,
+//         v_appointment.professional_id,
+//         p_appointment_id,
 //         v_appointment.client_package_id,
-//         v_final_price, 
+//         v_final_price,
 //         CASE
 //           WHEN v_appointment.client_package_id IS NOT NULL THEN 'Serviço realizado (Pacote)'
 //           WHEN v_service_value_type = 'monthly' THEN 'Serviço realizado (Assinatura)'
@@ -2763,15 +2762,15 @@ export const Constants = {
 //       -- If the record exists, update the amount to ensure correctness (fixing historical errors)
 //       -- and update payment date if null
 //       UPDATE public.financial_records
-//       SET 
+//       SET
 //         amount = v_final_price,
 //         payment_date = COALESCE(payment_date, NOW())
 //       WHERE id = v_financial_record_id;
 //     END IF;
-//   
+//
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_annual_comparative(uuid, uuid, uuid)
 //   CREATE OR REPLACE FUNCTION public.get_annual_comparative(p_professional_id uuid DEFAULT NULL::uuid, p_service_id uuid DEFAULT NULL::uuid, p_partnership_id uuid DEFAULT NULL::uuid)
 //    RETURNS TABLE(month text, total_revenue numeric, total_appointments bigint)
@@ -2830,7 +2829,7 @@ export const Constants = {
 //       ORDER BY m.month;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_available_dates(uuid, uuid, text, text)
 //   CREATE OR REPLACE FUNCTION public.get_available_dates(p_professional_id uuid, p_service_id uuid, p_start_date text, p_end_date text)
 //    RETURNS TABLE(available_date text)
@@ -2854,7 +2853,7 @@ export const Constants = {
 //     ORDER BY 1;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_available_dates(uuid, uuid, date, date)
 //   CREATE OR REPLACE FUNCTION public.get_available_dates(p_professional_id uuid, p_service_id uuid, p_start_date date, p_end_date date)
 //    RETURNS TABLE(available_date date)
@@ -2867,20 +2866,20 @@ export const Constants = {
 //   BEGIN
 //       -- Diagnostic Log
 //       RAISE NOTICE 'get_available_dates called for Professional: %, Service: %, Range: % to %', p_professional_id, p_service_id, p_start_date, p_end_date;
-//   
+//
 //       SELECT duration_minutes INTO v_service_duration FROM public.services WHERE id = p_service_id;
-//   
+//
 //       IF NOT FOUND THEN
 //           RAISE NOTICE 'Service % not found', p_service_id;
 //           RETURN;
 //       END IF;
-//   
+//
 //       -- Calculate slots needed
 //       v_slots_needed := CEIL(v_service_duration::float / v_slot_interval_minutes);
 //       RAISE NOTICE 'Service Duration: % min, Slots Needed: %', v_service_duration, v_slots_needed;
-//   
+//
 //       RETURN QUERY
-//       WITH 
+//       WITH
 //       -- 1. Identify Busy Intervals (Appointments)
 //       busy_intervals AS (
 //           SELECT
@@ -2913,7 +2912,7 @@ export const Constants = {
 //               ps.start_time,
 //               ps.schedule_date
 //           FROM potential_slots ps
-//           WHERE 
+//           WHERE
 //             -- Check 1: Not blocked by a negative override (Granular blocking)
 //             NOT EXISTS (
 //                 SELECT 1 FROM professional_availability_overrides o
@@ -2946,7 +2945,7 @@ export const Constants = {
 //       ORDER BY cg.schedule_date;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_available_dates_dynamic(uuid, uuid, timestamp with time zone, timestamp with time zone)
 //   CREATE OR REPLACE FUNCTION public.get_available_dates_dynamic(p_professional_id uuid, p_service_id uuid, p_start_date timestamp with time zone, p_end_date timestamp with time zone)
 //    RETURNS TABLE(available_date date)
@@ -2961,15 +2960,15 @@ export const Constants = {
 //       RETURN QUERY
 //       SELECT DISTINCT (start_time AT TIME ZONE v_timezone)::date
 //       FROM public.get_available_slots_dynamic(
-//           p_professional_id, 
-//           p_service_id, 
-//           p_start_date, 
+//           p_professional_id,
+//           p_service_id,
+//           p_start_date,
 //           p_end_date
 //       )
 //       ORDER BY 1;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_available_professionals_at_time_dynamic(uuid, timestamp with time zone)
 //   CREATE OR REPLACE FUNCTION public.get_available_professionals_at_time_dynamic(p_service_id uuid, p_start_time timestamp with time zone)
 //    RETURNS TABLE(id uuid, name text, avatar_url text, specialty text, current_occupancy bigint, max_capacity bigint)
@@ -2985,19 +2984,19 @@ export const Constants = {
 //       v_day_of_week INTEGER;
 //   BEGIN
 //       -- Explicitly alias 'services' table to 's' to avoid collision with output parameter 'id' if exists
-//       SELECT s.duration_minutes, s.max_attendees 
+//       SELECT s.duration_minutes, s.max_attendees
 //       INTO v_service_duration, v_max_attendees
-//       FROM services s 
+//       FROM services s
 //       WHERE s.id = p_service_id;
-//   
+//
 //       v_end_time := p_start_time + (v_service_duration || ' minutes')::INTERVAL;
-//       
+//
 //       v_start_time_sp := p_start_time AT TIME ZONE v_timezone;
 //       v_end_time_sp := v_end_time AT TIME ZONE v_timezone;
 //       v_day_of_week := EXTRACT(DOW FROM v_start_time_sp);
-//   
+//
 //       RETURN QUERY
-//       SELECT 
+//       SELECT
 //           p.id,
 //           p.name,
 //           p.avatar_url,
@@ -3007,7 +3006,7 @@ export const Constants = {
 //       FROM professionals p
 //       JOIN professional_services ps ON p.id = ps.professional_id
 //       LEFT JOIN LATERAL (
-//           SELECT 
+//           SELECT
 //               s.id as schedule_id,
 //               COUNT(a.id) as current_count,
 //               MAX(a.service_id::text)::uuid as booked_service_id
@@ -3017,10 +3016,10 @@ export const Constants = {
 //           AND s.start_time = p_start_time
 //           GROUP BY s.id
 //       ) sub ON TRUE
-//       WHERE 
+//       WHERE
 //           ps.service_id = p_service_id
 //           AND p.is_active = TRUE
-//           
+//
 //           -- AVAILABILITY CHECK
 //           AND (
 //               -- 1. Positive Override
@@ -3053,7 +3052,7 @@ export const Constants = {
 //                   )
 //               )
 //           )
-//   
+//
 //           -- CAPACITY CHECK
 //           AND (
 //               sub.schedule_id IS NULL -- OK
@@ -3062,7 +3061,7 @@ export const Constants = {
 //                   AND sub.current_count < v_max_attendees
 //               )
 //           )
-//   
+//
 //           -- OVERLAP CHECK
 //           AND NOT EXISTS (
 //               SELECT 1 FROM schedules s_overlap
@@ -3071,14 +3070,14 @@ export const Constants = {
 //               AND s_overlap.end_time > p_start_time
 //               AND s_overlap.start_time != p_start_time
 //               AND EXISTS (
-//                   SELECT 1 FROM appointments a 
-//                   WHERE a.schedule_id = s_overlap.id 
+//                   SELECT 1 FROM appointments a
+//                   WHERE a.schedule_id = s_overlap.id
 //                   AND a.status != 'cancelled'
 //               )
 //           );
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_available_professionals_for_service_at_time(uuid, timestamp with time zone)
 //   CREATE OR REPLACE FUNCTION public.get_available_professionals_for_service_at_time(p_service_id uuid, p_start_time timestamp with time zone)
 //    RETURNS TABLE(id uuid, name text, specialty text, avatar_url text)
@@ -3097,14 +3096,14 @@ export const Constants = {
 //     WHERE ps.service_id = p_service_id
 //       AND s.start_time = p_start_time
 //       AND s.id NOT IN (
-//         SELECT schedule_id 
-//         FROM appointments 
+//         SELECT schedule_id
+//         FROM appointments
 //         WHERE status NOT IN ('cancelled', 'no_show')
 //       )
 //     ORDER BY p.name;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_available_slots_dynamic(uuid, uuid, timestamp with time zone, timestamp with time zone)
 //   CREATE OR REPLACE FUNCTION public.get_available_slots_dynamic(p_professional_id uuid, p_service_id uuid, p_start_date timestamp with time zone, p_end_date timestamp with time zone)
 //    RETURNS TABLE(start_time timestamp with time zone, end_time timestamp with time zone, schedule_id uuid, current_count bigint, max_capacity bigint)
@@ -3131,67 +3130,67 @@ export const Constants = {
 //       -- 1. Get Service Info
 //       SELECT duration_minutes, max_attendees INTO v_service_duration, v_max_attendees
 //       FROM services WHERE id = p_service_id;
-//       
+//
 //       -- Default capacity to 1 if not set
 //       v_max_attendees := COALESCE(v_max_attendees, 1);
-//   
+//
 //       -- 2. Iterate through slots
 //       FOR v_slot_start IN SELECT generate_series(p_start_date, p_end_date - (v_service_duration || ' minutes')::INTERVAL, '30 minutes'::INTERVAL) LOOP
 //           v_slot_end := v_slot_start + (v_service_duration || ' minutes')::INTERVAL;
-//           
+//
 //           -- Convert to Local Time for Availability Rules (Overrides are stored in local Date/Time)
 //           v_slot_local_start := v_slot_start AT TIME ZONE v_timezone;
 //           v_slot_local_end := v_slot_end AT TIME ZONE v_timezone;
 //           v_day_of_week := EXTRACT(DOW FROM v_slot_local_start);
-//           
+//
 //           -- 3. Check Availability Rules
 //           v_is_available := FALSE;
-//           
+//
 //           -- 3.1 Blocking Override
 //           SELECT EXISTS (
 //               SELECT 1 FROM professional_availability_overrides pao
-//               WHERE pao.professional_id = p_professional_id 
+//               WHERE pao.professional_id = p_professional_id
 //               AND pao.override_date = v_slot_local_start::DATE
 //               AND pao.is_available = FALSE
 //               AND pao.start_time < v_slot_local_end::TIME
 //               AND pao.end_time > v_slot_local_start::TIME
 //           ) INTO v_has_blocking_override;
-//   
+//
 //           -- 3.2 Positive Override
 //           SELECT EXISTS (
 //               SELECT 1 FROM professional_availability_overrides pao
-//               WHERE pao.professional_id = p_professional_id 
+//               WHERE pao.professional_id = p_professional_id
 //               AND pao.override_date = v_slot_local_start::DATE
 //               AND pao.is_available = TRUE
 //               AND pao.start_time <= v_slot_local_start::TIME
 //               AND pao.end_time >= v_slot_local_end::TIME
 //               AND (pao.service_ids IS NULL OR p_service_id = ANY(pao.service_ids))
 //           ) INTO v_has_positive_override;
-//   
+//
 //           -- 3.3 Recurring Availability
 //           SELECT EXISTS (
 //               SELECT 1 FROM professional_recurring_availability pra
-//               WHERE pra.professional_id = p_professional_id 
+//               WHERE pra.professional_id = p_professional_id
 //               AND pra.day_of_week = v_day_of_week
 //               AND pra.start_time <= v_slot_local_start::TIME
 //               AND pra.end_time >= v_slot_local_end::TIME
 //               AND (pra.service_ids IS NULL OR p_service_id = ANY(pra.service_ids))
 //           ) INTO v_has_recurring;
-//   
+//
 //           IF v_has_positive_override THEN
 //               v_is_available := TRUE;
 //           ELSIF v_has_recurring AND NOT v_has_blocking_override THEN
 //               v_is_available := TRUE;
 //           END IF;
-//   
+//
 //           -- 4. Check Capacity & Conflicts
 //           IF v_is_available THEN
 //               v_current_attendees := 0;
 //               v_existing_schedule_id := NULL;
 //               v_existing_service_id := NULL;
-//               
+//
 //               -- Check for existing schedule at this EXACT time
-//               SELECT 
+//               SELECT
 //                   s.id,
 //                   COUNT(a.id) FILTER (WHERE a.status NOT IN ('cancelled', 'no_show')),
 //                   MAX(a.service_id::text)::uuid
@@ -3204,7 +3203,7 @@ export const Constants = {
 //               WHERE s.professional_id = p_professional_id
 //               AND s.start_time = v_slot_start
 //               GROUP BY s.id;
-//   
+//
 //               IF v_existing_schedule_id IS NOT NULL THEN
 //                   -- Schedule Exists: Check Capacity and Service Match
 //                   -- The slot is available ONLY IF current count < max capacity AND service matches
@@ -3239,7 +3238,7 @@ export const Constants = {
 //       END LOOP;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_available_slots_for_service(uuid, uuid, text, text)
 //   CREATE OR REPLACE FUNCTION public.get_available_slots_for_service(p_professional_id uuid, p_service_id uuid, p_start_date text, p_end_date text)
 //    RETURNS TABLE(id uuid, professional_id uuid, start_time timestamp with time zone, end_time timestamp with time zone, current_count bigint, max_capacity integer)
@@ -3257,24 +3256,24 @@ export const Constants = {
 //     IF p_professional_id IS NULL OR p_service_id IS NULL OR p_start_date IS NULL OR p_end_date IS NULL THEN
 //       RETURN;
 //     END IF;
-//   
+//
 //     v_start_ts := p_start_date::TIMESTAMPTZ;
 //     v_end_ts := p_end_date::TIMESTAMPTZ;
-//   
+//
 //     -- Get service duration
 //     SELECT duration_minutes INTO v_service_duration
 //     FROM services
 //     WHERE id = p_service_id;
-//     
+//
 //     IF v_service_duration IS NULL THEN
 //       RETURN;
 //     END IF;
-//   
+//
 //     -- Calculate needed slots
 //     v_slots_needed := CEIL(v_service_duration::numeric / v_slot_interval_minutes::numeric);
 //     IF v_slots_needed < 1 THEN v_slots_needed := 1; END IF;
 //     v_lead_offset := v_slots_needed - 1;
-//   
+//
 //     RETURN QUERY
 //     WITH valid_slots AS (
 //       SELECT
@@ -3317,7 +3316,7 @@ export const Constants = {
 //     AND cs.nth_slot_start_time = (cs.start_time + (v_lead_offset * v_slot_interval_minutes || ' minutes')::interval);
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_clients_with_birthday_this_week(date, date)
 //   CREATE OR REPLACE FUNCTION public.get_clients_with_birthday_this_week(p_start_date date, p_end_date date)
 //    RETURNS TABLE(id uuid, name text, birth_date date, email text, phone text)
@@ -3347,7 +3346,7 @@ export const Constants = {
 //       END IF;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_clients_with_birthday_this_week_safe()
 //   CREATE OR REPLACE FUNCTION public.get_clients_with_birthday_this_week_safe()
 //    RETURNS SETOF clients
@@ -3360,7 +3359,7 @@ export const Constants = {
 //       AND to_char(c.birth_date, 'MM-DD') BETWEEN to_char(current_date, 'MM-DD')
 //                                              AND to_char(current_date + interval '7 day', 'MM-DD');
 //   $function$
-//   
+//
 // FUNCTION get_kpi_metrics(date, date, uuid, uuid, uuid)
 //   CREATE OR REPLACE FUNCTION public.get_kpi_metrics(start_date date, end_date date, p_professional_id uuid DEFAULT NULL::uuid, p_service_id uuid DEFAULT NULL::uuid, p_partnership_id uuid DEFAULT NULL::uuid)
 //    RETURNS TABLE(total_appointments bigint, completed_appointments bigint, cancelled_appointments bigint, cancellation_rate numeric, total_revenue numeric, average_ticket numeric, retention_rate numeric, prev_total_appointments bigint, prev_completed_appointments bigint, prev_cancelled_appointments bigint, prev_cancellation_rate numeric, prev_total_revenue numeric, prev_average_ticket numeric, prev_retention_rate numeric)
@@ -3370,14 +3369,14 @@ export const Constants = {
 //       period_duration INT;
 //       prev_start_date DATE;
 //       prev_end_date DATE;
-//       
+//
 //       curr_revenue NUMERIC;
 //       prev_revenue NUMERIC;
 //   BEGIN
 //       period_duration := end_date - start_date;
 //       prev_start_date := start_date - (period_duration + 1) * interval '1 day';
 //       prev_end_date := end_date - (period_duration + 1) * interval '1 day';
-//   
+//
 //       -- Calculate Revenue separately using financial_records for Current Period
 //       -- This ensures we capture package purchases, subscription payments and single sessions
 //       SELECT COALESCE(SUM(fr.amount), 0) INTO curr_revenue
@@ -3395,7 +3394,7 @@ export const Constants = {
 //            pkg.service_id = p_service_id OR
 //            cs.service_id = p_service_id
 //       );
-//   
+//
 //       -- Calculate Revenue separately using financial_records for Previous Period
 //       SELECT COALESCE(SUM(fr.amount), 0) INTO prev_revenue
 //       FROM public.financial_records fr
@@ -3412,7 +3411,7 @@ export const Constants = {
 //            pkg.service_id = p_service_id OR
 //            cs.service_id = p_service_id
 //       );
-//   
+//
 //       RETURN QUERY
 //       WITH current_aggregates AS (
 //           SELECT
@@ -3478,7 +3477,7 @@ export const Constants = {
 //                WHEN ca.total_clients > 0 THEN (ca.retained_clients::NUMERIC * 100.0 / ca.total_clients)
 //                ELSE 0
 //           END AS retention_rate,
-//   
+//
 //           pa.prev_total_appointments,
 //           pa.prev_completed_appointments,
 //           pa.prev_cancelled_appointments,
@@ -3499,7 +3498,7 @@ export const Constants = {
 //       FROM current_aggregates ca, previous_aggregates pa;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_partnership_performance(date, date, uuid, uuid, uuid)
 //   CREATE OR REPLACE FUNCTION public.get_partnership_performance(start_date date, end_date date, p_professional_id uuid DEFAULT NULL::uuid, p_service_id uuid DEFAULT NULL::uuid, p_partnership_id uuid DEFAULT NULL::uuid)
 //    RETURNS TABLE(partnership_name text, client_count bigint, total_revenue numeric)
@@ -3526,7 +3525,7 @@ export const Constants = {
 //       ORDER BY total_revenue DESC;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION get_service_performance(date, date, uuid, uuid, uuid)
 //   CREATE OR REPLACE FUNCTION public.get_service_performance(start_date date, end_date date, p_professional_id uuid DEFAULT NULL::uuid, p_service_id uuid DEFAULT NULL::uuid, p_partnership_id uuid DEFAULT NULL::uuid)
 //    RETURNS TABLE(service_name text, count bigint)
@@ -3551,7 +3550,7 @@ export const Constants = {
 //       ORDER BY count DESC;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION handle_availability_change_notification()
 //   CREATE OR REPLACE FUNCTION public.handle_availability_change_notification()
 //    RETURNS trigger
@@ -3573,7 +3572,7 @@ export const Constants = {
 //         message_text := 'Um horário de disponibilidade recorrente foi alterado pelo administrador.';
 //       END IF;
 //     END IF;
-//   
+//
 //     INSERT INTO public.professional_notifications (professional_id, type, message, related_entity_id, link)
 //     VALUES (
 //       record_data.professional_id,
@@ -3582,11 +3581,11 @@ export const Constants = {
 //       record_data.id,
 //       '/profissional'
 //     );
-//   
+//
 //     RETURN record_data;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION handle_cancellation_notification()
 //   CREATE OR REPLACE FUNCTION public.handle_cancellation_notification()
 //    RETURNS trigger
@@ -3605,7 +3604,7 @@ export const Constants = {
 //       JOIN public.services s ON s.id = NEW.service_id
 //       JOIN public.schedules sch ON sch.id = NEW.schedule_id
 //       WHERE c.id = NEW.client_id;
-//   
+//
 //       INSERT INTO public.professional_notifications (professional_id, type, message, related_entity_id, link)
 //       VALUES (
 //         NEW.professional_id,
@@ -3618,7 +3617,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION handle_missing_notes_notification()
 //   CREATE OR REPLACE FUNCTION public.handle_missing_notes_notification()
 //    RETURNS trigger
@@ -3636,7 +3635,7 @@ export const Constants = {
 //       FROM public.clients c
 //       JOIN public.schedules s ON s.id = NEW.schedule_id
 //       WHERE c.id = NEW.client_id;
-//   
+//
 //       -- Insert notification
 //       INSERT INTO public.professional_notifications (professional_id, type, message, related_entity_id, link)
 //       VALUES (
@@ -3650,7 +3649,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION handle_new_appointment_notification()
 //   CREATE OR REPLACE FUNCTION public.handle_new_appointment_notification()
 //    RETURNS trigger
@@ -3668,7 +3667,7 @@ export const Constants = {
 //     JOIN public.services s ON s.id = NEW.service_id
 //     JOIN public.schedules sch ON sch.id = NEW.schedule_id
 //     WHERE c.id = NEW.client_id;
-//   
+//
 //     INSERT INTO public.professional_notifications (professional_id, type, message, related_entity_id, link)
 //     VALUES (
 //       NEW.professional_id,
@@ -3680,7 +3679,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION handle_new_service_notification()
 //   CREATE OR REPLACE FUNCTION public.handle_new_service_notification()
 //    RETURNS trigger
@@ -3691,7 +3690,7 @@ export const Constants = {
 //     service_name TEXT;
 //   BEGIN
 //     SELECT name INTO service_name FROM public.services WHERE id = NEW.service_id;
-//   
+//
 //     INSERT INTO public.professional_notifications (professional_id, type, message, related_entity_id, link)
 //     VALUES (
 //       NEW.professional_id,
@@ -3703,7 +3702,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION handle_new_user()
 //   CREATE OR REPLACE FUNCTION public.handle_new_user()
 //    RETURNS trigger
@@ -3718,7 +3717,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION handle_override_change_notification()
 //   CREATE OR REPLACE FUNCTION public.handle_override_change_notification()
 //    RETURNS trigger
@@ -3744,7 +3743,7 @@ export const Constants = {
 //         message_text := 'Uma exceção de disponibilidade para ' || to_char(record_data.override_date, 'DD/MM/YYYY') || ' foi alterada pelo administrador.';
 //       END IF;
 //     END IF;
-//   
+//
 //     INSERT INTO public.professional_notifications (professional_id, type, message, related_entity_id, link)
 //     VALUES (
 //       record_data.professional_id,
@@ -3753,11 +3752,11 @@ export const Constants = {
 //       record_data.id,
 //       '/profissional'
 //     );
-//   
+//
 //     RETURN record_data;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION handle_rescheduled_appointment_notification()
 //   CREATE OR REPLACE FUNCTION public.handle_rescheduled_appointment_notification()
 //    RETURNS trigger
@@ -3774,7 +3773,7 @@ export const Constants = {
 //       SELECT name INTO client_name FROM public.clients WHERE id = NEW.client_id;
 //       SELECT start_time INTO old_time FROM public.schedules WHERE id = OLD.schedule_id;
 //       SELECT start_time INTO new_time FROM public.schedules WHERE id = NEW.schedule_id;
-//   
+//
 //       INSERT INTO public.professional_notifications (professional_id, type, message, related_entity_id, link)
 //       VALUES (
 //         NEW.professional_id,
@@ -3787,7 +3786,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION handle_session_completion()
 //   CREATE OR REPLACE FUNCTION public.handle_session_completion()
 //    RETURNS trigger
@@ -3802,26 +3801,26 @@ export const Constants = {
 //   BEGIN
 //     -- Check if status changed to completed and has a package
 //     IF NEW.status = 'completed' AND OLD.status <> 'completed' AND NEW.client_package_id IS NOT NULL THEN
-//       
+//
 //       -- Decrement session
 //       UPDATE public.client_packages
 //       SET sessions_remaining = sessions_remaining - 1
 //       WHERE id = NEW.client_package_id
 //       RETURNING sessions_remaining INTO v_new_remaining;
-//   
+//
 //       -- Get details for notification
 //       SELECT c.name, p.name INTO v_client_name, v_package_name
 //       FROM public.clients c
 //       JOIN public.client_packages cp ON cp.id = NEW.client_package_id
 //       JOIN public.packages p ON p.id = cp.package_id
 //       WHERE c.id = NEW.client_id;
-//   
+//
 //       -- Check for Notifications (2 remaining or 1 remaining)
 //       IF v_new_remaining = 2 OR v_new_remaining = 1 THEN
-//         
+//
 //         -- Find all admin professionals
-//         FOR v_admin_id IN 
-//           SELECT p.id 
+//         FOR v_admin_id IN
+//           SELECT p.id
 //           FROM public.professionals p
 //           JOIN public.profiles pr ON pr.id = p.user_id
 //           WHERE pr.role = 'admin'
@@ -3835,11 +3834,11 @@ export const Constants = {
 //             '/admin/pacientes/' || NEW.client_id
 //           );
 //         END LOOP;
-//         
+//
 //       ELSIF v_new_remaining <= 0 THEN
 //          -- Alert for exhaustion
-//          FOR v_admin_id IN 
-//           SELECT p.id 
+//          FOR v_admin_id IN
+//           SELECT p.id
 //           FROM public.professionals p
 //           JOIN public.profiles pr ON pr.id = p.user_id
 //           WHERE pr.role = 'admin'
@@ -3854,12 +3853,12 @@ export const Constants = {
 //           );
 //         END LOOP;
 //       END IF;
-//   
+//
 //     END IF;
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION is_admin(uuid)
 //   CREATE OR REPLACE FUNCTION public.is_admin(uid uuid)
 //    RETURNS boolean
@@ -3871,7 +3870,7 @@ export const Constants = {
 //       WHERE p.id = uid AND p.role = 'admin'
 //     );
 //   $function$
-//   
+//
 // FUNCTION is_admin()
 //   CREATE OR REPLACE FUNCTION public.is_admin()
 //    RETURNS boolean
@@ -3887,7 +3886,7 @@ export const Constants = {
 //     );
 //   END;
 //   $function$
-//   
+//
 // FUNCTION is_admin_simple(uuid)
 //   CREATE OR REPLACE FUNCTION public.is_admin_simple(p_user uuid DEFAULT auth.uid())
 //    RETURNS boolean
@@ -3903,7 +3902,7 @@ export const Constants = {
 //     );
 //   END;
 //   $function$
-//   
+//
 // FUNCTION process_missing_notes_notifications()
 //   CREATE OR REPLACE FUNCTION public.process_missing_notes_notifications()
 //    RETURNS void
@@ -3915,9 +3914,9 @@ export const Constants = {
 //     -- Iterate over appointments that are completed, have no notes, ended more than 24h ago
 //     -- and don't have a notification yet.
 //     FOR appt IN
-//       SELECT 
-//         a.id, 
-//         a.professional_id, 
+//       SELECT
+//         a.id,
+//         a.professional_id,
 //         a.client_id,
 //         s.end_time
 //       FROM appointments a
@@ -3949,7 +3948,7 @@ export const Constants = {
 //     END LOOP;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION reschedule_appointment(uuid, uuid)
 //   CREATE OR REPLACE FUNCTION public.reschedule_appointment(p_appointment_id uuid, p_new_schedule_id uuid)
 //    RETURNS void
@@ -3966,43 +3965,43 @@ export const Constants = {
 //     SELECT service_id INTO v_service_id
 //     FROM public.appointments
 //     WHERE id = p_appointment_id;
-//   
+//
 //     IF NOT FOUND THEN
 //       RAISE EXCEPTION 'Agendamento não encontrado.';
 //     END IF;
-//   
+//
 //     SELECT max_attendees INTO v_max_attendees
 //     FROM public.services
 //     WHERE id = v_service_id;
-//     
+//
 //     v_max_attendees := COALESCE(v_max_attendees, 1);
-//   
+//
 //     SELECT professional_id INTO v_new_professional_id
 //     FROM public.schedules
 //     WHERE id = p_new_schedule_id;
-//   
+//
 //     IF NOT FOUND THEN
 //       RAISE EXCEPTION 'Novo horário não encontrado.';
 //     END IF;
-//   
-//     SELECT 
+//
+//     SELECT
 //       count(*),
 //       MAX(service_id::text)::uuid
-//     INTO 
+//     INTO
 //       v_conflict_count,
 //       v_existing_service_id
 //     FROM public.appointments
 //     WHERE schedule_id = p_new_schedule_id
 //       AND status NOT IN ('cancelled', 'no_show');
-//   
+//
 //     IF v_conflict_count >= v_max_attendees THEN
 //       RAISE EXCEPTION 'Turma lotada: Capacidade máxima atingida (%/%)', v_conflict_count, v_max_attendees;
 //     END IF;
-//   
+//
 //     IF v_conflict_count > 0 AND v_existing_service_id IS NOT NULL AND v_existing_service_id != v_service_id THEN
 //       RAISE EXCEPTION 'Conflito de serviço: Este horário já está reservado para outro tipo de serviço.';
 //     END IF;
-//   
+//
 //     UPDATE public.appointments
 //     SET
 //       schedule_id = p_new_schedule_id,
@@ -4011,7 +4010,7 @@ export const Constants = {
 //     WHERE id = p_appointment_id;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION reschedule_appointment_dynamic(uuid, uuid, timestamp with time zone)
 //   CREATE OR REPLACE FUNCTION public.reschedule_appointment_dynamic(p_appointment_id uuid, p_new_professional_id uuid, p_new_start_time timestamp with time zone)
 //    RETURNS void
@@ -4030,56 +4029,56 @@ export const Constants = {
 //     -- 1. Get Service Info
 //     SELECT service_id INTO v_service_id FROM public.appointments WHERE id = p_appointment_id;
 //     IF NOT FOUND THEN RAISE EXCEPTION 'Agendamento não encontrado.'; END IF;
-//   
-//     SELECT duration_minutes, max_attendees INTO v_duration, v_max_attendees 
+//
+//     SELECT duration_minutes, max_attendees INTO v_duration, v_max_attendees
 //     FROM public.services WHERE id = v_service_id;
-//     
+//
 //     v_max_attendees := COALESCE(v_max_attendees, 1);
 //     v_end_time := p_new_start_time + (v_duration || ' minutes')::interval;
-//   
+//
 //     -- 2. Find or Create Schedule
 //     SELECT id INTO v_schedule_id
 //     FROM public.schedules
 //     WHERE professional_id = p_new_professional_id
 //       AND start_time = p_new_start_time;
-//   
+//
 //     IF v_schedule_id IS NULL THEN
 //       -- Check Staggered Conflicts
 //       IF EXISTS (
 //           SELECT 1 FROM public.schedules s
 //           WHERE s.professional_id = p_new_professional_id
-//           AND s.start_time < v_end_time 
+//           AND s.start_time < v_end_time
 //           AND s.end_time > p_new_start_time
 //           AND EXISTS (SELECT 1 FROM public.appointments a WHERE a.schedule_id = s.id AND a.status NOT IN ('cancelled', 'no_show'))
 //       ) THEN
 //            RAISE EXCEPTION 'Conflito de horário com outro agendamento existente.';
 //       END IF;
-//   
+//
 //       INSERT INTO public.schedules (professional_id, start_time, end_time)
 //       VALUES (p_new_professional_id, p_new_start_time, v_end_time)
 //       RETURNING id INTO v_schedule_id;
 //     END IF;
-//   
+//
 //     -- 3. Validate Capacity and Service on Target Schedule
-//     SELECT 
+//     SELECT
 //       count(*),
 //       MAX(service_id::text)::uuid
-//     INTO 
+//     INTO
 //       v_conflict_count,
 //       v_existing_service_id
 //     FROM public.appointments
 //     WHERE schedule_id = v_schedule_id
 //       AND status NOT IN ('cancelled', 'no_show')
 //       AND id != p_appointment_id; -- Exclude self if rescheduling to same slot
-//   
+//
 //     IF v_conflict_count >= v_max_attendees THEN
 //       RAISE EXCEPTION 'Turma lotada: Capacidade máxima atingida (%/%)', v_conflict_count, v_max_attendees;
 //     END IF;
-//   
+//
 //     IF v_conflict_count > 0 AND v_existing_service_id IS NOT NULL AND v_existing_service_id != v_service_id THEN
 //       RAISE EXCEPTION 'Conflito de serviço: Este horário já está reservado para outro tipo de serviço.';
 //     END IF;
-//   
+//
 //     -- 4. Update Appointment
 //     UPDATE public.appointments
 //     SET
@@ -4087,10 +4086,10 @@ export const Constants = {
 //       professional_id = p_new_professional_id,
 //       status = 'scheduled'
 //     WHERE id = p_appointment_id;
-//   
+//
 //   END;
 //   $function$
-//   
+//
 // FUNCTION rls_auto_enable()
 //   CREATE OR REPLACE FUNCTION public.rls_auto_enable()
 //    RETURNS event_trigger
@@ -4121,7 +4120,7 @@ export const Constants = {
 //     END LOOP;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION sync_admin_role()
 //   CREATE OR REPLACE FUNCTION public.sync_admin_role()
 //    RETURNS trigger
@@ -4137,7 +4136,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION sync_appointment_financials()
 //   CREATE OR REPLACE FUNCTION public.sync_appointment_financials()
 //    RETURNS trigger
@@ -4153,7 +4152,7 @@ export const Constants = {
 //       v_final_amount := 0;
 //     ELSE
 //       SELECT price, value_type INTO v_service_price, v_value_type FROM services WHERE id = NEW.service_id;
-//       
+//
 //       IF v_value_type = 'monthly' THEN
 //          v_final_amount := 0;
 //       ELSE
@@ -4161,16 +4160,16 @@ export const Constants = {
 //          v_final_amount := GREATEST(0, v_service_price - COALESCE(NEW.discount_amount, 0));
 //       END IF;
 //     END IF;
-//     
+//
 //     -- Update financial record if exists
-//     UPDATE financial_records 
+//     UPDATE financial_records
 //     SET amount = v_final_amount
 //     WHERE appointment_id = NEW.id;
-//     
+//
 //     RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 // FUNCTION update_updated_at_column()
 //   CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 //    RETURNS trigger
@@ -4181,7 +4180,7 @@ export const Constants = {
 //       RETURN NEW;
 //   END;
 //   $function$
-//   
+//
 
 // --- TRIGGERS ---
 // Table: appointments
@@ -4247,4 +4246,3 @@ export const Constants = {
 //   CREATE INDEX idx_time_tracking_professional_date ON public.time_tracking USING btree (professional_id, date)
 // Table: user_roles
 //   CREATE INDEX idx_user_roles_role ON public.user_roles USING btree (role)
-

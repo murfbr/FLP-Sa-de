@@ -8,6 +8,7 @@ import { AuthProvider } from '@/providers/AuthProvider'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { RoleGuard } from '@/components/RoleGuard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { PWAPrompt } from '@/components/PWAPrompt'
 import Layout from './components/Layout'
 import PublicLayout from './components/PublicLayout'
 import Index from './pages/Index'
@@ -51,6 +52,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <PWAPrompt />
           <Routes>
             {/* Public Routes */}
             <Route element={<PublicLayout />}>
