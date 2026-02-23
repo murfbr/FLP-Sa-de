@@ -445,8 +445,8 @@ export const AppointmentFormDialog = ({
         <DialogHeader>
           <DialogTitle>Novo Agendamento</DialogTitle>
           <DialogDescription>
-            {isSpecificTimeSlot
-              ? 'Selecione o cliente e serviço para este horário.'
+            {isSpecificTimeSlot && initialDate
+              ? `Agendamento para ${format(initialDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`
               : 'Configure o agendamento.'}
           </DialogDescription>
         </DialogHeader>

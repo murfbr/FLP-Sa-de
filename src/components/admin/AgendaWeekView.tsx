@@ -137,7 +137,11 @@ export const AgendaWeekView = ({
 
   const handleMouseMove = (e: React.MouseEvent, day: Date) => {
     const rect = e.currentTarget.getBoundingClientRect()
-    const y = e.clientY - rect.top
+    let y = e.clientY - rect.top
+
+    // Clamp to ensure we don't go out of bounds
+    if (y < 0) y = 0
+    if (y >= rect.height) y = rect.height - 1
 
     const startHour = isExpanded ? 0 : 6
     const hourIndex = Math.floor(y / NORMAL_HEIGHT)
@@ -259,9 +263,21 @@ export const AgendaWeekView = ({
                 return (
                   <div
                     key={day.toString()}
-                    className="flex-1 border-r last:border-0 relative bg-background"
+                    className="flex-1 border-r last:border-0 relative bg-background cursor-pointer group"
                     onMouseMove={(e) => handleMouseMove(e, day)}
                     onMouseLeave={handleMouseLeave}
+                    onClick={() => {
+                      if (hoveredSlot?.day === dayKey) {
+                        const targetTime = new Date(day)
+                        targetTime.setHours(
+                          hoveredSlot.hour,
+                          hoveredSlot.minutes,
+                          0,
+                          0,
+                        )
+                        onTimeSlotClick(targetTime, true)
+                      }
+                    }}
                   >
                     <div className="absolute inset-0 flex flex-col pointer-events-none z-0">
                       {hours.map((h) => (
@@ -365,13 +381,14 @@ export const AgendaWeekView = ({
                                 top: offset,
                                 height: NORMAL_HEIGHT / 2,
                               }}
-                              className="absolute w-full flex items-center justify-center bg-primary/5 border-t border-b border-primary/20"
+                              className="absolute w-full flex items-center justify-center bg-primary/5 border-t border-b border-primary/20 pointer-events-none"
                             >
                               <Button
                                 variant="secondary"
                                 size="icon"
                                 className="h-6 w-6 rounded-full pointer-events-auto shadow-sm animate-in fade-in zoom-in duration-100 scale-90 hover:scale-100"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation()
                                   const targetTime = new Date(day)
                                   targetTime.setHours(
                                     h,

@@ -115,7 +115,11 @@ export const AgendaDayView = ({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect()
-    const y = e.clientY - rect.top
+    let y = e.clientY - rect.top
+
+    // Clamp to ensure we don't go out of bounds
+    if (y < 0) y = 0
+    if (y >= rect.height) y = rect.height - 1
 
     const startHour = isExpanded ? 0 : 6
     const hourIndex = Math.floor(y / NORMAL_HEIGHT)
@@ -191,9 +195,21 @@ export const AgendaDayView = ({
 
             {/* Day Column */}
             <div
-              className="flex-1 relative bg-background"
+              className="flex-1 relative bg-background cursor-pointer"
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
+              onClick={() => {
+                if (hoveredSlot !== null) {
+                  const targetTime = new Date(currentDate)
+                  targetTime.setHours(
+                    hoveredSlot.hour,
+                    hoveredSlot.minutes,
+                    0,
+                    0,
+                  )
+                  onTimeSlotClick(targetTime, true)
+                }
+              }}
             >
               {/* 1. Background Grid Lines */}
               <div className="absolute inset-0 flex flex-col pointer-events-none z-0">
@@ -299,12 +315,13 @@ export const AgendaDayView = ({
                           top: offset,
                           height: NORMAL_HEIGHT / 2,
                         }}
-                        className="absolute w-full flex items-center justify-center bg-black/5"
+                        className="absolute w-full flex items-center justify-center bg-black/5 pointer-events-none"
                       >
                         <Button
                           variant="secondary"
                           className="rounded-full shadow-sm pointer-events-auto animate-in fade-in zoom-in duration-100 h-8"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation()
                             const targetTime = new Date(currentDate)
                             targetTime.setHours(h, hoveredSlot.minutes, 0, 0)
                             onTimeSlotClick(targetTime, true)
