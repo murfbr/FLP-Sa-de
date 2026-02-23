@@ -23,7 +23,9 @@ Deno.serve(async (req: Request) => {
     if (birthdayError) throw birthdayError
 
     // Call the database function to check for missing notes
-    const { error: notesError } = await supabase.rpc('process_missing_notes_notifications')
+    const { error: notesError } = await supabase.rpc(
+      'process_missing_notes_notifications',
+    )
     if (notesError) throw notesError
 
     return new Response(
