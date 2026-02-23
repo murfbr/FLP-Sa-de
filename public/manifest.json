@@ -1,0 +1,28 @@
+{
+  "name": "FPL Saúde",
+  "short_name": "FPL Saúde",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFDFB",
+  "theme_color": "#314E39",
+  "icons": [
+    {
+      "src": "/pwa-192x192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
